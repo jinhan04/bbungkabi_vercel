@@ -99,7 +99,13 @@ io.on("connection", (socket) => {
 
   socket.on("start-game", ({ roomCode }) => {
     const players = rooms[roomCode];
-    if (!players) return;
+    if (!players || players.length < 3 || players.length > 6) {
+      socket.emit(
+        "join-error",
+        "게임은 3명 이상 6명 이하일 때만 시작할 수 있습니다."
+      );
+      return;
+    }
 
     // ✅ 라운드 카운터 초기화
     roundCount[roomCode] = 1;

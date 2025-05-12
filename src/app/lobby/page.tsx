@@ -117,7 +117,12 @@ export default function LobbyPage() {
       {isHost && (
         <button
           onClick={handleStartGame}
-          className="mt-8 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg"
+          disabled={players.length < 3 || players.length > 6}
+          className={`mt-8 px-6 py-2 font-semibold rounded-lg ${
+            players.length < 3 || players.length > 6
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}
         >
           게임 시작하기
         </button>

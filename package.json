@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build-server": "tsc -p tsconfig.server.json",
+    "start-server": "node dist/server/server.js"
   },
   "dependencies": {
     "autoprefixer": "^10.4.21",

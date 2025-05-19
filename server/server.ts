@@ -54,6 +54,7 @@ const createDeck = () => {
     "Q",
     "K",
   ];
+
   const deck: string[] = [];
   for (const suit of suits) {
     for (const rank of ranks) {

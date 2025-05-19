@@ -4,6 +4,11 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSocket } from "@/lib/socket";
+import {
+  playSound,
+  playBackgroundMusic,
+  stopBackgroundMusic,
+} from "@/lib/sound";
 
 export default function GamePage() {
   const searchParams = useSearchParams();
@@ -12,6 +17,9 @@ export default function GamePage() {
   const nicknameRaw = searchParams.get("nickname") || "";
   const nickname = decodeURIComponent(nicknameRaw);
   const [playerList, setPlayerList] = useState<string[]>([]);
+
+  const [bagajiText, setBagajiText] = useState("");
+  const [showBagaji, setShowBagaji] = useState(false);
 
   const [hand, setHand] = useState<string[]>([]);
   const [round, setRound] = useState<number>(1);
@@ -47,6 +55,11 @@ export default function GamePage() {
       getSocket().emit("declare-bagaji", { roomCode, isBagaji });
     }
   };
+
+  useEffect(() => {
+    playBackgroundMusic();
+    return () => stopBackgroundMusic();
+  }, []);
 
   useEffect(() => {
     const socket = getSocket();
@@ -90,6 +103,7 @@ export default function GamePage() {
     });
 
     socket.on("drawn-card", ({ card }) => {
+      playSound("draw.mp3");
       setHand((prev) => {
         const newHand = sortHandByValue([...prev, card]);
         checkAndEmitBagaji(newHand);
@@ -112,6 +126,10 @@ export default function GamePage() {
       ({ reason, stopper, allPlayerHands, round, triggerer }) => {
         const myHand = allPlayerHands?.[nickname] || hand;
 
+        if (reason === "족보 완성") {
+          playSound("jokbo_complete.mp3");
+        }
+
         sessionStorage.setItem("myHand", JSON.stringify(myHand));
         sessionStorage.setItem(
           "allPlayerHands",
@@ -132,18 +150,22 @@ export default function GamePage() {
     );
 
     socket.on("bagaji-declared", ({ nickname, isBagaji }) => {
-      const key = `${nickname}-${isBagaji}`;
-      const id = Date.now();
-      if (displayedBagajiMessages.current.has(key)) return;
-      displayedBagajiMessages.current.add(key);
-      setMessages((prev) => [
-        ...prev,
-        { id, nickname, text: isBagaji ? "바가지!" : "노 바가지!" },
-      ]);
+      const message = isBagaji ? "🚨 바가지! 🚨" : "❌ 노 바가지 ❌";
+
+      // 중앙 표시
+      setBagajiText(message);
+      setShowBagaji(true);
+
+      // 💬 채팅창에 출력되도록 추가
+      if (nickname && message) {
+        setChatMessages((prev) => [...prev, { nickname, message }]);
+      }
+
+      // 중앙 메시지 제거
       setTimeout(() => {
-        setMessages((prev) => prev.filter((m) => m.id !== id));
-        displayedBagajiMessages.current.delete(key);
-      }, 3000);
+        setShowBagaji(false);
+        setBagajiText("");
+      }, 1000);
     });
 
     socket.emit("ready", { roomCode, nickname });
@@ -216,6 +238,7 @@ export default function GamePage() {
   };
 
   const handleInitialBbung = () => {
+    playSound("bbung.mp3");
     if (bbungCards.length !== 2) {
       alert("같은 숫자의 카드 2장을 선택해야 뻥이 가능합니다.");
       return;
@@ -310,6 +333,7 @@ export default function GamePage() {
   const sendChat = () => {
     if (!canSend || chatInput.trim() === "") return;
     const socket = getSocket();
+    playSound("chat.mp3");
     socket.emit("chat-message", { roomCode, nickname, message: chatInput });
     setChatInput("");
     setCanSend(false);
@@ -524,6 +548,13 @@ export default function GamePage() {
           </div>
         </div>
       </div>
+      {showBagaji && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="text-3xl font-bold text-white bg-black bg-opacity-70 px-6 py-3 rounded-lg shadow-lg">
+            {bagajiText}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

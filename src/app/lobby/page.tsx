@@ -13,6 +13,7 @@ export default function LobbyPage() {
 
   const [players, setPlayers] = useState<string[]>([]);
   const [hasJoined, setHasJoined] = useState(false);
+  const minParam = parseInt(searchParams.get("min") || "3", 10);
 
   // ✅ 채팅 관련 상태
   const [chatMessages, setChatMessages] = useState<

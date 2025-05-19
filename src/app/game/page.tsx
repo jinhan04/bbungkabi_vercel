@@ -48,18 +48,34 @@ export default function GamePage() {
 
   const displayedBagajiMessages = useRef(new Set<string>());
 
-  const checkAndEmitBagaji = (cards: string[]) => {
-    if (cards.length === 2) {
-      const [a, b] = cards.map((c) => c.replace(/[^0-9JQKA]/g, ""));
-      const isBagaji = a === b;
+  const checkAndEmitBagaji = (
+    cards: string[],
+    context: "draw" | "afterSubmit"
+  ) => {
+    if (cards.length < 2) return;
+
+    const numberMap: Record<string, number> = {};
+    for (const c of cards) {
+      const num = c.replace(/[^0-9JQKA]/g, "");
+      numberMap[num] = (numberMap[num] || 0) + 1;
+    }
+
+    const counts = Object.values(numberMap).sort((a, b) => b - a);
+
+    if (context === "draw" && cards.length === 2) {
+      const isBagaji = counts[0] === 2;
       getSocket().emit("declare-bagaji", { roomCode, isBagaji });
     }
-  };
 
-  useEffect(() => {
-    playBackgroundMusic();
-    return () => stopBackgroundMusic();
-  }, []);
+    if (context === "afterSubmit") {
+      if (cards.length === 2) {
+        const isBagaji = counts[0] === 2;
+        getSocket().emit("declare-bagaji", { roomCode, isBagaji });
+      } else if (cards.length === 5 && counts[0] === 3 && counts[1] === 2) {
+        getSocket().emit("declare-bagaji", { roomCode, isBagaji: true });
+      }
+    }
+  };
 
   useEffect(() => {
     const socket = getSocket();
@@ -106,7 +122,9 @@ export default function GamePage() {
       playSound("draw.mp3");
       setHand((prev) => {
         const newHand = sortHandByValue([...prev, card]);
-        checkAndEmitBagaji(newHand);
+        if (newHand.length === 2) {
+          checkAndEmitBagaji(newHand, "draw");
+        }
         return newHand;
       });
       setMustSubmit(true);
@@ -271,7 +289,9 @@ export default function GamePage() {
       const newHand = sortHandByValue(
         prev.filter((c) => !bbungCards.includes(c))
       );
-      checkAndEmitBagaji(newHand);
+      if (newHand.length === 2) {
+        checkAndEmitBagaji(newHand, "afterSubmit");
+      }
       return newHand;
     });
 
@@ -295,7 +315,7 @@ export default function GamePage() {
 
     setHand((prev) => {
       const newHand = sortHandByValue(prev.filter((c) => c !== bbungCards[0]));
-      checkAndEmitBagaji(newHand);
+      checkAndEmitBagaji(newHand, "afterSubmit");
       return newHand;
     });
 
@@ -313,7 +333,8 @@ export default function GamePage() {
     socket.emit("submit-card", { roomCode, card: bbungCards[0] });
     setHand((prev) => {
       const newHand = sortHandByValue(prev.filter((c) => c !== bbungCards[0]));
-      checkAndEmitBagaji(newHand);
+      checkAndEmitBagaji(newHand, "afterSubmit");
+
       return newHand;
     });
     setBbungCards([]);

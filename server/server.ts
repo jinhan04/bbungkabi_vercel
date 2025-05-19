@@ -27,6 +27,7 @@ const bbungEndTriggeredBy: { [roomCode: string]: string | null } = {}; // 유도
 const submittedHistory: {
   [key: string]: { nickname: string; card: string }[];
 } = {};
+const minPlayersPerRoom: { [roomCode: string]: number } = {};
 
 const roundResults: {
   [roomCode: string]: {

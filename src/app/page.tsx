@@ -8,6 +8,9 @@ export default function HomePage() {
   const [roomCode, setRoomCode] = useState("");
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [minPlayers, setMinPlayers] = useState(3);
+  const [showMinInput, setShowMinInput] = useState(false);
+
   const router = useRouter();
 
   function generateRoomCode() {
@@ -24,9 +27,19 @@ export default function HomePage() {
       alert("닉네임을 입력해 주세요.");
       return;
     }
+    setShowMinInput(true);
+  };
+
+  const confirmCreateRoom = () => {
+    if (minPlayers < 1 || minPlayers > 6) {
+      alert("최소 인원은 1~6명 사이여야 합니다.");
+      return;
+    }
     const newRoomCode = generateRoomCode();
     router.push(
-      `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(nickname)}`
+      `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
+        nickname
+      )}&min=${minPlayers}`
     );
   };
 
@@ -63,7 +76,7 @@ export default function HomePage() {
         onChange={(e) => setNickname(e.target.value)}
       />
 
-      {!isJoiningRoom ? (
+      {!isJoiningRoom && !showMinInput ? (
         <div className="flex space-x-4">
           <button
             onClick={handleCreateRoom}
@@ -78,7 +91,28 @@ export default function HomePage() {
             방 입장하기
           </button>
         </div>
-      ) : (
+      ) : null}
+
+      {showMinInput && (
+        <div className="flex flex-col items-center space-y-4">
+          <input
+            type="number"
+            min={1}
+            max={6}
+            className="px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
+            value={minPlayers}
+            onChange={(e) => setMinPlayers(Number(e.target.value))}
+          />
+          <button
+            onClick={confirmCreateRoom}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"
+          >
+            방 생성 확인
+          </button>
+        </div>
+      )}
+
+      {isJoiningRoom && !showMinInput && (
         <div className="flex flex-col items-center space-y-4">
           <input
             type="text"
@@ -104,116 +138,6 @@ export default function HomePage() {
         게임 설명 보기
       </button>
 
-      {showRules && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white text-black rounded-lg p-6 max-w-xl max-h-[80vh] overflow-y-auto shadow-lg">
-            <h2 className="text-2xl font-bold mb-4">
-              🎴 뻥카비 게임 규칙 설명서
-            </h2>
-            <pre className="whitespace-pre-wrap text-sm text-left">
-              {`📌 기본 정보
-게임명: 뻥카비
-
-사용 카드: 일반 트럼프 카드 52장 (조커 없음)
-플레이어 수: 2~4인
-라운드 수: 총 5라운드
-목표: 라운드마다 손패 점수가 작을수록 순위가 높고, 총 5라운드 누적 점수로 최종 승자 결정.
-
-🎮 게임 흐름 요약
-- 각 라운드 시작 시 5장씩 배분
-- 자신의 턴에 카드 1장 뽑기 (draw)
-- 필수 제출 또는 '뻥!' 외치며 2장 제출 후 1장 추가 제출
-- 손패가 족보일 경우 “족보 완성” 버튼 클릭하여 라운드 종료 가능
-- 언제든 스탑 선언 가능
-- 덱이 비거나 손패가 0장일 경우 라운드 종료
-- 5라운드 후 총점이 가장 낮은 사람이 승자
-
-🔁 턴 진행 방식
-- 첫 번째 라운드: 랜덤 플레이어가 시작
-- 2라운드부터: 직전 라운드 점수가 가장 낮은 플레이어부터 시작
-
-🎯 주요 규칙 설명
-
-1. 뻥 시스템
-[조건]
-- 자기 턴 중 제출된 카드의 숫자와 같은 숫자의 2장을 손패에서 선택
-- "뻥!"을 외치며 2장 제출 → 이후 1장 추가 제출
-
-[유효 조건]
-- 직전 카드의 숫자와 동일해야 하며
-- 2장의 숫자가 정확히 같아야 함
-- 이후 1장은 자유
-
-[추가 효과]
-- 뻥을 유도한 직전 제출자 +50점 (유효한 뻥 성공 시)
-- 뻥 중 손패가 0장이 되면 라운드 종료
-
-2. 바가지 시스템
-- 드로우한 직후 손패 내 동일한 카드가 2장일 경우
-- 자동으로 바가지 판단 서버로 전송 → 메시지 출력 ("바가지!", "노 바가지!")
-
-3. 족보 완성
-[조건]
-손패가 6장일 때 아래 중 하나에 해당되면 "족보 완성" 버튼 활성화:
-- 스트레이트: 연속 숫자 6장
-- 트리플트리플: 동일 숫자 3장 + 3장
-- 페어페어페어: 동일 숫자 2장 x 3쌍
-- 로우 족보: 숫자 총합 ≤ 14 → -100점
-- 하이 족보: 숫자 총합 ≥ 65 → -총합 점수
-
-[효과]
-- "족보 완성!" 클릭 시 라운드 즉시 종료
-- 족보 유형에 따라 감점 또는 0점 처리
-
-4. 스탑
-[조건]
-- 자신의 턴에 “스탑!” 버튼 클릭 가능
-
-[효과]
-- 본인보다 점수가 같거나 낮은 플레이어가 있으면:
-  본인 +50점, 그 플레이어들은 0점
-  나머지는 손패 기준 점수 유지
-
-5. 점수 계산
-[기본]
-- 카드 숫자 총합 (A=1, J=11, Q=12, K=13)
-
-[예외]
-- 같은 숫자 3장만 있을 경우 → 해당 3장은 0점
-- 트리플트리플 → 0점
-- 페어페어페어 → 0점
-- 스트레이트 → -총합
-- 로우 족보 → -100점
-- 하이 족보 → -총합
-- 스탑 성공 → +50점
-
-[최종 라운드 보너스]
-- 5라운드는 점수 2배 적용
-
-🖥 UI/UX 관련 규칙
-- 현재 턴 플레이어 강조
-- 방장은 왕관(👑) 이모지로 표시
-- 채팅 기능: 1분 쿨타임
-- 상단 UI에 현재 라운드 표시
-- 향후 추가 예정: 탈주 감지, QR 입장, 카카오 연동, 애니메이션/사운드/로고 등
-
-📋 라운드 종료 조건
-- 손패가 0장일 때
-- 덱이 소진되었을 때
-- 족보 완성 버튼 클릭 시
-- 스탑 선언 시
-- 뻥 중 손패가 0장일 때`}
-            </pre>
-
-            <button
-              onClick={() => setShowRules(false)}
-              className="mt-6 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
       <div className="mt-12 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23)
       </div>

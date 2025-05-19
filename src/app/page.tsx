@@ -7,7 +7,7 @@ export default function HomePage() {
   const [nickname, setNickname] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-  const [showRules, setShowRules] = useState(false);
+  // const [showRules, setShowRules] = useState(false);
   const [minPlayers, setMinPlayers] = useState(3);
   const [showMinInput, setShowMinInput] = useState(false);
 
@@ -131,12 +131,12 @@ export default function HomePage() {
         </div>
       )}
 
-      <button
+      {/* <button
         onClick={() => setShowRules(true)}
         className="mt-6 text-sm underline text-blue-600 hover:text-blue-800"
       >
         게임 설명 보기
-      </button>
+      </button> */}
 
       <div className="mt-12 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23)

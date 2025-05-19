@@ -4,11 +4,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSocket } from "@/lib/socket";
-import {
-  playSound,
-  playBackgroundMusic,
-  stopBackgroundMusic,
-} from "@/lib/sound";
+import { playSound } from "@/lib/sound";
 
 export default function GamePage() {
   const searchParams = useSearchParams();
@@ -36,17 +32,15 @@ export default function GamePage() {
   const [jokboAvailable, setJokboAvailable] = useState(false);
   const [recentDrawnCard, setRecentDrawnCard] = useState<string | null>(null);
   const [anyoneDrewThisTurn, setAnyoneDrewThisTurn] = useState(false);
-  const [messages, setMessages] = useState<
-    { id: number; nickname: string; text: string }[]
-  >([]);
+  const [messages] = useState<{ id: number; nickname: string; text: string }[]>(
+    []
+  );
 
   const [chatMessages, setChatMessages] = useState<
     { nickname: string; message: string }[]
   >([]);
   const [chatInput, setChatInput] = useState("");
   const [canSend, setCanSend] = useState(true);
-
-  const displayedBagajiMessages = useRef(new Set<string>());
 
   const checkAndEmitBagaji = (
     cards: string[],

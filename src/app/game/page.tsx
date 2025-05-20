@@ -88,7 +88,7 @@ export default function GamePage() {
       setPlayerList(players);
     });
 
-    socket.on("game-started", ({ roomCode, round }) => {
+    socket.on("game-started", ({ round }) => {
       console.log("[DEBUG] game-started 수신 | round = ${round}");
       if (round) setRound(round);
     });

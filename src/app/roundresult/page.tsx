@@ -253,6 +253,7 @@ function calculateScore(hand: string[], reason: string): number {
   if (hand.length === 0) return 0;
   const values = hand.map(cardToValue);
   const total = sum(values);
+  console.debug("reason:", reason);
 
   if (hand.length === 6) {
     if (isStraight(values)) return -total;

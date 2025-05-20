@@ -1,4 +1,8 @@
 // src/app/result/page.tsx
-import ResultPage from "./ResultPage";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const ResultPage = dynamic(() => import("./ResultPage"), { ssr: false });
 
 export default ResultPage;

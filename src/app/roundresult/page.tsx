@@ -280,6 +280,8 @@ function calculateScore(hand: string[], reason: string): number {
 
   return total;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateReasonDescription(
   reason: string,
   nickname: string,

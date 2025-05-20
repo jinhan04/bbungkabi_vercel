@@ -233,7 +233,7 @@ export default function GamePage() {
     return () => {
       socket.off("next-round");
     };
-  }, []);
+  }, [roomCode, nickname]);
 
   const isMyTurn = currentPlayer === nickname;
 

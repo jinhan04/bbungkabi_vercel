@@ -28,7 +28,7 @@ let socket: Socket | null = null;
 // VERCEL
 export const getSocket = () => {
   if (!socket) {
-    socket = io("http://52.78.228.135:4000", {
+    socket = io("wss://52.78.228.135:4000", {
       autoConnect: false,
       transports: ["websocket"],
     });

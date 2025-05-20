@@ -65,9 +65,7 @@ export default function HomePage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      <h1 className="text-4xl font-bold mb-8 text-black">
-        🂡 뻥카비 Local Test 🂡
-      </h1>
+      <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.1 🂡</h1>
       <input
         type="text"
         placeholder="닉네임을 입력하세요"

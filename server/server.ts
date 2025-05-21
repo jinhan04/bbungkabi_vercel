@@ -339,12 +339,6 @@ io.on("connection", (socket) => {
 
     io.to(roomCode).emit("deck-update", { remaining: deck.length });
 
-    playerHands[roomCode][nickname].push(card!);
-    drawFlag[roomCode].add(nickname);
-
-    socket.emit("drawn-card", { card });
-    socket.to(roomCode).emit("player-drawn", { nickname });
-
     if (!deck || deck.length === 0) {
       console.log("[DEBUG] 덱이 비어 있음 — 라운드 종료 처리");
 

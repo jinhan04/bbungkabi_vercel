@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import AdBanner from "@/components/AdBanner";
 
 export default function HomePage() {
   const [nickname, setNickname] = useState("");
@@ -135,6 +136,10 @@ export default function HomePage() {
       >
         게임 설명 보기
       </button> */}
+
+      <div className="mt-10">
+        <AdBanner /> {/* 광고 위치 */}
+      </div>
 
       <div className="mt-12 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23)

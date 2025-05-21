@@ -321,12 +321,25 @@ io.on("connection", (socket) => {
     const deck = decks[roomCode];
     if (!deck || deck.length === 0) return;
 
-    const card = deck.shift(); // ⬅️ 카드 하나 뽑음
+    const card = deck.shift();
+    if (card) {
+      playerHands[roomCode][nickname].push(card);
+      drawFlag[roomCode].add(nickname);
+      socket.emit("drawn-card", { card });
+      socket.to(roomCode).emit("player-drawn", { nickname });
+    }
+
+    if (deck.length === 0) {
+      console.log("[DEBUG] 덱이 비었음 — 이후 조건에 따라 라운드 종료 예정");
+    }
+
+    io.to(roomCode).emit("deck-update", { remaining: deck.length });
+
     playerHands[roomCode][nickname].push(card!);
     drawFlag[roomCode].add(nickname);
 
     // 👇 여기서 클라이언트에게 남은 카드 수를 보내줌
-    io.to(roomCode).emit("deck-update", { deck }); // 🔥 핵심 코드
+    io.to(roomCode).emit("deck-update", { remaining: deck.length });
 
     socket.emit("drawn-card", { card });
     socket.to(roomCode).emit("player-drawn", { nickname });

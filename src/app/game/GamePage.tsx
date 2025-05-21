@@ -22,6 +22,7 @@ import SubmittedCard from "@/components/SubmittedCard";
 
 export default function GamePage() {
   const searchParams = useSearchParams();
+  const [deck, setDeck] = useState<string[]>([]);
   const router = useRouter();
   const roomCode = searchParams.get("code") || "";
   const nicknameRaw = searchParams.get("nickname") || "";
@@ -94,6 +95,10 @@ export default function GamePage() {
     socket.emit("get-player-list", { roomCode }, (players: string[]) =>
       setPlayerList(players)
     );
+
+    socket.on("deck-update", ({ deck }) => {
+      setDeck(deck);
+    });
 
     socket.on("game-started", ({ round }) => round && setRound(round));
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));
@@ -294,6 +299,9 @@ export default function GamePage() {
       <div className="absolute top-4 right-4 text-right">
         <div className="text-lg font-bold">현재 턴: {currentPlayer}</div>
         <div className="text-md mt-1">라운드: {round} / 5</div>
+        <div className="text-md mt-1 text-yellow-300">
+          남은 카드 수: {deck.length}
+        </div>
         {currentPlayerDrawn && (
           <div className="text-sm text-yellow-400">(카드 드로우 완료)</div>
         )}

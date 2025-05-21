@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdBanner from "@/components/AdBanner";
 
@@ -8,11 +8,12 @@ export default function HomePage() {
   const [nickname, setNickname] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-  // const [showRules, setShowRules] = useState(false);
   const [minPlayers, setMinPlayers] = useState(3);
   const [showMinInput, setShowMinInput] = useState(false);
+  const [showPatchNote, setShowPatchNote] = useState(true); // 패치노트 상태
 
   const router = useRouter();
+  const handleClose = () => setShowPatchNote(false);
 
   function generateRoomCode() {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -66,7 +67,30 @@ export default function HomePage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.1 🂡</h1>
+      {/* ✅ 패치 노트 팝업 */}
+      {showPatchNote && (
+        <div className="absolute top-10 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
+          <h2 className="text-xl font-bold mb-2">📌 패치노트</h2>
+          <ul className="list-disc list-inside text-sm mb-4">
+            <li>패치노트 팝업이 생겼습니다.</li>
+            <li>덱의 남은 카드 수가 정확하게 표시됩니다.</li>
+            <li>중복 카드 생성 문제가 해결되었습니다.</li>
+          </ul>
+          <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 남은 문제</h2>
+          <ul className="list-disc list-inside text-sm mb-4">
+            <li>1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중)</li>
+          </ul>
+          <button
+            onClick={handleClose}
+            className="mt-2 px-4 py-1 bg-green-700 text-white rounded hover:bg-green-800"
+          >
+            닫기
+          </button>
+        </div>
+      )}
+
+      <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.2 🂡</h1>
+
       <input
         type="text"
         placeholder="닉네임을 입력하세요"
@@ -130,15 +154,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* <button
-        onClick={() => setShowRules(true)}
-        className="mt-6 text-sm underline text-blue-600 hover:text-blue-800"
-      >
-        게임 설명 보기
-      </button> */}
-
       <div className="mt-10">
-        <AdBanner /> {/* 광고 위치 */}
+        <AdBanner />
       </div>
 
       <div className="mt-12 text-sm text-gray-500 text-center">

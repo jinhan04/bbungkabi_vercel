@@ -127,6 +127,9 @@ io.on("connection", (socket) => {
       playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
     }
 
+    // ✅ 남은 카드 수 전송 추가
+    io.to(roomCode).emit("deck-update", { remaining: decks[roomCode].length });
+
     io.to(roomCode).emit("game-started", {
       roomCode,
       round: roundCount[roomCode] || 1, // ✅ 추가
@@ -176,10 +179,9 @@ io.on("connection", (socket) => {
       for (const nickname of rooms[roomCode]) {
         playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
       }
-
-      for (const nickname of players) {
-        playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
-      }
+      io.to(roomCode).emit("deck-update", {
+        remaining: decks[roomCode].length,
+      });
 
       // ✅ 여기에 game-started emit 추가
       io.to(roomCode).emit("game-started", {
@@ -299,6 +301,8 @@ io.on("connection", (socket) => {
       playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
     }
 
+    // ✅ 남은 카드 수 전송
+    io.to(roomCode).emit("deck-update", { remaining: decks[roomCode].length });
     io.to(roomCode).emit("game-started", {
       roomCode,
       round: roundCount[roomCode],
@@ -337,9 +341,6 @@ io.on("connection", (socket) => {
 
     playerHands[roomCode][nickname].push(card!);
     drawFlag[roomCode].add(nickname);
-
-    // 👇 여기서 클라이언트에게 남은 카드 수를 보내줌
-    io.to(roomCode).emit("deck-update", { remaining: deck.length });
 
     socket.emit("drawn-card", { card });
     socket.to(roomCode).emit("player-drawn", { nickname });

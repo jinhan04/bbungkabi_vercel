@@ -312,14 +312,37 @@ export default function GamePage() {
       <h1 className="text-3xl mb-4">🃏 뻥카비 게임</h1>
 
       <div className="mb-6">
-        <h2 className="text-xl mb-2">제출된 카드</h2>
-        {submittedCards.length > 0 ? (
-          <div className="flex justify-center">
-            <SubmittedCard card={submittedCards.at(-1)!.card} />
+        <h2 className="text-xl mb-2 text-center">제출된 카드 및 드로우 덱</h2>
+        <div className="flex justify-center items-center gap-8">
+          {/* 제출된 카드 */}
+          <div>
+            {submittedCards.length > 0 ? (
+              <SubmittedCard card={submittedCards.at(-1)!.card} />
+            ) : (
+              <div className="text-gray-400">제출된 카드 없음</div>
+            )}
           </div>
-        ) : (
-          <div className="text-gray-400">제출된 카드 없음</div>
-        )}
+
+          {/* 드로우 덱 이미지 */}
+          <img
+            src="/cards/back.png" // 카드 뒷면 이미지 경로
+            alt="덱"
+            className={`w-20 h-28 rounded shadow-lg cursor-pointer
+        ${
+          !isMyTurn || mustSubmit || bbungPhase !== "idle"
+            ? "opacity-50 cursor-not-allowed"
+            : "hover:scale-105 transition-transform"
+        }`}
+            onClick={() => {
+              if (isMyTurn && !mustSubmit && bbungPhase === "idle") {
+                getSocket().emit("draw-card", { roomCode });
+              }
+            }}
+          />
+        </div>
+        <div className="text-center text-sm text-yellow-300 mt-1">
+          남은 카드: {remainingCards}
+        </div>
       </div>
 
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">

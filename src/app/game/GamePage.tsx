@@ -92,6 +92,13 @@ export default function GamePage() {
   };
 
   useEffect(() => {
+    const storedRound = sessionStorage.getItem("round");
+    if (storedRound) {
+      setRound(Number(storedRound));
+    }
+  }, []);
+
+  useEffect(() => {
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 
@@ -149,6 +156,7 @@ export default function GamePage() {
         setBagajiText("");
       }, 1000);
     });
+
     socket.on(
       "round-ended",
       ({ reason, stopper, allPlayerHands, round, triggerer }) => {

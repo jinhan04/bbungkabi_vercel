@@ -251,7 +251,7 @@ io.on("connection", (socket) => {
       scores[roomCode][nickname].push(score);
     }
 
-    roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+    // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
     roundResults[roomCode] = {
       scores: scoresThisRound,
@@ -432,7 +432,7 @@ io.on("connection", (socket) => {
         scores[roomCode][nickname].push(score);
       }
 
-      roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+      // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
       roundResults[roomCode] = {
         scores: scoresThisRound,
@@ -480,7 +480,7 @@ io.on("connection", (socket) => {
         scores[roomCode][nickname].push(score);
       }
 
-      roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+      // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
       roundResults[roomCode] = {
         scores: scoresThisRound,

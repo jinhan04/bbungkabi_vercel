@@ -79,7 +79,12 @@ export default function GamePage() {
       if (cards.length === 2) {
         const isBagaji = counts[0] === 2;
         getSocket().emit("declare-bagaji", { roomCode, isBagaji });
-      } else if (cards.length === 5 && counts[0] === 3 && counts[1] === 2) {
+      } else if (
+        cards.length === 5 &&
+        counts.length >= 2 &&
+        counts[0] === 3 &&
+        counts[1] === 2
+      ) {
         getSocket().emit("declare-bagaji", { roomCode, isBagaji: true });
       }
     }
@@ -191,7 +196,6 @@ export default function GamePage() {
 
   useEffect(() => {
     const socket = getSocket();
-    socket.emit("join-room", { roomCode, nickname });
     socket.on("next-round", ({ round }) => setRound(round));
     return () => {
       socket.off("next-round");
@@ -298,7 +302,6 @@ export default function GamePage() {
       </div>
 
       <div className="absolute top-4 right-4 text-right">
-        <div className="text-lg font-bold">현재 턴: {currentPlayer}</div>
         <div className="text-md mt-1">라운드: {round} / 5</div>
 
         {currentPlayerDrawn && (

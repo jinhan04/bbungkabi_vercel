@@ -166,7 +166,7 @@ io.on("connection", (socket) => {
       readyForNextRound[roomCode].clear();
 
       // ✅ 라운드 수 증가
-      // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+      roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
       // 라운드 준비
       turnIndex[roomCode] = 0;

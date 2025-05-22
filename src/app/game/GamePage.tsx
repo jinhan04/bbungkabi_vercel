@@ -53,6 +53,7 @@ export default function GamePage() {
   >([]);
   const [chatInput, setChatInput] = useState("");
   const [canSend, setCanSend] = useState(true);
+  const [showRoundBanner, setShowRoundBanner] = useState(false);
 
   const isMyTurn = currentPlayer === nickname;
 
@@ -106,7 +107,13 @@ export default function GamePage() {
       setRemainingCards(remaining);
     });
 
-    socket.on("game-started", ({ round }) => round && setRound(round));
+    socket.on("game-started", ({ round }) => {
+      if (round) {
+        setRound(round);
+        setShowRoundBanner(true);
+        setTimeout(() => setShowRoundBanner(false), 2000);
+      }
+    });
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));
     socket.on("turn-info", ({ currentPlayer }) => {
       setCurrentPlayer(currentPlayer);
@@ -196,7 +203,11 @@ export default function GamePage() {
 
   useEffect(() => {
     const socket = getSocket();
-    socket.on("next-round", ({ round }) => setRound(round));
+    socket.on("next-round", ({ round }) => {
+      setRound(round);
+      setShowRoundBanner(true);
+      setTimeout(() => setShowRoundBanner(false), 2000);
+    });
     return () => {
       socket.off("next-round");
     };
@@ -322,6 +333,11 @@ export default function GamePage() {
           <div className="text-sm text-yellow-400">(카드 드로우 완료)</div>
         )}
       </div>
+      {showRoundBanner && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-80 text-white text-4xl font-bold py-6 px-10 rounded-2xl shadow-2xl z-50 animate-pulse">
+          Round {round} / 5
+        </div>
+      )}
 
       <h1 className="text-3xl mb-4">🃏 뻥카비 게임</h1>
 

@@ -541,7 +541,7 @@ io.on("connection", (socket) => {
     }
 
     // ✅ 라운드 수 증가
-    // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+    roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
     // ✅ 결과 저장
     roundResults[roomCode] = {

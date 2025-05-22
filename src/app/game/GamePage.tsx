@@ -237,19 +237,33 @@ export default function GamePage() {
 
   const handleExtraBbung = () => {
     if (bbungCards.length !== 1) return alert("추가 카드 1장을 선택하세요.");
+
+    const newHand = hand.filter((c) => c !== bbungCards[0]);
+    setHand(sortHandByValue(newHand));
     getSocket().emit("submit-bbung-extra", { roomCode, card: bbungCards[0] });
-    setHand((prev) => sortHandByValue(prev.filter((c) => c !== bbungCards[0])));
     setBbungCards([]);
     setMustSubmit(false);
     setBbungPhase("idle");
+
+    // 👇 바가지 체크
+    if (newHand.length === 2 || newHand.length === 5) {
+      checkAndEmitBagaji(newHand, "afterSubmit");
+    }
   };
 
   const handleSubmitCard = () => {
     if (bbungCards.length !== 1) return alert("제출할 카드 1장을 선택하세요.");
+
+    const newHand = hand.filter((c) => c !== bbungCards[0]);
+    setHand(sortHandByValue(newHand));
     getSocket().emit("submit-card", { roomCode, card: bbungCards[0] });
-    setHand((prev) => sortHandByValue(prev.filter((c) => c !== bbungCards[0])));
     setBbungCards([]);
     setMustSubmit(false);
+
+    // 👇 바가지 체크
+    if (newHand.length === 2 || newHand.length === 5) {
+      checkAndEmitBagaji(newHand, "afterSubmit");
+    }
   };
 
   const handleStop = () => {

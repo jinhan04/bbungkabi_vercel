@@ -70,22 +70,36 @@ export default function HomePage() {
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
       {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
-        <div className="absolute top-10 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.13</h2>
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
+          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.21</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>패치노트 팝업이 생겼습니다.</li>
-            <li>덱의 남은 카드 수가 정확하게 표시됩니다.</li>
-            <li>중복 카드 생성 문제가 해결되었습니다.</li>
+            <li>게임 페이지에서 라운드 수가 1/5로 고정되던 오류 수정</li>
+            <li>
+              라운드가 2씩 증가하던 버그 수정 (서버 roundCount 증가 중복 제거)
+            </li>
+            <li>
+              첫 라운드에서 5/5로 보이던 문제 해결 (초기 round 상태값
+              sessionStorage 기반으로 변경)
+            </li>
+            <li>
+              서버에서 라운드 종료 시 클라이언트로 전달되는 라운드 숫자 정확히
+              맞춤 (roundCount - 1 처리)
+            </li>
+            <li>
+              roundresult 페이지에서 다음 라운드가 조기 종료되는 오류 수정
+            </li>
           </ul>
+
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 남은 문제</h2>
           <ul className="list-disc list-inside text-sm mb-4">
+            <li>1라운드 자체 오류가 있음(조사 중)</li>
             <li>
               1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중, 1라운드는 스킵
               요망)
             </li>
-            <li>바가지 선언 안나오는 오류(수정 중)</li>
-            <li>게임 페이지에서 라운드수 1/5 고정(수정 중)</li>
+            <li>바가지 선언이 나오지 않는 문제 (수정 중)</li>
           </ul>
+
           <button
             onClick={handleClose}
             className="mt-2 px-4 py-1 bg-green-700 text-white rounded hover:bg-green-800"

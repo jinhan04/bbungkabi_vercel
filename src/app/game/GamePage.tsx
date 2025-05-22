@@ -152,6 +152,7 @@ export default function GamePage() {
     socket.on(
       "round-ended",
       ({ reason, stopper, allPlayerHands, round, triggerer }) => {
+        setRound(round);
         const myHand = allPlayerHands?.[nickname] || hand;
         if (reason === "족보 완성") playSound("jokbo_complete.mp3");
 

@@ -8,7 +8,9 @@ export default function HomePage() {
   const [nickname, setNickname] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-  const [minPlayers, setMinPlayers] = useState(3);
+  const [minPlayers, setMinPlayers] = useState(1);
+  const [maxPlayers, setMaxPlayers] = useState(6);
+
   const [showMinInput, setShowMinInput] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(true); // 패치노트 상태
 
@@ -33,15 +35,20 @@ export default function HomePage() {
   };
 
   const confirmCreateRoom = () => {
-    if (minPlayers < 1 || minPlayers > 6) {
-      alert("최소 인원은 1~6명 사이여야 합니다.");
+    if (minPlayers < 1 || maxPlayers > 6) {
+      alert("인원은 1명 이상 6명 이하만 가능합니다.");
       return;
     }
+    if (minPlayers > maxPlayers) {
+      alert("최소 인원은 최대 인원보다 작거나 같아야 합니다.");
+      return;
+    }
+
     const newRoomCode = generateRoomCode();
     router.push(
       `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
         nickname
-      )}&min=${minPlayers}`
+      )}&min=${minPlayers}&max=${maxPlayers}`
     );
   };
 
@@ -121,6 +128,7 @@ export default function HomePage() {
 
       {showMinInput && (
         <div className="flex flex-col items-center space-y-4">
+          <p className="text-black font-semibold">최소 인원 (1~6)</p>
           <input
             type="number"
             min={1}
@@ -129,6 +137,17 @@ export default function HomePage() {
             value={minPlayers}
             onChange={(e) => setMinPlayers(Number(e.target.value))}
           />
+
+          <p className="text-black font-semibold">최대 인원 (1~6)</p>
+          <input
+            type="number"
+            min={1}
+            max={6}
+            className="px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
+            value={maxPlayers}
+            onChange={(e) => setMaxPlayers(Number(e.target.value))}
+          />
+
           <button
             onClick={confirmCreateRoom}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"

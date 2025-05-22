@@ -10,6 +10,7 @@ export default function LobbyPage() {
 
   const roomCode = searchParams.get("code");
   const nickname = searchParams.get("nickname");
+  const maxPlayers = Number(searchParams.get("max")) || 6;
 
   const [players, setPlayers] = useState<string[]>([]);
   const [hasJoined, setHasJoined] = useState(false);
@@ -95,9 +96,9 @@ export default function LobbyPage() {
             const socket = getSocket();
             socket.emit("start-game", { roomCode, nickname });
           }}
-          disabled={players.length < 3 || players.length > 6}
+          disabled={players.length < maxPlayers}
           className={`mt-8 px-6 py-2 font-semibold rounded-lg ${
-            players.length < 3 || players.length > 6
+            players.length < maxPlayers
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}

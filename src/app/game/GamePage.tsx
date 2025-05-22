@@ -111,7 +111,6 @@ export default function GamePage() {
       if (round) {
         setRound(round);
         setShowRoundBanner(true);
-        setTimeout(() => setShowRoundBanner(false), 2000);
       }
     });
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));

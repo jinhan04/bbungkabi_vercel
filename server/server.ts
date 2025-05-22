@@ -131,7 +131,7 @@ io.on("connection", (socket) => {
 
     io.to(roomCode).emit("game-started", {
       roomCode,
-      round: roundCount[roomCode] || 1, // ✅ 추가
+      round: roundCount[roomCode] ?? 1, // ✅ 추가
     });
 
     const randomPlayer = players[Math.floor(Math.random() * players.length)];
@@ -182,11 +182,11 @@ io.on("connection", (socket) => {
         remaining: decks[roomCode].length,
       });
 
-      // ✅ 여기에 game-started emit 추가
-      io.to(roomCode).emit("game-started", {
-        roomCode,
-        round: roundCount[roomCode],
-      });
+      // // ✅ 여기에 game-started emit 추가
+      // io.to(roomCode).emit("game-started", {
+      //   roomCode,
+      //   round: roundCount[roomCode],
+      // });
 
       // ✅ 최저 점수 플레이어부터 시작
       const lastRoundScores = scores[roomCode];
@@ -290,6 +290,7 @@ io.on("connection", (socket) => {
   socket.on("start-next-round", ({ roomCode }) => {
     if (!rooms[roomCode] || roundCount[roomCode] > 5) return;
 
+    roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
     turnIndex[roomCode] = 0;
     decks[roomCode] = shuffle(createDeck());
     submittedHistory[roomCode] = [];

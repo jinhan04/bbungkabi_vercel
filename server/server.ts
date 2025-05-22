@@ -27,7 +27,6 @@ const bbungEndTriggeredBy: { [roomCode: string]: string | null } = {}; // 유도
 const submittedHistory: {
   [key: string]: { nickname: string; card: string }[];
 } = {};
-const minPlayersPerRoom: { [roomCode: string]: number } = {};
 
 const roundResults: {
   [roomCode: string]: {
@@ -99,12 +98,12 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("update-players", rooms[roomCode]);
   });
 
-  socket.on("start-game", ({ roomCode }) => {
+  socket.on("start-game", ({ roomCode, nickname, maxPlayers }) => {
     const players = rooms[roomCode];
-    if (!players || players.length < 3 || players.length > 6) {
+    if (!players || players.length < 1 || players.length > maxPlayers) {
       socket.emit(
         "join-error",
-        "게임은 3명 이상 6명 이하일 때만 시작할 수 있습니다."
+        `게임은 1명 이상 ${maxPlayers}명 이하일 때만 시작할 수 있습니다.`
       );
       return;
     }

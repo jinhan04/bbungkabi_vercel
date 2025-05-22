@@ -94,7 +94,7 @@ export default function LobbyPage() {
         <button
           onClick={() => {
             const socket = getSocket();
-            socket.emit("start-game", { roomCode, nickname });
+            socket.emit("start-game", { roomCode, nickname, maxPlayers });
           }}
           disabled={players.length < maxPlayers}
           className={`mt-8 px-6 py-2 font-semibold rounded-lg ${

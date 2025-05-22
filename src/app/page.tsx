@@ -78,7 +78,10 @@ export default function HomePage() {
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 남은 문제</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중)</li>
+            <li>
+              1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중, 1라운드는 스킵
+              요망)
+            </li>
           </ul>
           <button
             onClick={handleClose}

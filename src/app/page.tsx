@@ -71,7 +71,7 @@ export default function HomePage() {
       {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="absolute top-10 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트</h2>
+          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.13</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>패치노트 팝업이 생겼습니다.</li>
             <li>덱의 남은 카드 수가 정확하게 표시됩니다.</li>
@@ -83,6 +83,8 @@ export default function HomePage() {
               1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중, 1라운드는 스킵
               요망)
             </li>
+            <li>바가지 선언 안나오는 오류(수정 중)</li>
+            <li>게임 페이지에서 라운드수 1/5 고정(수정 중)</li>
           </ul>
           <button
             onClick={handleClose}

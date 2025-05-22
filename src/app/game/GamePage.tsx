@@ -34,7 +34,11 @@ export default function GamePage() {
   const [showBagaji, setShowBagaji] = useState(false);
 
   const [hand, setHand] = useState<string[]>([]);
-  const [round, setRound] = useState<number>(1);
+  const [round, setRound] = useState<number>(() => {
+    const saved = sessionStorage.getItem("round");
+    return saved ? Number(saved) : 1;
+  });
+
   const [currentPlayer, setCurrentPlayer] = useState("");
   const [currentPlayerDrawn, setCurrentPlayerDrawn] = useState(false);
   const [submittedCards, setSubmittedCards] = useState<

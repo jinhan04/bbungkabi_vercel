@@ -451,6 +451,9 @@ io.on("connection", (socket) => {
         triggerer: bbungEndTriggeredBy[roomCode], // ✅ 이 줄 추가!
       });
     }
+    io.to(roomCode).emit("bbung-effect", {
+      nickname: socketIdToNickname[socket.id],
+    });
 
     // 턴은 아직 넘기지 않음 — 추가 카드 제출까지 기다림
   });

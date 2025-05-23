@@ -236,6 +236,22 @@ export default function GamePage() {
     };
   }, [roomCode, nickname]);
 
+  useEffect(() => {
+    const socket = getSocket();
+
+    socket.on("bbung-effect", ({ nickname: bbunger }) => {
+      console.log(`${bbunger} used BBUNG!`);
+
+      playSound("bbung.mp3");
+      setShowBbungEffect(true);
+      setTimeout(() => setShowBbungEffect(false), 800);
+    });
+
+    return () => {
+      socket.off("bbung-effect");
+    };
+  }, []);
+
   const toggleBbungCard = (card: string) => {
     setBbungCards((prev) =>
       bbungPhase === "selectingExtra"
@@ -247,9 +263,6 @@ export default function GamePage() {
   };
 
   const handleInitialBbung = () => {
-    playSound("bbung.mp3");
-    setShowBbungEffect(true); // ✅ 추가
-    setTimeout(() => setShowBbungEffect(false), 800); // ✅ 사라지는 타이머
     if (bbungCards.length !== 2)
       return alert("같은 숫자의 카드 2장을 선택해야 뻥이 가능합니다.");
 

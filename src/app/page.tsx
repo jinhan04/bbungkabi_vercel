@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import GameRulesModal from "@/components/GameRulesModal";
 
 export default function HomePage() {
   const [nickname, setNickname] = useState("");
@@ -10,6 +11,7 @@ export default function HomePage() {
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [showMaxInput, setShowMaxInput] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(true);
+  const [showRules, setShowRules] = useState(false);
 
   const router = useRouter();
   const handleClose = () => setShowPatchNote(false);
@@ -29,6 +31,7 @@ export default function HomePage() {
       return;
     }
     setShowMaxInput(true);
+    setIsJoiningRoom(false);
   };
 
   const confirmCreateRoom = () => {
@@ -51,6 +54,7 @@ export default function HomePage() {
       return;
     }
     setIsJoiningRoom(true);
+    setShowMaxInput(false);
   };
 
   const handleJoinRoom = () => {
@@ -67,7 +71,7 @@ export default function HomePage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      {/* ✅ 오류 제보 버튼 (상단 우측 고정) */}
+      {/* 오류 제보 버튼 */}
       <div className="absolute top-4 right-4">
         <a
           href="https://open.kakao.com/o/sXveaSxh"
@@ -78,17 +82,15 @@ export default function HomePage() {
           오류 제보
         </a>
       </div>
-      {/* ✅ 패치 노트 팝업 */}
+
+      {/* 패치노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
           <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.3</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>게임 페이지에서 라운드 수가 1/5로 고정되던 오류 수정</li>
             <li>라운드가 2씩 증가하던 버그 수정</li>
-            <li>
-              첫 라운드에서 5/5로 보이던 문제 해결 (초기 round 상태값
-              sessionStorage 기반으로 변경)
-            </li>
+            <li>첫 라운드에서 5/5로 보이던 문제 해결</li>
             <li>쿠팡 광고 추가</li>
             <li>오류 제보 버튼 및 오픈 채팅방 추가</li>
             <li>바가지 선언 문제 해결 완료</li>
@@ -96,17 +98,12 @@ export default function HomePage() {
               <strong>뻥 애니메이션이 모든 유저에게 공유되도록 개선</strong>
             </li>
           </ul>
-
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 남은 문제</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>1라운드 자체 오류가 있음 (조사 중)</li>
-            <li>
-              1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중, 1라운드는 스킵
-              요망)
-            </li>
-            <li>마지막 라운드로 안 넘거 가는 오류 (조사 중)</li>
+            <li>1라운드 자체 오류 있음</li>
+            <li>1라운드에서 카드 뽑기 안됨 (스킵 요망)</li>
+            <li>마지막 라운드로 안 넘어감</li>
           </ul>
-
           <button
             onClick={handleClose}
             className="mt-2 px-4 py-1 bg-green-700 text-white rounded hover:bg-green-800"
@@ -117,6 +114,7 @@ export default function HomePage() {
       )}
 
       <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.2 🂡</h1>
+
       <input
         type="text"
         placeholder="닉네임을 입력하세요"
@@ -124,7 +122,8 @@ export default function HomePage() {
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
       />
-      {!isJoiningRoom && !showMaxInput ? (
+
+      {!isJoiningRoom && !showMaxInput && (
         <div className="flex space-x-4">
           <button
             onClick={handleCreateRoom}
@@ -139,9 +138,10 @@ export default function HomePage() {
             방 입장하기
           </button>
         </div>
-      ) : null}
+      )}
+
       {showMaxInput && (
-        <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-4 mt-4">
           <p className="text-black font-semibold">인원 (1~6)</p>
           <input
             type="number"
@@ -159,8 +159,9 @@ export default function HomePage() {
           </button>
         </div>
       )}
-      {isJoiningRoom && !showMaxInput && (
-        <div className="flex flex-col items-center space-y-4">
+
+      {isJoiningRoom && (
+        <div className="flex flex-col items-center space-y-4 mt-4">
           <input
             type="text"
             placeholder="방 코드를 입력하세요"
@@ -177,11 +178,20 @@ export default function HomePage() {
           </button>
         </div>
       )}
+
+      <button
+        onClick={() => setShowRules(true)}
+        className="mt-6 text-sm underline text-blue-600 hover:text-blue-800"
+      >
+        게임 설명 보기
+      </button>
+
+      {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
+
       <div className="mt-12 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23)
       </div>
 
-      {/* ✅ 쿠팡 광고: 항상 가장 하단에 위치 */}
       <div className="w-full flex justify-center mt-6">
         <a
           href="https://link.coupang.com/a/cvkq2m"

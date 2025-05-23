@@ -171,8 +171,12 @@ export default function HomePage() {
           </button>
         </div>
       )}
-      {/* ✅ 쿠팡 광고 (728x90 반응형) */}
-      <div className="mt-10 w-full flex justify-center">
+      <div className="mt-12 text-sm text-gray-500 text-center">
+        © 임진한 (국민대 정보보안암호수학과 23)
+      </div>
+
+      {/* ✅ 쿠팡 광고: 항상 가장 하단에 위치 */}
+      <div className="w-full flex justify-center mt-6">
         <a
           href="https://link.coupang.com/a/cvkq2m"
           target="_blank"
@@ -185,10 +189,6 @@ export default function HomePage() {
           />
         </a>
       </div>
-      <div className="mt-12 text-sm text-gray-500 text-center">
-        © 임진한 (국민대 정보보안암호수학과 23)
-      </div>
-      ...
     </div>
   );
 }

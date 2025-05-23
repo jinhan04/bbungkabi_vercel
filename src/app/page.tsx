@@ -67,6 +67,17 @@ export default function HomePage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+      {/* ✅ 오류 제보 버튼 (상단 우측 고정) */}
+      <div className="absolute top-4 right-4">
+        <a
+          href="https://open.kakao.com/o/sXveaSxh"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-red-600 transition"
+        >
+          오류 제보
+        </a>
+      </div>
       {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
@@ -110,6 +121,7 @@ export default function HomePage() {
           </button>
         </div>
       )}
+
       <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.2 🂡</h1>
       <input
         type="text"

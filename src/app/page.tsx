@@ -111,9 +111,7 @@ export default function HomePage() {
           </button>
         </div>
       )}
-
       <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.2 🂡</h1>
-
       <input
         type="text"
         placeholder="닉네임을 입력하세요"
@@ -121,7 +119,6 @@ export default function HomePage() {
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
       />
-
       {!isJoiningRoom && !showMaxInput ? (
         <div className="flex space-x-4">
           <button
@@ -138,7 +135,6 @@ export default function HomePage() {
           </button>
         </div>
       ) : null}
-
       {showMaxInput && (
         <div className="flex flex-col items-center space-y-4">
           <p className="text-black font-semibold">최대 인원 (1~6)</p>
@@ -158,7 +154,6 @@ export default function HomePage() {
           </button>
         </div>
       )}
-
       {isJoiningRoom && !showMaxInput && (
         <div className="flex flex-col items-center space-y-4">
           <input
@@ -177,14 +172,24 @@ export default function HomePage() {
           </button>
         </div>
       )}
-
-      <div className="mt-10">
-        <AdBanner />
+      ...
+      <div className="mt-10 w-full flex justify-center">
+        <a
+          href="https://link.coupang.com/a/cvkq2m"
+          target="_blank"
+          referrerPolicy="unsafe-url"
+        >
+          <img
+            src="https://ads-partners.coupang.com/banners/868527?subId=&traceId=V0-301-879dd1202e5c73b2-I868527&w=728&h=90"
+            alt="쿠팡 광고 배너"
+            className="w-full max-w-[728px] h-auto"
+          />
+        </a>
       </div>
-
       <div className="mt-12 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23)
       </div>
+      ...
     </div>
   );
 }

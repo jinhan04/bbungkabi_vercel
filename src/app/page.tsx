@@ -81,23 +81,16 @@ export default function HomePage() {
       {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.23</h2>
+          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.3</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>게임 페이지에서 라운드 수가 1/5로 고정되던 오류 수정</li>
-            <li>
-              라운드가 2씩 증가하던 버그 수정 (서버 roundCount 증가 중복 제거)
-            </li>
+            <li>라운드가 2씩 증가하던 버그 수정</li>
             <li>
               첫 라운드에서 5/5로 보이던 문제 해결 (초기 round 상태값
               sessionStorage 기반으로 변경)
             </li>
-            <li>
-              서버에서 라운드 종료 시 클라이언트로 전달되는 라운드 숫자 정확히
-              맞춤 (roundCount - 1 처리)
-            </li>
-            <li>
-              roundresult 페이지에서 다음 라운드가 조기 종료되는 오류 수정
-            </li>
+            <li>쿠팡 광고 추가</li>
+            <li>오류 제보 버튼 및 오픈 채팅방 추가</li>
             <li>바가지 선언 문제 해결 완료</li>
             <li>
               <strong>뻥 애니메이션이 모든 유저에게 공유되도록 개선</strong>
@@ -111,6 +104,7 @@ export default function HomePage() {
               1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중, 1라운드는 스킵
               요망)
             </li>
+            <li>마지막 라운드로 안 넘거 가는 오류 (조사 중)</li>
           </ul>
 
           <button

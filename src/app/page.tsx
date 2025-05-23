@@ -142,7 +142,7 @@ export default function HomePage() {
       ) : null}
       {showMaxInput && (
         <div className="flex flex-col items-center space-y-4">
-          <p className="text-black font-semibold">최대 인원 (1~6)</p>
+          <p className="text-black font-semibold">인원 (1~6)</p>
           <input
             type="number"
             min={1}

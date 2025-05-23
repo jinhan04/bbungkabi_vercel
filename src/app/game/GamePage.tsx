@@ -248,6 +248,8 @@ export default function GamePage() {
 
   const handleInitialBbung = () => {
     playSound("bbung.mp3");
+    setShowBbungEffect(true); // ✅ 추가
+    setTimeout(() => setShowBbungEffect(false), 800); // ✅ 사라지는 타이머
     if (bbungCards.length !== 2)
       return alert("같은 숫자의 카드 2장을 선택해야 뻥이 가능합니다.");
 
@@ -439,7 +441,7 @@ export default function GamePage() {
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
         <h2 className="text-xl font-bold mb-4">내 손패</h2>
         <div className="flex flex-wrap justify-center gap-2">
-          {hand.map((card, index) => (
+          {hand.map((card) => (
             <Card
               key={card}
               card={card}

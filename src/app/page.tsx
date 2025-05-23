@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import AdBanner from "@/components/AdBanner";
 
 export default function HomePage() {
   const [nickname, setNickname] = useState("");
@@ -172,7 +171,7 @@ export default function HomePage() {
           </button>
         </div>
       )}
-      ...
+      {/* ✅ 쿠팡 광고 (728x90 반응형) */}
       <div className="mt-10 w-full flex justify-center">
         <a
           href="https://link.coupang.com/a/cvkq2m"

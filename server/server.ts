@@ -110,6 +110,9 @@ io.on("connection", (socket) => {
 
     // ✅ 라운드 카운터 초기화
     roundCount[roomCode] = 1;
+    console.log(
+      `[DEBUG] Game starting in room ${roomCode} with round ${roundCount[roomCode]}`
+    );
 
     // ✅ 점수 배열 초기화
     scores[roomCode] = {};
@@ -126,19 +129,20 @@ io.on("connection", (socket) => {
       playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
     }
 
-    // ✅ 남은 카드 수 전송 추가
+    // ✅ 남은 카드 수 전송
     io.to(roomCode).emit("deck-update", { remaining: decks[roomCode].length });
 
+    // ✅ 게임 시작 이벤트 발송
     io.to(roomCode).emit("game-started", {
       roomCode,
-      round: roundCount[roomCode] ?? 1, // ✅ 추가
+      round: roundCount[roomCode],
     });
 
     const randomPlayer = players[Math.floor(Math.random() * players.length)];
     turnIndex[roomCode] = players.indexOf(randomPlayer);
 
     setTimeout(() => {
-      io.to(roomCode).emit("turn-info", { currentPlayer: randomPlayer }); // ✅ 수정
+      io.to(roomCode).emit("turn-info", { currentPlayer: randomPlayer });
     }, 500);
   });
 

@@ -88,6 +88,7 @@ export default function HomePage() {
             <li>
               roundresult 페이지에서 다음 라운드가 조기 종료되는 오류 수정
             </li>
+            <li>바가지 선언 문제 해결완료</li>
           </ul>
 
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 남은 문제</h2>
@@ -97,7 +98,6 @@ export default function HomePage() {
               1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중, 1라운드는 스킵
               요망)
             </li>
-            <li>바가지 선언이 나오지 않는 문제 (수정 중)</li>
           </ul>
 
           <button

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { getSocket } from "@/lib/socket";
 import { playSound } from "@/lib/sound";
@@ -19,6 +20,7 @@ import PlayerList from "@/components/PlayerList";
 import ChatBox from "@/components/ChatBox";
 import BagajiOverlay from "@/components/BagajiOverlay";
 import SubmittedCard from "@/components/SubmittedCard";
+import RoundBanner from "@/components/RoundBanner";
 
 export default function GamePage() {
   const searchParams = useSearchParams();
@@ -33,11 +35,12 @@ export default function GamePage() {
   const [bagajiText, setBagajiText] = useState("");
   const [showBagaji, setShowBagaji] = useState(false);
 
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawAnimationKey, setDrawAnimationKey] = useState(0);
+  const [showBbungEffect, setShowBbungEffect] = useState(false);
+
   const [hand, setHand] = useState<string[]>([]);
-  const [round, setRound] = useState<number>(() => {
-    const saved = sessionStorage.getItem("round");
-    return saved ? Number(saved) : 1;
-  });
+  const [round, setRound] = useState<number>(1);
 
   const [currentPlayer, setCurrentPlayer] = useState("");
   const [currentPlayerDrawn, setCurrentPlayerDrawn] = useState(false);
@@ -58,6 +61,7 @@ export default function GamePage() {
   const [chatInput, setChatInput] = useState("");
   const [canSend, setCanSend] = useState(true);
   const [showRoundBanner, setShowRoundBanner] = useState(false);
+  const [newCards, setNewCards] = useState<string[]>([]);
 
   const isMyTurn = currentPlayer === nickname;
 
@@ -96,13 +100,6 @@ export default function GamePage() {
   };
 
   useEffect(() => {
-    const storedRound = sessionStorage.getItem("round");
-    if (storedRound) {
-      setRound(Number(storedRound));
-    }
-  }, []);
-
-  useEffect(() => {
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 
@@ -119,9 +116,11 @@ export default function GamePage() {
     });
 
     socket.on("game-started", ({ round }) => {
+      console.log("Game started with round:", round);
       if (round) {
         setRound(round);
         setShowRoundBanner(true);
+        setTimeout(() => setShowRoundBanner(false), 2000);
       }
     });
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));
@@ -137,6 +136,14 @@ export default function GamePage() {
     );
     socket.on("drawn-card", ({ card }) => {
       playSound("draw.mp3");
+      setDrawAnimationKey((prev) => prev + 1);
+      setIsDrawing(true);
+
+      setTimeout(() => {
+        setIsDrawing(false);
+      }, 600);
+
+      setNewCards((prev) => [...prev, card]);
       setHand((prev) => {
         const newHand = sortHandByValue([...prev, card]);
         if (newHand.length === 2) checkAndEmitBagaji(newHand, "draw");
@@ -144,8 +151,12 @@ export default function GamePage() {
       });
       setMustSubmit(true);
       setRecentDrawnCard(card);
-      setTimeout(() => setRecentDrawnCard(null), 1500);
+      setTimeout(() => {
+        setRecentDrawnCard(null);
+        setNewCards((prev) => prev.filter((c) => c !== card));
+      }, 1500);
     });
+
     socket.on("player-drawn", ({ nickname }) => {
       if (nickname === currentPlayer) setCurrentPlayerDrawn(true);
       setAnyoneDrewThisTurn(true);
@@ -327,6 +338,31 @@ export default function GamePage() {
     );
   };
 
+  function DrawAnimationCard({ keyVal }: { keyVal: number }) {
+    return (
+      <motion.div
+        key={keyVal}
+        initial={{ x: 0, y: 0, scale: 0.8, opacity: 0 }}
+        animate={{ x: 200, y: 300, scale: 1, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="absolute top-1/2 left-1/2 w-[60px] h-[90px] bg-cardBack bg-cover rounded shadow-lg z-50"
+      />
+    );
+  }
+
+  function BbungTextEffect() {
+    return (
+      <motion.div
+        initial={{ scale: 2, opacity: 1 }}
+        animate={{ scale: 1, opacity: 0 }}
+        transition={{ duration: 0.8 }}
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-extrabold text-red-600 z-50"
+      >
+        뻥!
+      </motion.div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-green-900 text-white p-4 relative">
       <PlayerList players={playerList} currentPlayer={currentPlayer} />
@@ -340,16 +376,12 @@ export default function GamePage() {
 
       <div className="absolute top-4 right-4 text-right">
         <div className="text-md mt-1">라운드: {round} / 5</div>
-
         {currentPlayerDrawn && (
           <div className="text-sm text-yellow-400">(카드 드로우 완료)</div>
         )}
       </div>
-      {showRoundBanner && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-80 text-white text-4xl font-bold py-6 px-10 rounded-2xl shadow-2xl z-50 animate-pulse">
-          Round {round} / 5
-        </div>
-      )}
+
+      <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
 
       <h1 className="text-3xl mb-4">🃏 뻥카비 게임</h1>
 
@@ -357,29 +389,46 @@ export default function GamePage() {
         <h2 className="text-xl mb-2 text-center">제출된 카드 및 드로우 덱</h2>
         <div className="flex justify-center items-center gap-8">
           {/* 제출된 카드 */}
-          <div>
+          <AnimatePresence mode="wait">
             {submittedCards.length > 0 ? (
               <SubmittedCard card={submittedCards.at(-1)!.card} />
             ) : (
-              <div className="text-gray-400">제출된 카드 없음</div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-gray-400"
+              >
+                제출된 카드 없음
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
 
           {/* 드로우 덱 이미지 */}
-          <img
-            src="/cards/back.png" // 카드 뒷면 이미지 경로
+          <motion.img
+            src="/cards/back.png"
             alt="덱"
             className={`w-20 h-28 rounded shadow-lg cursor-pointer
-        ${
-          !isMyTurn || mustSubmit || bbungPhase !== "idle"
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:scale-105 transition-transform"
-        }`}
+              ${
+                !isMyTurn || mustSubmit || bbungPhase !== "idle"
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:scale-105 transition-transform"
+              }`}
             onClick={() => {
               if (isMyTurn && !mustSubmit && bbungPhase === "idle") {
                 getSocket().emit("draw-card", { roomCode });
               }
             }}
+            whileHover={
+              isMyTurn && !mustSubmit && bbungPhase === "idle"
+                ? { scale: 1.1, rotate: 5 }
+                : {}
+            }
+            whileTap={
+              isMyTurn && !mustSubmit && bbungPhase === "idle"
+                ? { scale: 0.95 }
+                : {}
+            }
           />
         </div>
         <div className="text-center text-sm text-yellow-300 mt-1">
@@ -392,10 +441,11 @@ export default function GamePage() {
         <div className="flex flex-wrap justify-center gap-2">
           {hand.map((card, index) => (
             <Card
-              key={index}
+              key={card}
               card={card}
               selected={bbungCards.includes(card)}
               isRecent={card === recentDrawnCard}
+              isNew={newCards.includes(card)}
               onClick={() => toggleBbungCard(card)}
             />
           ))}
@@ -456,6 +506,9 @@ export default function GamePage() {
             </button>
           )}
         </div>
+
+        {isDrawing && <DrawAnimationCard keyVal={drawAnimationKey} />}
+        {showBbungEffect && <BbungTextEffect />}
 
         <ChatBox
           chatMessages={chatMessages}

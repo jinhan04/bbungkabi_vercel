@@ -71,7 +71,7 @@ export default function HomePage() {
       {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.22</h2>
+          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.23</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>게임 페이지에서 라운드 수가 1/5로 고정되던 오류 수정</li>
             <li>
@@ -88,12 +88,15 @@ export default function HomePage() {
             <li>
               roundresult 페이지에서 다음 라운드가 조기 종료되는 오류 수정
             </li>
-            <li>바가지 선언 문제 해결완료</li>
+            <li>바가지 선언 문제 해결 완료</li>
+            <li>
+              <strong>뻥 애니메이션이 모든 유저에게 공유되도록 개선</strong>
+            </li>
           </ul>
 
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 남은 문제</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>1라운드 자체 오류가 있음(조사 중)</li>
+            <li>1라운드 자체 오류가 있음 (조사 중)</li>
             <li>
               1라운드에서 카드 뽑기가 되지 않는 현상 (조사 중, 1라운드는 스킵
               요망)

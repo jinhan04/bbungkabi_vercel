@@ -28,8 +28,9 @@ export default function JoinPage() {
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
         placeholder="닉네임을 입력하세요"
-        className="border px-4 py-2 rounded w-64 text-center mb-4"
+        className="border px-4 py-2 rounded w-64 text-center mb-4 text-black"
       />
+
       <button
         onClick={handleJoin}
         className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded"

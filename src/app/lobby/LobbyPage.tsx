@@ -118,7 +118,7 @@ export default function LobbyPage() {
         onClick={() => setShowQR(true)}
         className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg"
       >
-        📱 QR로 친구 초대
+        QR로 친구 초대
       </button>
 
       <button

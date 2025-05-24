@@ -85,7 +85,7 @@ export default function HomePage() {
 
       {/* 패치노트 팝업 */}
       {showPatchNote && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
           <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.4</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>게임 페이지에서 라운드 수가 1/5로 고정되던 오류 수정</li>

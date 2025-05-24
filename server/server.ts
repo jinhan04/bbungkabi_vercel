@@ -741,7 +741,7 @@ function calculateScores(
     }
   }
 
-  // ✅ 마지막 라운드 점수 2배 처리 (여기가 정확한 위치!)
+  // ✅ 마지막 라운드 점수 2배 처리
   if (roomCode && roundCount[roomCode] === 5 && doubleFinalRoundMap[roomCode]) {
     console.log("[DEBUG] 마지막 라운드 점수 2배 적용");
     for (const p of Object.keys(scores)) {

@@ -18,25 +18,18 @@ export function sum(arr: number[]): number {
   return arr.reduce((acc, val) => acc + val, 0);
 }
 
-export const isStraight = (values: number[]): boolean => {
-  const set = new Set(values);
-
-  // A를 14로도 인식 (A=1 이므로 14도 추가해서 10-J-Q-K-A 가능하게)
-  if (set.has(1)) set.add(14);
-
-  const nums = [...set].sort((a, b) => a - b);
-
-  // 스트레이트 판단
-  for (let i = 0; i <= nums.length - 5; i++) {
-    const slice = nums.slice(i, i + 5);
-    const isConsecutive = slice.every((v, j) =>
-      j === 0 ? true : slice[j] === slice[j - 1] + 1
-    );
-    if (isConsecutive) return true;
+export function isStraight(values: number[]): boolean {
+  const sorted = [...values].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) {
+    if (
+      (sorted[i] - sorted[i - 1] + 13) % 13 !== 1 &&
+      sorted[i] - sorted[i - 1] !== 1
+    ) {
+      return false;
+    }
   }
-
-  return false;
-};
+  return true;
+}
 
 export function isPairPairPair(values: number[]): boolean {
   const counts: Record<number, number> = {};

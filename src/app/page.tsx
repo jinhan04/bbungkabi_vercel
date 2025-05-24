@@ -86,7 +86,7 @@ export default function HomePage() {
       {/* 패치노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.3</h2>
+          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.4</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>게임 페이지에서 라운드 수가 1/5로 고정되던 오류 수정</li>
             <li>라운드가 2씩 증가하던 버그 수정</li>
@@ -98,11 +98,38 @@ export default function HomePage() {
               <strong>뻥 애니메이션이 모든 유저에게 공유되도록 개선</strong>
             </li>
           </ul>
-          <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 남은 문제</h2>
+          <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>1라운드 자체 오류 있음</li>
             <li>1라운드에서 카드 뽑기 안됨 (스킵 요망)</li>
             <li>마지막 라운드로 안 넘어감</li>
+            <li>바가지 실패 시 노바가지 알림 없음</li>
+            <li>족보 인식 오류 존재</li>
+            <li>1라운드에 카드 수 UI 반영 오류</li>
+          </ul>
+          <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
+          <ul className="list-disc list-inside text-sm mb-4">
+            <li>탈주 버튼 추가</li>
+            <li>라운드 수 설정 기능</li>
+            <li>마지막 라운드 점수 2배 적용</li>
+            <li>점수 2배 여부 설정 기능</li>
+            <li>라운드 결과 페이지에 타 플레이어 점수 표시</li>
+            <li>게임 시작 사운드 추가</li>
+            <li>카드 제출 사운드 추가</li>
+            <li>최종 결과 시 효과음 추가</li>
+            <li>카드 선택 시 사운드 추가</li>
+            <li>바가지 / 노바가지 TTS 추가</li>
+            <li>라운드 종료 시 사운드 추가</li>
+            <li>타이머 + 어벙 처리 로직 추가</li>
+            <li>음소거/사운드 활성화 버튼 추가</li>
+            <li>글씨체 변경</li>
+            <li>플레이어 목록을 현재 차례 위주로 개선</li>
+            <li>게임 종료 버튼 추가</li>
+            <li>개인 프로필 생성 및 DB 연동 (승률, 코인 등)</li>
+            <li>QR 코드 방 입장 기능</li>
+            <li>카카오 로그인 연동</li>
+            <li>모바일 UI 개선</li>
+            <li>debounce 최적화</li>
           </ul>
           <button
             onClick={handleClose}

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { getSocket } from "@/lib/socket";
 import { playSound } from "@/lib/sound";
+import { isSoundEnabled, toggleSound } from "@/lib/sound";
+
 import {
   cardToValue,
   isStraight,
@@ -62,6 +64,7 @@ export default function GamePage() {
   const [canSend, setCanSend] = useState(true);
   const [showRoundBanner, setShowRoundBanner] = useState(false);
   const [newCards, setNewCards] = useState<string[]>([]);
+  const [soundOn, setSoundOn] = useState(true);
 
   const isMyTurn = currentPlayer === nickname;
 
@@ -166,6 +169,10 @@ export default function GamePage() {
       setBagajiText(message);
       setShowBagaji(true);
       setChatMessages((prev) => [...prev, { nickname, message }]);
+
+      // ✅ 사운드 추가
+      playSound(isBagaji ? "bagaji.wav" : "no-bagaji.wav");
+
       setTimeout(() => {
         setShowBagaji(false);
         setBagajiText("");
@@ -387,6 +394,15 @@ export default function GamePage() {
           방 코드: <span className="font-mono">{roomCode}</span>
         </div>
         <div className="text-md">닉네임: {nickname}</div>
+        <button
+          onClick={() => {
+            toggleSound();
+            setSoundOn(isSoundEnabled());
+          }}
+          className="mt-2 px-3 py-1 bg-gray-800 text-white rounded text-sm hover:bg-gray-700"
+        >
+          🔈 사운드 {soundOn ? "켜짐" : "꺼짐"}
+        </button>
       </div>
 
       <div className="absolute top-4 right-4 text-right">

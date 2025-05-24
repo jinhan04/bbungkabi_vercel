@@ -11,7 +11,7 @@ export default function PlayerList({
 }: PlayerListProps) {
   return (
     <div className="absolute top-24 left-4 text-left bg-black bg-opacity-40 p-2 rounded">
-      <h2 className="text-sm font-semibold">플레이어 목록</h2>
+      <h2 className="text-sm font-semibold">플레이어</h2>
       <ul className="text-sm space-y-1">
         {players.map((name) => (
           <li

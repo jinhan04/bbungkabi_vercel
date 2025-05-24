@@ -241,6 +241,10 @@ export default function GamePage() {
     socket.on("next-round", ({ round }) => {
       setRound(round);
       setShowRoundBanner(true);
+
+      const roundSound = round === 5 ? "final-round.wav" : `round-${round}.wav`;
+      playSound(roundSound);
+
       setTimeout(() => setShowRoundBanner(false), 2000);
     });
     return () => {

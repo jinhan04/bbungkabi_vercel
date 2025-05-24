@@ -307,6 +307,7 @@ export default function GamePage() {
     const newHand = hand.filter((c) => c !== bbungCards[0]);
     setHand(sortHandByValue(newHand));
     getSocket().emit("submit-bbung-extra", { roomCode, card: bbungCards[0] });
+    playSound("submit-card.wav");
     setBbungCards([]);
     setMustSubmit(false);
     setBbungPhase("idle");
@@ -322,6 +323,7 @@ export default function GamePage() {
 
     const newHand = hand.filter((c) => c !== bbungCards[0]);
     setHand(sortHandByValue(newHand));
+    playSound("submit-card.wav");
     getSocket().emit("submit-card", { roomCode, card: bbungCards[0] });
     setBbungCards([]);
     setMustSubmit(false);
@@ -399,19 +401,22 @@ export default function GamePage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-green-900 text-white p-4 relative">
       <PlayerList players={playerList} currentPlayer={currentPlayer} />
 
-      <div className="absolute top-4 left-4 text-left">
-        <div className="text-lg font-bold">
-          방 코드: <span className="font-mono">{roomCode}</span>
+      <div className="absolute top-4 left-4 right-4 flex flex-col gap-2 sm:flex-row sm:justify-between">
+        <div>
+          <div className="text-lg font-bold">
+            방 코드: <span className="font-mono">{roomCode}</span>
+          </div>
+          <div className="text-md">닉네임: {nickname}</div>
         </div>
-        <div className="text-md">닉네임: {nickname}</div>
+
         <button
           onClick={() => {
             toggleSound();
             setSoundOn(isSoundEnabled());
           }}
-          className="mt-2 px-3 py-1 bg-gray-800 text-white rounded text-sm hover:bg-gray-700"
+          className="mt-2 sm:mt-0 px-3 py-1 bg-gray-800 text-white rounded text-sm hover:bg-gray-700"
         >
-          🔈 사운드 {soundOn ? "켜짐" : "꺼짐"}
+          {soundOn ? "🔊 사운드 켜짐" : "🔇 사운드 꺼짐"}
         </button>
       </div>
 
@@ -479,7 +484,7 @@ export default function GamePage() {
 
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
         <h2 className="text-xl font-bold mb-4">내 손패</h2>
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-2 mt-2 px-2">
           {hand.map((card) => (
             <Card
               key={card}
@@ -492,7 +497,7 @@ export default function GamePage() {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col items-center">
+        <div className="mt-6 flex flex-col items-center gap-2 w-full max-w-sm">
           {canShowBbungButton() && (
             <button
               onClick={handleInitialBbung}

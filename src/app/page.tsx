@@ -12,6 +12,7 @@ export default function HomePage() {
   const [showMaxInput, setShowMaxInput] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(true);
   const [showRules, setShowRules] = useState(false);
+  const [doubleFinalRound, setDoubleFinalRound] = useState(false);
 
   const router = useRouter();
   const handleClose = () => setShowPatchNote(false);
@@ -44,7 +45,7 @@ export default function HomePage() {
     router.push(
       `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
         nickname
-      )}&max=${maxPlayers}`
+      )}&max=${maxPlayers}&doubleFinal=${doubleFinalRound}`
     );
   };
 
@@ -178,6 +179,14 @@ export default function HomePage() {
             value={maxPlayers}
             onChange={(e) => setMaxPlayers(Number(e.target.value))}
           />
+          <label className="flex items-center space-x-2 text-black">
+            <input
+              type="checkbox"
+              checked={doubleFinalRound}
+              onChange={(e) => setDoubleFinalRound(e.target.checked)}
+            />
+            <span>마지막 라운드 점수 2배 적용</span>
+          </label>
           <button
             onClick={confirmCreateRoom}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"

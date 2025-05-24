@@ -399,8 +399,16 @@ export default function GamePage() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-green-900 text-white p-4 relative">
-      {/* 🔊 사운드 버튼 - 우상단 고정 */}
-      <div className="fixed top-2 right-2 z-50">
+      {/* ✅ 좌상단: 방 코드 + 닉네임 */}
+      <div className="fixed top-2 left-2 z-50 text-sm sm:text-base">
+        <div className="font-bold">
+          방 코드: <span className="font-mono">{roomCode}</span>
+        </div>
+        <div>닉네임: {nickname}</div>
+      </div>
+
+      {/* ✅ 우상단: 사운드 버튼 + 라운드 정보 */}
+      <div className="fixed top-2 right-2 z-50 flex flex-col items-end gap-1 text-sm text-right">
         <button
           onClick={() => {
             toggleSound();
@@ -410,30 +418,22 @@ export default function GamePage() {
         >
           {soundOn ? "🔊 사운드 켜짐" : "🔇 사운드 꺼짐"}
         </button>
+        <div>
+          라운드: {round} / 5
+          {currentPlayerDrawn && (
+            <div className="text-yellow-400">(카드 드로우 완료)</div>
+          )}
+        </div>
       </div>
 
       {/* 👥 플레이어 목록 */}
       <PlayerList players={playerList} currentPlayer={currentPlayer} />
 
-      {/* 상단 정보 */}
-      <div className="w-full max-w-4xl flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
-        <div className="text-center sm:text-left">
-          <div className="text-lg font-bold">
-            방 코드: <span className="font-mono">{roomCode}</span>
-          </div>
-          <div className="text-md">닉네임: {nickname}</div>
-        </div>
-        <div className="text-md text-center sm:text-right">
-          라운드: {round} / 5
-          {currentPlayerDrawn && (
-            <div className="text-sm text-yellow-400">(카드 드로우 완료)</div>
-          )}
-        </div>
-      </div>
-
       <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
 
       <h1 className="text-3xl mt-4 mb-6">🃏 뻥카비 게임</h1>
+
+      {/* 이하 생략 (제출된 카드, 손패, 버튼, 채팅 등은 그대로 유지) */}
 
       {/* 제출된 카드 및 덱 */}
       <div className="mb-6 w-full max-w-2xl">

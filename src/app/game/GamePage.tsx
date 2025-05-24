@@ -249,7 +249,8 @@ export default function GamePage() {
     socket.on("bbung-effect", ({ nickname: bbunger }) => {
       console.log(`${bbunger} used BBUNG!`);
 
-      playSound("bbung.mp3");
+      //playSound("bbung.mp3");
+      playSound("bbung.wav");
       setShowBbungEffect(true);
       setTimeout(() => setShowBbungEffect(false), 800);
     });

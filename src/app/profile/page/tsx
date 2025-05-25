@@ -1,0 +1,54 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function ProfilePage() {
+  const [profile, setProfile] = useState < any > null;
+  const [error, setError] = (useState < string) | (null > null);
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("jwt");
+    if (!token) {
+      setError("로그인이 필요합니다.");
+      return;
+    }
+
+    fetch("https://api.bbungkabe.com/auth/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setProfile(data);
+        }
+      })
+      .catch(() => setError("프로필 정보를 불러오지 못했습니다."));
+  }, []);
+
+  if (error) {
+    return <div className="p-4 text-red-600">{error}</div>;
+  }
+
+  if (!profile) {
+    return <div className="p-4">로딩 중...</div>;
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center p-6">
+      <h1 className="text-2xl font-bold mb-4">내 프로필</h1>
+      <img
+        src={profile.profileImage}
+        alt="프로필 이미지"
+        className="w-24 h-24 rounded-full mb-2"
+      />
+      <div className="text-lg">닉네임: {profile.nickname}</div>
+      <div className="text-sm text-gray-500">
+        가입일: {new Date(profile.createdAt).toLocaleDateString()}
+      </div>
+    </div>
+  );
+}

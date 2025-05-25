@@ -39,7 +39,7 @@ export default function LoginPage() {
               });
           });
       },
-      fail(err: any) {
+      fail(err: { error: string; error_description?: string }) {
         alert("로그인 실패: " + JSON.stringify(err));
       },
     });

@@ -17,7 +17,7 @@ interface Window {
       login: (options: {
         scope?: string;
         success: (authObj: KakaoAuthResponse) => void;
-        fail: (err: any) => void;
+        fail: (err: { error: string; error_description?: string }) => void;
       }) => void;
     };
   };

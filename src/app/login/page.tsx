@@ -17,7 +17,7 @@ export default function LoginPage() {
   const handleLogin = () => {
     window.Kakao.Auth.login({
       scope: "profile_nickname, profile_image",
-      success(auth: any) {
+      success(auth: { access_token: string }) {
         const accessToken = auth.access_token;
 
         fetch("https://api.bbungkabe.com/auth/kakao", {
@@ -26,7 +26,7 @@ export default function LoginPage() {
           body: JSON.stringify({ accessToken }),
         })
           .then((res) => res.json())
-          .then((data) => {
+          .then((data: { token: string }) => {
             localStorage.setItem("token", data.token);
 
             fetch("https://api.bbungkabe.com/auth/me", {

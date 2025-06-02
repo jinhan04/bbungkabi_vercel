@@ -2,9 +2,9 @@ import express, { Router } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import { authRoutes } from "./routes/auth";
+// import { authRoutes } from "./routes/auth";
 
-const typedRoutes: Router = authRoutes;
+// const typedRoutes: Router = authRoutes;
 const app = express();
 const httpServer = createServer(app);
 
@@ -68,7 +68,7 @@ const createDeck = () => {
 };
 
 app.use(express.json());
-app.use("/auth", authRoutes);
+// app.use("/auth", authRoutes);
 
 const shuffle = (array: string[]) => {
   const copy = [...array];

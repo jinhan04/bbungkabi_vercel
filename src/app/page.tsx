@@ -140,7 +140,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.2 🂡</h1>
+      <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.3 🂡</h1>
 
       <input
         type="text"

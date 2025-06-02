@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { getSocket } from "@/lib/socket";
 import { playSound } from "@/lib/sound";
+import { isSoundEnabled, toggleSound } from "@/lib/sound";
+
 import {
   cardToValue,
   isStraight,
@@ -62,6 +64,7 @@ export default function GamePage() {
   const [canSend, setCanSend] = useState(true);
   const [showRoundBanner, setShowRoundBanner] = useState(false);
   const [newCards, setNewCards] = useState<string[]>([]);
+  const [soundOn, setSoundOn] = useState(true);
 
   const isMyTurn = currentPlayer === nickname;
 
@@ -120,6 +123,11 @@ export default function GamePage() {
       if (round) {
         setRound(round);
         setShowRoundBanner(true);
+
+        const roundSound =
+          round === 5 ? "final-round.wav" : `round-${round}.wav`;
+        playSound(roundSound);
+
         setTimeout(() => setShowRoundBanner(false), 2000);
       }
     });
@@ -166,6 +174,10 @@ export default function GamePage() {
       setBagajiText(message);
       setShowBagaji(true);
       setChatMessages((prev) => [...prev, { nickname, message }]);
+
+      // ✅ 사운드 추가
+      playSound(isBagaji ? "bagaji.wav" : "no-bagaji.wav");
+
       setTimeout(() => {
         setShowBagaji(false);
         setBagajiText("");
@@ -229,6 +241,10 @@ export default function GamePage() {
     socket.on("next-round", ({ round }) => {
       setRound(round);
       setShowRoundBanner(true);
+
+      const roundSound = round === 5 ? "final-round.wav" : `round-${round}.wav`;
+      playSound(roundSound);
+
       setTimeout(() => setShowRoundBanner(false), 2000);
     });
     return () => {
@@ -242,7 +258,8 @@ export default function GamePage() {
     socket.on("bbung-effect", ({ nickname: bbunger }) => {
       console.log(`${bbunger} used BBUNG!`);
 
-      playSound("bbung.mp3");
+      //playSound("bbung.mp3");
+      playSound("bbung.wav");
       setShowBbungEffect(true);
       setTimeout(() => setShowBbungEffect(false), 800);
     });
@@ -290,6 +307,7 @@ export default function GamePage() {
     const newHand = hand.filter((c) => c !== bbungCards[0]);
     setHand(sortHandByValue(newHand));
     getSocket().emit("submit-bbung-extra", { roomCode, card: bbungCards[0] });
+    playSound("submit-card.wav");
     setBbungCards([]);
     setMustSubmit(false);
     setBbungPhase("idle");
@@ -305,6 +323,7 @@ export default function GamePage() {
 
     const newHand = hand.filter((c) => c !== bbungCards[0]);
     setHand(sortHandByValue(newHand));
+    playSound("submit-card.wav");
     getSocket().emit("submit-card", { roomCode, card: bbungCards[0] });
     setBbungCards([]);
     setMustSubmit(false);
@@ -379,31 +398,47 @@ export default function GamePage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-green-900 text-white p-4 relative">
-      <PlayerList players={playerList} currentPlayer={currentPlayer} />
-
-      <div className="absolute top-4 left-4 text-left">
-        <div className="text-lg font-bold">
+    <div className="flex flex-col items-center justify-start min-h-screen bg-green-900 text-white p-4 relative">
+      {/* ✅ 좌상단: 방 코드 + 닉네임 */}
+      <div className="fixed top-2 left-2 z-50 text-sm sm:text-base">
+        <div className="font-bold">
           방 코드: <span className="font-mono">{roomCode}</span>
         </div>
-        <div className="text-md">닉네임: {nickname}</div>
+        <div>닉네임: {nickname}</div>
       </div>
 
-      <div className="absolute top-4 right-4 text-right">
-        <div className="text-md mt-1">라운드: {round} / 5</div>
-        {currentPlayerDrawn && (
-          <div className="text-sm text-yellow-400">(카드 드로우 완료)</div>
-        )}
+      {/* ✅ 우상단: 사운드 버튼 + 라운드 정보 */}
+      <div className="fixed top-2 right-2 z-50 flex flex-col items-end gap-1 text-sm text-right">
+        <button
+          onClick={() => {
+            toggleSound();
+            setSoundOn(isSoundEnabled());
+          }}
+          className="px-3 py-1 bg-gray-800 text-white rounded text-sm hover:bg-gray-700"
+        >
+          {soundOn ? "🔊 사운드 켜짐" : "🔇 사운드 꺼짐"}
+        </button>
+        <div>
+          라운드: {round} / 5
+          {currentPlayerDrawn && (
+            <div className="text-yellow-400">(카드 드로우 완료)</div>
+          )}
+        </div>
       </div>
+
+      {/* 👥 플레이어 목록 */}
+      <PlayerList players={playerList} currentPlayer={currentPlayer} />
 
       <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
 
-      <h1 className="text-3xl mb-4">🃏 뻥카비 게임</h1>
+      <h1 className="text-3xl mt-4 mb-6">🃏 뻥카비 게임</h1>
 
-      <div className="mb-6">
+      {/* 이하 생략 (제출된 카드, 손패, 버튼, 채팅 등은 그대로 유지) */}
+
+      {/* 제출된 카드 및 덱 */}
+      <div className="mb-6 w-full max-w-2xl">
         <h2 className="text-xl mb-2 text-center">제출된 카드 및 드로우 덱</h2>
         <div className="flex justify-center items-center gap-8">
-          {/* 제출된 카드 */}
           <AnimatePresence mode="wait">
             {submittedCards.length > 0 ? (
               <SubmittedCard card={submittedCards.at(-1)!.card} />
@@ -419,16 +454,15 @@ export default function GamePage() {
             )}
           </AnimatePresence>
 
-          {/* 드로우 덱 이미지 */}
           <motion.img
             src="/cards/back.png"
             alt="덱"
             className={`w-20 h-28 rounded shadow-lg cursor-pointer
-              ${
-                !isMyTurn || mustSubmit || bbungPhase !== "idle"
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:scale-105 transition-transform"
-              }`}
+            ${
+              !isMyTurn || mustSubmit || bbungPhase !== "idle"
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:scale-105 transition-transform"
+            }`}
             onClick={() => {
               if (isMyTurn && !mustSubmit && bbungPhase === "idle") {
                 getSocket().emit("draw-card", { roomCode });
@@ -451,9 +485,12 @@ export default function GamePage() {
         </div>
       </div>
 
+      {/* 손패 및 버튼 */}
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
-        <h2 className="text-xl font-bold mb-4">내 손패</h2>
-        <div className="flex flex-wrap justify-center gap-2">
+        <h2 className="text-xl font-bold mb-4 text-center sm:text-left">
+          내 손패
+        </h2>
+        <div className="flex flex-wrap justify-center gap-2 mt-2 px-2">
           {hand.map((card) => (
             <Card
               key={card}
@@ -466,11 +503,11 @@ export default function GamePage() {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col items-center">
+        <div className="mt-6 flex flex-col items-center gap-2 w-full max-w-sm mx-auto">
           {canShowBbungButton() && (
             <button
               onClick={handleInitialBbung}
-              className="mb-2 px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded"
+              className="w-full px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded"
             >
               뻥! (같은 카드 2장 제출)
             </button>
@@ -478,7 +515,7 @@ export default function GamePage() {
           {isMyTurn && !mustSubmit && bbungPhase === "idle" && (
             <button
               onClick={handleStop}
-              className="mt-2 px-6 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded"
+              className="w-full px-6 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded"
             >
               스탑!
             </button>
@@ -486,7 +523,7 @@ export default function GamePage() {
           {bbungPhase === "selectingExtra" && (
             <button
               onClick={handleExtraBbung}
-              className="mb-2 px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded"
+              className="w-full px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded"
             >
               추가 카드 1장 제출
             </button>
@@ -494,7 +531,7 @@ export default function GamePage() {
           {isMyTurn && mustSubmit && bbungPhase === "idle" && (
             <button
               onClick={handleSubmitCard}
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+              className="w-full px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
             >
               카드 제출
             </button>
@@ -502,7 +539,7 @@ export default function GamePage() {
           {isMyTurn && !mustSubmit && bbungPhase === "idle" && (
             <button
               onClick={() => getSocket().emit("draw-card", { roomCode })}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+              className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
             >
               카드 뽑기
             </button>
@@ -515,7 +552,7 @@ export default function GamePage() {
                   reason: "족보 완성",
                 })
               }
-              className="mt-2 px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded"
+              className="w-full px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded"
             >
               족보 완성!
             </button>
@@ -525,12 +562,14 @@ export default function GamePage() {
         {isDrawing && <DrawAnimationCard keyVal={drawAnimationKey} />}
         {showBbungEffect && <BbungTextEffect />}
 
+        {/* 📨 채팅창 */}
         <ChatBox
           chatMessages={chatMessages}
           chatInput={chatInput}
           setChatInput={setChatInput}
           canSend={canSend}
           sendChat={sendChat}
+          className="w-full mt-4"
         />
       </div>
 

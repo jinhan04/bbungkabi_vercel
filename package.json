@@ -11,12 +11,17 @@
     "start-server": "node dist/server/server.js"
   },
   "dependencies": {
+    "@prisma/client": "^6.8.2",
     "autoprefixer": "^10.4.21",
     "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "framer-motion": "^12.12.1",
+    "jsonwebtoken": "^9.0.2",
     "next": "15.3.1",
+    "node-fetch": "^3.3.2",
     "postcss": "^8.5.3",
+    "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "socket.io": "^4.8.1",
@@ -27,11 +32,14 @@
     "@eslint/eslintrc": "^3",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^20",
+    "@types/node-fetch": "^2.6.12",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
+    "prisma": "^6.8.2",
     "typescript": "^5"
   }
 }

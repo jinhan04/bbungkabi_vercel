@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import GameRulesModal from "@/components/GameRulesModal";
 
 export default function HomePage() {
   const [nickname, setNickname] = useState("");
@@ -10,6 +11,8 @@ export default function HomePage() {
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [showMaxInput, setShowMaxInput] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(true);
+  const [showRules, setShowRules] = useState(false);
+  const [doubleFinalRound, setDoubleFinalRound] = useState(false);
 
   const router = useRouter();
   const handleClose = () => setShowPatchNote(false);
@@ -29,6 +32,7 @@ export default function HomePage() {
       return;
     }
     setShowMaxInput(true);
+    setIsJoiningRoom(false);
   };
 
   const confirmCreateRoom = () => {
@@ -41,7 +45,7 @@ export default function HomePage() {
     router.push(
       `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
         nickname
-      )}&max=${maxPlayers}`
+      )}&max=${maxPlayers}&doubleFinal=${doubleFinalRound}`
     );
   };
 
@@ -51,6 +55,7 @@ export default function HomePage() {
       return;
     }
     setIsJoiningRoom(true);
+    setShowMaxInput(false);
   };
 
   const handleJoinRoom = () => {
@@ -67,7 +72,7 @@ export default function HomePage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      {/* ✅ 오류 제보 버튼 (상단 우측 고정) */}
+      {/* 오류 제보 버튼 */}
       <div className="absolute top-4 right-4">
         <a
           href="https://open.kakao.com/o/sXveaSxh"
@@ -78,7 +83,7 @@ export default function HomePage() {
           오류 제보
         </a>
       </div>
-      {/* 패치노트 팝업 */}
+      {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
           <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 2.4</h2>
@@ -136,6 +141,7 @@ export default function HomePage() {
       )}
 
       <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.2 🂡</h1>
+
       <input
         type="text"
         placeholder="닉네임을 입력하세요"
@@ -143,7 +149,8 @@ export default function HomePage() {
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
       />
-      {!isJoiningRoom && !showMaxInput ? (
+
+      {!isJoiningRoom && !showMaxInput && (
         <div className="flex space-x-4">
           <button
             onClick={handleCreateRoom}
@@ -158,10 +165,11 @@ export default function HomePage() {
             방 입장하기
           </button>
         </div>
-      ) : null}
+      )}
+
       {showMaxInput && (
         <div className="flex flex-col items-center space-y-4">
-          <p className="text-black font-semibold">인원 (1~6)</p>
+          <p className="text-black font-semibold">최대 인원 (1~6)</p>
           <input
             type="number"
             min={1}
@@ -170,6 +178,14 @@ export default function HomePage() {
             value={maxPlayers}
             onChange={(e) => setMaxPlayers(Number(e.target.value))}
           />
+          <label className="flex items-center space-x-2 text-black">
+            <input
+              type="checkbox"
+              checked={doubleFinalRound}
+              onChange={(e) => setDoubleFinalRound(e.target.checked)}
+            />
+            <span>마지막 라운드 점수 2배 적용</span>
+          </label>
           <button
             onClick={confirmCreateRoom}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"
@@ -178,8 +194,9 @@ export default function HomePage() {
           </button>
         </div>
       )}
-      {isJoiningRoom && !showMaxInput && (
-        <div className="flex flex-col items-center space-y-4">
+
+      {isJoiningRoom && (
+        <div className="flex flex-col items-center space-y-4 mt-4">
           <input
             type="text"
             placeholder="방 코드를 입력하세요"
@@ -196,11 +213,20 @@ export default function HomePage() {
           </button>
         </div>
       )}
+
+      <button
+        onClick={() => setShowRules(true)}
+        className="mt-6 text-sm underline text-blue-600 hover:text-blue-800"
+      >
+        게임 설명 보기
+      </button>
+
+      {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
+
       <div className="mt-12 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23)
       </div>
 
-      {/* ✅ 쿠팡 광고: 항상 가장 하단에 위치 */}
       <div className="w-full flex justify-center mt-6">
         <a
           href="https://link.coupang.com/a/cvkq2m"

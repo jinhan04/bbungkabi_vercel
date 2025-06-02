@@ -3,9 +3,10 @@
 type ChatBoxProps = {
   chatMessages: { nickname: string; message: string }[];
   chatInput: string;
-  setChatInput: (value: string) => void;
+  setChatInput: React.Dispatch<React.SetStateAction<string>>;
   canSend: boolean;
   sendChat: () => void;
+  className?: string; // ✅ 추가
 };
 
 export default function ChatBox({
@@ -14,9 +15,12 @@ export default function ChatBox({
   setChatInput,
   canSend,
   sendChat,
+  className, // ✅ props로 받고
 }: ChatBoxProps) {
   return (
-    <div className="mt-8 w-full max-w-xl">
+    <div className={`mt-8 w-full max-w-xl ${className ?? ""}`}>
+      {" "}
+      {/* ✅ 여기에 적용 */}
       <div className="bg-white text-black p-4 rounded shadow-md">
         <h2 className="text-lg font-bold mb-2">채팅</h2>
         <div className="h-40 overflow-y-auto mb-2 bg-gray-100 p-2 rounded text-sm">

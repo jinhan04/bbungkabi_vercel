@@ -1,8 +1,10 @@
-import express from "express";
+import express, { Router } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import { authRoutes } from "./routes/auth";
 
+const typedRoutes: Router = authRoutes;
 const app = express();
 const httpServer = createServer(app);
 
@@ -21,6 +23,7 @@ const turnIndex: { [key: string]: number } = {};
 const readyPlayers: { [key: string]: Set<string> } = {};
 const drawFlag: { [key: string]: Set<string> } = {};
 const roundCount: { [key: string]: number } = {};
+const doubleFinalRoundMap: { [roomCode: string]: boolean } = {};
 const scores: { [key: string]: { [nickname: string]: number[] } } = {};
 const readyForNextRound: { [roomCode: string]: Set<string> } = {};
 const bbungEndTriggeredBy: { [roomCode: string]: string | null } = {}; // 유도자 저장
@@ -64,6 +67,9 @@ const createDeck = () => {
   return deck;
 };
 
+app.use(express.json());
+app.use("/auth", authRoutes);
+
 const shuffle = (array: string[]) => {
   const copy = [...array];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -98,8 +104,9 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("update-players", rooms[roomCode]);
   });
 
-  socket.on("start-game", ({ roomCode, nickname, maxPlayers }) => {
+  socket.on("start-game", ({ roomCode, nickname, maxPlayers, doubleFinal }) => {
     const players = rooms[roomCode];
+    doubleFinalRoundMap[roomCode] = !!doubleFinal;
     if (!players || players.length < 1 || players.length > maxPlayers) {
       socket.emit(
         "join-error",
@@ -738,6 +745,15 @@ function calculateScores(
       console.log("[DEBUG] 유도자 없음 — 점수 보상 생략됨");
     }
   }
+
+  // ✅ 마지막 라운드 점수 2배 처리
+  if (roomCode && roundCount[roomCode] === 5 && doubleFinalRoundMap[roomCode]) {
+    console.log("[DEBUG] 마지막 라운드 점수 2배 적용");
+    for (const p of Object.keys(scores)) {
+      scores[p] *= 2;
+    }
+  }
+
   // 점수 반환
   return scores;
 }

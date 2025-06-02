@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
+import { QRCodeCanvas } from "qrcode.react";
 
 export default function LobbyPage() {
   const searchParams = useSearchParams();
@@ -11,9 +12,11 @@ export default function LobbyPage() {
   const roomCode = searchParams.get("code");
   const nickname = searchParams.get("nickname");
   const maxPlayers = Number(searchParams.get("max")) || 6;
+  const doubleFinal = searchParams.get("doubleFinal") === "true";
 
   const [players, setPlayers] = useState<string[]>([]);
   const [hasJoined, setHasJoined] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<
     { nickname: string; message: string }[]
@@ -94,7 +97,12 @@ export default function LobbyPage() {
         <button
           onClick={() => {
             const socket = getSocket();
-            socket.emit("start-game", { roomCode, nickname, maxPlayers });
+            socket.emit("start-game", {
+              roomCode,
+              nickname,
+              maxPlayers,
+              doubleFinal, // ✅ 추가
+            });
           }}
           disabled={players.length < maxPlayers}
           className={`mt-8 px-6 py-2 font-semibold rounded-lg ${
@@ -106,6 +114,12 @@ export default function LobbyPage() {
           게임 시작하기
         </button>
       )}
+      <button
+        onClick={() => setShowQR(true)}
+        className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg"
+      >
+        QR로 친구 초대
+      </button>
 
       <button
         onClick={() => {
@@ -150,6 +164,28 @@ export default function LobbyPage() {
           </div>
         </div>
       </div>
+      {showQR && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4 text-black">
+              QR 코드로 초대하기
+            </h2>
+            <QRCodeCanvas
+              value={`https://bbungkabe.com/join?code=${roomCode}`}
+              size={200}
+            />
+            <p className="text-sm text-gray-600 mt-2 break-all">
+              https://bbungkabe.com/lobby?code={roomCode}
+            </p>
+            <button
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              onClick={() => setShowQR(false)}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

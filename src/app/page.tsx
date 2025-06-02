@@ -90,12 +90,12 @@ export default function HomePage() {
           <ul className="list-disc list-inside text-sm mb-4">
             <li>게임 페이지에서 라운드 수가 1/5로 고정되던 오류 수정</li>
             <li>라운드가 2씩 증가하던 버그 수정</li>
-            <li>첫 라운드에서 5/5로 보이던 문제 해결</li>
+            <li>첫 라운채드에서 5/5로 보이던 문제 해결</li>
             <li>쿠팡 광고 추가</li>
             <li>카드 제출 사운드 추가</li>
             <li>바가지 / 노바가지 TTS 추가</li>
             <li>음소거/사운드 활성화 버튼 추가</li>
-            <li>오류 제보 버튼 및 오픈 채팅방 추가</li>
+            <li>오류 제보 버튼 및 오픈 팅방 추가</li>
             <li>바가지 선언 문제 해결 완료</li>
             <li>족보 인식 오류 해결</li>
             <li>모바일 UI 개선</li>

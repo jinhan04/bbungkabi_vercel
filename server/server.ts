@@ -334,8 +334,17 @@ io.on("connection", (socket) => {
     if (!nickname || !roomCode) return;
 
     const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
-    if (nickname !== currentPlayer) return;
-    if (drawFlag[roomCode].has(nickname)) return;
+    if (nickname !== currentPlayer) {
+      console.log(
+        `[BLOCKED] ${nickname} tried to draw, but it's not their turn.`
+      );
+      return;
+    }
+
+    if (drawFlag[roomCode].has(nickname)) {
+      console.log(`[BLOCKED] ${nickname} already drew a card.`);
+      return;
+    }
 
     const deck = decks[roomCode];
     if (!deck || deck.length === 0) return;

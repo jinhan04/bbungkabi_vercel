@@ -384,6 +384,9 @@ io.on("connection", (socket) => {
     );
     console.log(`[DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`);
     console.log(`[DEBUG] rooms =`, rooms[roomCode]);
+    console.log(`[DEBUG] turnIndex = ${turnIndex[roomCode]}`);
+    console.log(`[DEBUG] rooms =`, rooms[roomCode]);
+    console.log(`[DEBUG] playerHands =`, Object.keys(playerHands[roomCode]));
 
     console.log(
       `[${new Date().toISOString()}][DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`

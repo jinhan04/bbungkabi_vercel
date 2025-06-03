@@ -155,10 +155,8 @@ io.on("connection", (socket) => {
 
     const randomPlayer = players[Math.floor(Math.random() * players.length)];
     turnIndex[roomCode] = players.indexOf(randomPlayer);
-
-    setTimeout(() => {
-      io.to(roomCode).emit("turn-info", { currentPlayer: randomPlayer });
-    }, 500);
+    const currentPlayer = players[turnIndex[roomCode]];
+    io.to(roomCode).emit("turn-info", { currentPlayer });
   });
 
   socket.on("ready-next-round", ({ roomCode, nickname }) => {

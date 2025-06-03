@@ -107,6 +107,8 @@ io.on("connection", (socket) => {
   socket.on("start-game", ({ roomCode, nickname, maxPlayers, doubleFinal }) => {
     const players = rooms[roomCode];
     doubleFinalRoundMap[roomCode] = !!doubleFinal;
+    drawFlag[roomCode] = new Set();
+
     if (!players || players.length < 1 || players.length > maxPlayers) {
       socket.emit(
         "join-error",
@@ -159,6 +161,8 @@ io.on("connection", (socket) => {
     }
 
     readyForNextRound[roomCode].add(nickname);
+    drawFlag[roomCode] = new Set();
+
     console.log(`[DEBUG] ${nickname} is ready for next round in ${roomCode}`);
     console.log(`[DEBUG] Ready count: ${readyForNextRound[roomCode].size}`);
     console.log(`[DEBUG] Total players: ${rooms[roomCode]?.length}`);

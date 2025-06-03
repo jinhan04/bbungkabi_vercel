@@ -135,11 +135,13 @@ export default function GamePage() {
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));
     socket.on("turn-info", ({ currentPlayer }) => {
       setCurrentPlayer(currentPlayer);
-      setMustSubmit(false);
+      setMustSubmit(false); // ✅ 반드시 초기화
       setBbungPhase("idle");
-      setCurrentPlayerDrawn(false);
-      setAnyoneDrewThisTurn(false);
+      setCurrentPlayerDrawn(false); // ✅ 드로우 여부도 초기화
+      setAnyoneDrewThisTurn(false); // ✅ 유효하게 초기화
+      setBbungCards([]); // ✅ 선택 카드도 초기화하면 안정적
     });
+
     socket.on("card-submitted", ({ nickname, card }) =>
       setSubmittedCards((prev) => [...prev, { nickname, card }])
     );
@@ -379,6 +381,9 @@ export default function GamePage() {
     );
   };
 
+  const canDrawCard = () =>
+    isMyTurn && !mustSubmit && bbungPhase === "idle" && !currentPlayerDrawn;
+
   function DrawAnimationCard({ keyVal }: { keyVal: number }) {
     return (
       <motion.div
@@ -543,7 +548,7 @@ export default function GamePage() {
               카드 제출
             </button>
           )}
-          {isMyTurn && !mustSubmit && bbungPhase === "idle" && (
+          {isMyTurn && canDrawCard() && (
             <button
               onClick={() => getSocket().emit("draw-card", { roomCode })}
               className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"

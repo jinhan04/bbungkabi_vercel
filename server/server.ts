@@ -152,6 +152,9 @@ io.on("connection", (socket) => {
     const randomPlayer = players[Math.floor(Math.random() * players.length)];
     turnIndex[roomCode] = players.indexOf(randomPlayer);
     const currentPlayer = players[turnIndex[roomCode]];
+    console.log(
+      `[DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
+    );
     io.to(roomCode).emit("turn-info", { currentPlayer });
   });
 
@@ -237,6 +240,9 @@ io.on("connection", (socket) => {
       io.to(roomCode).emit("next-round", { round: roundCount[roomCode] });
 
       io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
+      console.log(
+        `[DEBUG ready-next-round] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
+      );
     }
   });
 
@@ -260,6 +266,9 @@ io.on("connection", (socket) => {
       const firstPlayer = rooms[roomCode][0];
       io.to(roomCode).emit("ready-ok");
       io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
+      console.log(
+        `[DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
+      );
     }
   });
 

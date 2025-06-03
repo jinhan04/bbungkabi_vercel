@@ -31,6 +31,8 @@ const submittedHistory: {
   [key: string]: { nickname: string; card: string }[];
 } = {};
 
+const roundInProgress: { [roomCode: string]: boolean } = {};
+
 const roundResults: {
   [roomCode: string]: {
     scores: { [nickname: string]: number };
@@ -176,12 +178,15 @@ io.on("connection", (socket) => {
       Array.from(readyForNextRound[roomCode])
     );
 
+    // ✅ 중복 라운드 시작 방지
     if (
       readyForNextRound[roomCode].size === rooms[roomCode]?.length &&
-      roundCount[roomCode] <= 5
+      roundCount[roomCode] <= 5 &&
+      !roundInProgress[roomCode] // 라운드가 아직 시작되지 않았다면
     ) {
       console.log("[DEBUG] All players ready. Advancing round.");
 
+      roundInProgress[roomCode] = true; // ✅ 라운드 시작 표시
       readyForNextRound[roomCode].clear();
 
       // ✅ 라운드 수 증가
@@ -201,21 +206,15 @@ io.on("connection", (socket) => {
         remaining: decks[roomCode].length,
       });
 
-      // // ✅ 여기에 game-started emit 추가
-      // io.to(roomCode).emit("game-started", {
-      //   roomCode,
-      //   round: roundCount[roomCode],
-      // });
-
       // ✅ 시작 플레이어 결정
       let firstPlayer = players[0]; // fallback
 
       if (roundCount[roomCode] === 1) {
-        // 🎲 첫 라운드는 무작위 플레이어 선택
+        // 🎲 첫 라운드는 무작위
         firstPlayer = players[Math.floor(Math.random() * players.length)];
         console.log("[DEBUG] 1라운드 랜덤 시작 플레이어:", firstPlayer);
       } else {
-        // 🧮 2라운드부터는 직전 라운드 점수 기반
+        // 🧮 2라운드부터는 최저 점수 플레이어
         const lastRoundScores = scores[roomCode];
         const validScores = Object.entries(lastRoundScores)
           .filter(([_, rounds]) => rounds.length > 0)
@@ -239,11 +238,6 @@ io.on("connection", (socket) => {
         firstPlayer = players[0];
       }
 
-      if (roundCount[roomCode] === 1) {
-        console.log("[DEBUG] 1라운드 랜덤 시작 플레이어:", firstPlayer);
-      } else {
-        console.log("[DEBUG] 최저 점수 시작 플레이어:", firstPlayer);
-      }
       console.log("[DEBUG] next round 시작 플레이어:", firstPlayer);
 
       io.to(roomCode).emit("next-round", { round: roundCount[roomCode] });
@@ -303,6 +297,8 @@ io.on("connection", (socket) => {
       reason: "stop",
       stopper,
     };
+
+    roundInProgress[roomCode] = false;
 
     // ✅ 카드 정보는 보내지 않고 최소한의 정보만 emit
     io.to(roomCode).emit("round-ended", {
@@ -394,6 +390,7 @@ io.on("connection", (socket) => {
 
     if (!deck || deck.length === 0) {
       console.log("[DEBUG] 덱이 비어 있음 — 라운드 종료 처리");
+      roundInProgress[roomCode] = false;
 
       io.to(roomCode).emit("round-ended", {
         reason: "deck-empty",
@@ -492,6 +489,7 @@ io.on("connection", (socket) => {
         hands,
         reason: "bbung-end",
       };
+      roundInProgress[roomCode] = false;
 
       io.to(roomCode).emit("round-ended", {
         reason: "bbung-end",
@@ -543,6 +541,7 @@ io.on("connection", (socket) => {
         hands,
         reason: "bbung-end",
       };
+      roundInProgress[roomCode] = false;
 
       io.to(roomCode).emit("round-ended", {
         reason: "bbung-end",
@@ -562,6 +561,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("hand-empty", ({ roomCode }) => {
+    roundInProgress[roomCode] = false;
+
     io.to(roomCode).emit("round-ended", {
       reason: "hand-empty",
       allPlayerHands: playerHands[roomCode],
@@ -607,6 +608,7 @@ io.on("connection", (socket) => {
       reason,
       stopper,
     };
+    roundInProgress[roomCode] = false;
 
     io.to(roomCode).emit("round-ended", {
       reason,

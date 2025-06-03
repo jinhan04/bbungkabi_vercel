@@ -266,9 +266,7 @@ io.on("connection", (socket) => {
       const firstPlayer = rooms[roomCode][0];
       io.to(roomCode).emit("ready-ok");
       io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
-      console.log(
-        `[DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
-      );
+      console.log(`[DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`);
     }
   });
 
@@ -352,6 +350,9 @@ io.on("connection", (socket) => {
     setTimeout(() => {
       const firstPlayer = players[0];
       io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
+      console.log(
+        `[DEBUG start-game] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
+      );
     }, 500);
   });
 
@@ -360,7 +361,9 @@ io.on("connection", (socket) => {
     if (!nickname || !roomCode) return;
 
     const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
-    console.log(`[DEBUG] 현재 서버 기준 턴 플레이어: ${currentPlayer}`);
+    console.log(
+      `[DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
+    );
     console.log(`[DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`);
 
     if (nickname !== currentPlayer) {
@@ -561,6 +564,9 @@ io.on("connection", (socket) => {
       drawFlag[roomCode].clear();
       const nextPlayer = players[nextIdx];
       io.to(roomCode).emit("turn-info", { currentPlayer: nextPlayer });
+      console.log(
+        `[DEBUG submit-bbung-extra] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
+      );
     }
   });
 
@@ -631,6 +637,7 @@ io.on("connection", (socket) => {
     const nextPlayer = players[turnIndex[roomCode]];
 
     io.to(roomCode).emit("turn-info", { currentPlayer: nextPlayer });
+    console.log(`[DEBUG start-game] 현재 서버 기준 턴 플레이어: ${nextPlayer}`);
   };
 
   socket.on("disconnecting", () => {

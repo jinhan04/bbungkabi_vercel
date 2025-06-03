@@ -378,6 +378,13 @@ io.on("connection", (socket) => {
     if (!nickname || !roomCode) return;
 
     const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
+
+    console.log(
+      `[DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
+    );
+    console.log(`[DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`);
+    console.log(`[DEBUG] rooms =`, rooms[roomCode]);
+
     console.log(
       `[${new Date().toISOString()}][DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
     );

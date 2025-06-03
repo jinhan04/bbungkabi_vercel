@@ -381,8 +381,20 @@ export default function GamePage() {
     );
   };
 
-  const canDrawCard = () =>
-    isMyTurn && !mustSubmit && bbungPhase === "idle" && !currentPlayerDrawn;
+  const canDrawCard = () => {
+    const result =
+      isMyTurn && !mustSubmit && bbungPhase === "idle" && !currentPlayerDrawn;
+
+    console.log("🎯 draw-card 조건 확인", {
+      isMyTurn,
+      mustSubmit,
+      bbungPhase,
+      currentPlayerDrawn,
+      result,
+    });
+
+    return result;
+  };
 
   function DrawAnimationCard({ keyVal }: { keyVal: number }) {
     return (

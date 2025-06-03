@@ -208,6 +208,21 @@ export default function HomePage() {
       >
         게임 설명 보기
       </button>
+      {/* 👇 후원 버튼 추가 위치 */}
+      <div className="mt-2">
+        <a
+          href="https://www.buymeacoffee.com/jinhan"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block"
+        >
+          <img
+            src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+            alt="Buy Me A Coffee"
+            className="h-12"
+          />
+        </a>
+      </div>
 
       {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
 

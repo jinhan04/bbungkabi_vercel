@@ -270,23 +270,6 @@ io.on("connection", (socket) => {
     callback(players);
   });
 
-  socket.on("ready", ({ roomCode, nickname }) => {
-    if (!readyPlayers[roomCode]) readyPlayers[roomCode] = new Set();
-    readyPlayers[roomCode].add(nickname);
-
-    if (readyPlayers[roomCode].size === rooms[roomCode]?.length) {
-      // 이 부분 전체 ❌ 제거하세요!
-      const firstPlayer = rooms[roomCode][0];
-      io.to(roomCode).emit("ready-ok");
-      io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
-      console.log(
-        `[${new Date().toISOString()}][DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
-      );
-
-      // io.to(roomCode).emit("ready-ok"); // ✅ 준비 완료 알림은 유지
-    }
-  });
-
   socket.on("stop", ({ roomCode, stopper, hand }) => {
     console.log(
       `[${new Date().toISOString()}][DEBUG] stop 이벤트 수신 | roomCode: ${roomCode}, stopper: ${stopper}`
@@ -371,6 +354,21 @@ io.on("connection", (socket) => {
         `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
       );
     }, 500);
+  });
+
+  socket.on("ready", ({ roomCode, nickname }) => {
+    if (!readyPlayers[roomCode]) readyPlayers[roomCode] = new Set();
+    readyPlayers[roomCode].add(nickname);
+
+    if (readyPlayers[roomCode].size === rooms[roomCode]?.length) {
+      turnIndex[roomCode] = 0; // 🔧 이 줄이 핵심!
+      const firstPlayer = rooms[roomCode][0];
+      io.to(roomCode).emit("ready-ok");
+      io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
+      console.log(
+        `[${new Date().toISOString()}][DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
+      );
+    }
   });
 
   socket.on("draw-card", ({ roomCode }) => {

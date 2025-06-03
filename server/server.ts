@@ -122,7 +122,9 @@ io.on("connection", (socket) => {
     // ✅ 라운드 카운터 초기화
     roundCount[roomCode] = 1;
     console.log(
-      `[DEBUG] Game starting in room ${roomCode} with round ${roundCount[roomCode]}`
+      `[${new Date().toISOString()}][DEBUG] Game starting in room ${roomCode} with round ${
+        roundCount[roomCode]
+      }`
     );
 
     // ✅ 점수 배열 초기화
@@ -153,7 +155,7 @@ io.on("connection", (socket) => {
     turnIndex[roomCode] = players.indexOf(randomPlayer);
     const currentPlayer = players[turnIndex[roomCode]];
     console.log(
-      `[DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
+      `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
     );
     io.to(roomCode).emit("turn-info", { currentPlayer });
   });
@@ -166,9 +168,19 @@ io.on("connection", (socket) => {
     readyForNextRound[roomCode].add(nickname);
     drawFlag[roomCode] = new Set();
 
-    console.log(`[DEBUG] ${nickname} is ready for next round in ${roomCode}`);
-    console.log(`[DEBUG] Ready count: ${readyForNextRound[roomCode].size}`);
-    console.log(`[DEBUG] Total players: ${rooms[roomCode]?.length}`);
+    console.log(
+      `[${new Date().toISOString()}][DEBUG] ${nickname} is ready for next round in ${roomCode}`
+    );
+    console.log(
+      `[${new Date().toISOString()}][DEBUG] Ready count: ${
+        readyForNextRound[roomCode].size
+      }`
+    );
+    console.log(
+      `[${new Date().toISOString()}][DEBUG] Total players: ${
+        rooms[roomCode]?.length
+      }`
+    );
 
     io.to(roomCode).emit(
       "update-ready",
@@ -241,7 +253,7 @@ io.on("connection", (socket) => {
 
       io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
       console.log(
-        `[DEBUG ready-next-round] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
+        `[${new Date().toISOString()}][DEBUG ready-next-round] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
       );
     }
   });
@@ -267,7 +279,9 @@ io.on("connection", (socket) => {
       const firstPlayer = rooms[roomCode][0];
       io.to(roomCode).emit("ready-ok");
       io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
-      console.log(`[DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`);
+      console.log(
+        `[${new Date().toISOString()}][DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
+      );
 
       // io.to(roomCode).emit("ready-ok"); // ✅ 준비 완료 알림은 유지
     }
@@ -275,7 +289,7 @@ io.on("connection", (socket) => {
 
   socket.on("stop", ({ roomCode, stopper, hand }) => {
     console.log(
-      `[DEBUG] stop 이벤트 수신 | roomCode: ${roomCode}, stopper: ${stopper}`
+      `[${new Date().toISOString()}][DEBUG] stop 이벤트 수신 | roomCode: ${roomCode}, stopper: ${stopper}`
     );
 
     if (!playerHands[roomCode]) playerHands[roomCode] = {};
@@ -354,7 +368,7 @@ io.on("connection", (socket) => {
       const firstPlayer = players[0];
       io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
       console.log(
-        `[DEBUG start-game] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
+        `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
       );
     }, 500);
   });
@@ -365,19 +379,23 @@ io.on("connection", (socket) => {
 
     const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
     console.log(
-      `[DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
+      `[${new Date().toISOString()}][DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
     );
-    console.log(`[DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`);
+    console.log(
+      `[${new Date().toISOString()}][DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`
+    );
 
     if (nickname !== currentPlayer) {
       console.log(
-        `[BLOCKED] ${nickname} tried to draw, but it's not their turn.`
+        `[${new Date().toISOString()}][BLOCKED] ${nickname} tried to draw, but it's not their turn.`
       );
       return;
     }
 
     if (drawFlag[roomCode].has(nickname)) {
-      console.log(`[BLOCKED] ${nickname} already drew a card.`);
+      console.log(
+        `[${new Date().toISOString()}][BLOCKED] ${nickname} already drew a card.`
+      );
       return;
     }
 
@@ -568,7 +586,7 @@ io.on("connection", (socket) => {
       const nextPlayer = players[nextIdx];
       io.to(roomCode).emit("turn-info", { currentPlayer: nextPlayer });
       console.log(
-        `[DEBUG submit-bbung-extra] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
+        `[${new Date().toISOString()}][DEBUG submit-bbung-extra] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
       );
     }
   });
@@ -640,7 +658,9 @@ io.on("connection", (socket) => {
     const nextPlayer = players[turnIndex[roomCode]];
 
     io.to(roomCode).emit("turn-info", { currentPlayer: nextPlayer });
-    console.log(`[DEBUG start-game] 현재 서버 기준 턴 플레이어: ${nextPlayer}`);
+    console.log(
+      `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
+    );
   };
 
   socket.on("disconnecting", () => {
@@ -798,7 +818,9 @@ function calculateScores(
 
     if (rewardPlayer) {
       scores[rewardPlayer] = (scores[rewardPlayer] || 0) + 30;
-      console.log(`[DEBUG] ${rewardPlayer} 에게 +30점 보상`);
+      console.log(
+        `[${new Date().toISOString()}][DEBUG] ${rewardPlayer} 에게 +30점 보상`
+      );
     } else {
       console.log("[DEBUG] 유도자 없음 — 점수 보상 생략됨");
     }

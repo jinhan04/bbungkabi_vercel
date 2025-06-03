@@ -91,6 +91,10 @@ io.on("connection", (socket) => {
       submittedHistory[roomCode] = [];
       drawFlag[roomCode] = new Set();
     }
+    const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
+    if (currentPlayer) {
+      socket.emit("turn-info", { currentPlayer });
+    }
 
     if (rooms[roomCode].includes(nickname)) {
       socket.emit("join-error", "중복된 닉네임입니다.");
@@ -203,24 +207,49 @@ io.on("connection", (socket) => {
       //   round: roundCount[roomCode],
       // });
 
-      // ✅ 최저 점수 플레이어부터 시작
-      const lastRoundScores = scores[roomCode];
-      const lastScores = Object.entries(lastRoundScores).map(
-        ([nickname, rounds]) => ({
-          nickname,
-          score: rounds[rounds.length - 1] ?? Infinity, // 없으면 무시되게
-        })
-      );
+      // ✅ 시작 플레이어 결정
+      let firstPlayer = players[0]; // fallback
 
-      lastScores.sort((a, b) => a.score - b.score); // 오름차순 정렬
-      const firstPlayer = lastScores[0].nickname;
+      if (roundCount[roomCode] === 1) {
+        // 🎲 첫 라운드는 무작위 플레이어 선택
+        firstPlayer = players[Math.floor(Math.random() * players.length)];
+        console.log("[DEBUG] 1라운드 랜덤 시작 플레이어:", firstPlayer);
+      } else {
+        // 🧮 2라운드부터는 직전 라운드 점수 기반
+        const lastRoundScores = scores[roomCode];
+        const validScores = Object.entries(lastRoundScores)
+          .filter(([_, rounds]) => rounds.length > 0)
+          .map(([nickname, rounds]) => ({
+            nickname,
+            score: rounds[rounds.length - 1],
+          }));
+
+        if (validScores.length > 0) {
+          validScores.sort((a, b) => a.score - b.score);
+          firstPlayer = validScores[0].nickname;
+          console.log("[DEBUG] 최저 점수 시작 플레이어:", firstPlayer);
+        }
+      }
+
+      // ✅ turnIndex 지정
       turnIndex[roomCode] = players.indexOf(firstPlayer);
+      if (turnIndex[roomCode] === -1) {
+        console.warn("[WARN] firstPlayer not found in players. fallback to 0");
+        turnIndex[roomCode] = 0;
+        firstPlayer = players[0];
+      }
 
-      // 👇 여기에 추가
+      if (roundCount[roomCode] === 1) {
+        console.log("[DEBUG] 1라운드 랜덤 시작 플레이어:", firstPlayer);
+      } else {
+        console.log("[DEBUG] 최저 점수 시작 플레이어:", firstPlayer);
+      }
+      console.log("[DEBUG] next round 시작 플레이어:", firstPlayer);
+
       io.to(roomCode).emit("next-round", { round: roundCount[roomCode] });
 
       setTimeout(() => {
-        io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer }); // ✅ 수정
+        io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
       }, 500);
     }
   });

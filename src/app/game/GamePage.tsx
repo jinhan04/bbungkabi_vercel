@@ -107,6 +107,8 @@ export default function GamePage() {
     if (!socket.connected) socket.connect();
 
     socket.emit("join-room", { roomCode, nickname });
+    console.log("🙋 내 닉네임:", nickname);
+
     socket.removeAllListeners();
 
     socket.on("update-players", (players: string[]) => setPlayerList(players));
@@ -134,6 +136,7 @@ export default function GamePage() {
 
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));
     socket.on("turn-info", ({ currentPlayer }) => {
+      console.log("🌀 서버에서 받은 currentPlayer:", currentPlayer);
       setCurrentPlayer(currentPlayer);
       setMustSubmit(false); // ✅ 반드시 초기화
       setBbungPhase("idle");

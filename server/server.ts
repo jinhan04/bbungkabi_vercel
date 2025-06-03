@@ -93,10 +93,6 @@ io.on("connection", (socket) => {
       submittedHistory[roomCode] = [];
       drawFlag[roomCode] = new Set();
     }
-    const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
-    if (currentPlayer) {
-      socket.emit("turn-info", { currentPlayer });
-    }
 
     if (rooms[roomCode].includes(nickname)) {
       socket.emit("join-error", "중복된 닉네임입니다.");

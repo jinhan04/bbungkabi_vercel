@@ -260,7 +260,7 @@ io.on("connection", (socket) => {
 
   socket.on("ready", ({ roomCode, nickname }) => {
     if (!readyPlayers[roomCode]) readyPlayers[roomCode] = new Set();
-    // readyPlayers[roomCode].add(nickname);
+    readyPlayers[roomCode].add(nickname);
 
     if (readyPlayers[roomCode].size === rooms[roomCode]?.length) {
       // 이 부분 전체 ❌ 제거하세요!

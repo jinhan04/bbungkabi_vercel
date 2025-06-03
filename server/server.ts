@@ -263,10 +263,13 @@ io.on("connection", (socket) => {
     readyPlayers[roomCode].add(nickname);
 
     if (readyPlayers[roomCode].size === rooms[roomCode]?.length) {
-      const firstPlayer = rooms[roomCode][0];
-      io.to(roomCode).emit("ready-ok");
-      io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
-      console.log(`[DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`);
+      // 이 부분 전체 ❌ 제거하세요!
+      // const firstPlayer = rooms[roomCode][0];
+      // io.to(roomCode).emit("ready-ok");
+      // io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
+      // console.log(`[DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`);
+
+      io.to(roomCode).emit("ready-ok"); // ✅ 준비 완료 알림은 유지
     }
   });
 

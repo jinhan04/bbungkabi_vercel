@@ -33,7 +33,6 @@ export default function GamePage() {
   const nicknameRaw = searchParams.get("nickname") || "";
   const nickname = decodeURIComponent(nicknameRaw);
   const [playerList, setPlayerList] = useState<string[]>([]);
-  const [countdown, setCountdown] = useState<number | null>(null);
 
   const [bagajiText, setBagajiText] = useState("");
   const [showBagaji, setShowBagaji] = useState(false);
@@ -117,20 +116,6 @@ export default function GamePage() {
 
     socket.on("deck-update", ({ remaining }) => {
       setRemainingCards(remaining);
-    });
-
-    socket.on("game-starting", ({ countdown }) => {
-      setCountdown(countdown);
-      let current = countdown;
-      const interval = setInterval(() => {
-        current -= 1;
-        if (current <= 0) {
-          clearInterval(interval);
-          setCountdown(null);
-        } else {
-          setCountdown(current);
-        }
-      }, 1000);
     });
 
     socket.on("game-started", ({ round }) => {
@@ -428,18 +413,6 @@ export default function GamePage() {
         </div>
         <div>닉네임: {nickname}</div>
       </div>
-
-      {countdown !== null && (
-        <motion.div
-          key={countdown}
-          initial={{ scale: 3, opacity: 1 }}
-          animate={{ scale: 1, opacity: 0 }}
-          transition={{ duration: 1 }}
-          className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-8xl font-extrabold z-[999]"
-        >
-          {countdown}
-        </motion.div>
-      )}
 
       {/* ✅ 우상단: 사운드 버튼 + 라운드 정보 */}
       <div className="fixed top-2 right-2 z-50 flex flex-col items-end gap-1 text-sm text-right">

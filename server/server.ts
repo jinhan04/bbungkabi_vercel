@@ -115,48 +115,42 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // ✅ 3초 카운트다운 이벤트 먼저 전달
-    io.to(roomCode).emit("game-starting", { countdown: 3 });
+    // ✅ 라운드 카운터 초기화
+    roundCount[roomCode] = 1;
+    console.log(
+      `[DEBUG] Game starting in room ${roomCode} with round ${roundCount[roomCode]}`
+    );
 
-    // ✅ 3초 후 실제 게임 시작
+    // ✅ 점수 배열 초기화
+    scores[roomCode] = {};
+    for (const nickname of players) {
+      scores[roomCode][nickname] = [];
+    }
+
+    turnIndex[roomCode] = 0;
+    decks[roomCode] = shuffle(createDeck());
+    submittedHistory[roomCode] = [];
+    drawFlag[roomCode] = new Set();
+
+    for (const nickname of players) {
+      playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
+    }
+
+    // ✅ 남은 카드 수 전송
+    io.to(roomCode).emit("deck-update", { remaining: decks[roomCode].length });
+
+    // ✅ 게임 시작 이벤트 발송
+    io.to(roomCode).emit("game-started", {
+      roomCode,
+      round: roundCount[roomCode],
+    });
+
+    const randomPlayer = players[Math.floor(Math.random() * players.length)];
+    turnIndex[roomCode] = players.indexOf(randomPlayer);
+
     setTimeout(() => {
-      roundCount[roomCode] = 1;
-      console.log(
-        `[DEBUG] Game starting in room ${roomCode} with round ${roundCount[roomCode]}`
-      );
-
-      scores[roomCode] = {};
-      for (const nickname of players) {
-        scores[roomCode][nickname] = [];
-      }
-
-      turnIndex[roomCode] = 0;
-      decks[roomCode] = shuffle(createDeck());
-      submittedHistory[roomCode] = [];
-      drawFlag[roomCode] = new Set();
-
-      for (const nickname of players) {
-        playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
-      }
-
-      // 남은 카드 수 전송
-      io.to(roomCode).emit("deck-update", {
-        remaining: decks[roomCode].length,
-      });
-
-      // 게임 시작 이벤트 발송
-      io.to(roomCode).emit("game-started", {
-        roomCode,
-        round: roundCount[roomCode],
-      });
-
-      const randomPlayer = players[Math.floor(Math.random() * players.length)];
-      turnIndex[roomCode] = players.indexOf(randomPlayer);
-
-      setTimeout(() => {
-        io.to(roomCode).emit("turn-info", { currentPlayer: randomPlayer });
-      }, 500);
-    }, 3000); // 3초 대기
+      io.to(roomCode).emit("turn-info", { currentPlayer: randomPlayer });
+    }, 500);
   });
 
   socket.on("ready-next-round", ({ roomCode, nickname }) => {

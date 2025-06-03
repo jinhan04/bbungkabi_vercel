@@ -351,6 +351,9 @@ io.on("connection", (socket) => {
     if (!nickname || !roomCode) return;
 
     const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
+    console.log(`[DEBUG] 현재 서버 기준 턴 플레이어: ${currentPlayer}`);
+    console.log(`[DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`);
+
     if (nickname !== currentPlayer) {
       console.log(
         `[BLOCKED] ${nickname} tried to draw, but it's not their turn.`

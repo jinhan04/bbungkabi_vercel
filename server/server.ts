@@ -240,9 +240,7 @@ io.on("connection", (socket) => {
 
       io.to(roomCode).emit("next-round", { round: roundCount[roomCode] });
 
-      setTimeout(() => {
-        io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
-      }, 500);
+      io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
     }
   });
 

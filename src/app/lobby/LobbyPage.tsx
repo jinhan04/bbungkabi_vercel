@@ -11,7 +11,6 @@ export default function LobbyPage() {
 
   const roomCode = searchParams.get("code");
   const nickname = searchParams.get("nickname");
-  const maxPlayers = Number(searchParams.get("max")) || 6;
   const doubleFinal = searchParams.get("doubleFinal") === "true";
 
   const [players, setPlayers] = useState<string[]>([]);

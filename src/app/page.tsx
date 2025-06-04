@@ -72,8 +72,8 @@ export default function HomePage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      {/* 오류 제보 버튼 */}
-      <div className="absolute top-4 right-4">
+      {/* 오류 제보 + Buy me a coffee 버튼 */}
+      <div className="absolute top-4 right-4 flex flex-col items-end space-y-2 z-50">
         <a
           href="https://open.kakao.com/o/sXveaSxh"
           target="_blank"
@@ -82,18 +82,16 @@ export default function HomePage() {
         >
           오류 제보
         </a>
-      </div>
-      <div className="mt-2">
+
         <a
           href="https://www.buymeacoffee.com/jinhan"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block"
         >
           <img
             src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
             alt="Buy Me A Coffee"
-            className="h-12"
+            className="h-10"
           />
         </a>
       </div>
@@ -227,7 +225,7 @@ export default function HomePage() {
       </button>
       {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
 
-      <div className="mt-12 text-sm text-gray-500 text-center">
+      <div className="mt-2 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23)
       </div>
 

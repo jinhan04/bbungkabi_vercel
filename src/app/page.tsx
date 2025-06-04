@@ -83,10 +83,25 @@ export default function HomePage() {
           오류 제보
         </a>
       </div>
+      <div className="mt-2">
+        <a
+          href="https://www.buymeacoffee.com/jinhan"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block"
+        >
+          <img
+            src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+            alt="Buy Me A Coffee"
+            className="h-12"
+          />
+        </a>
+      </div>
+
       {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 3.1</h2>
+          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 3.2</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
               <strong>1라운드 오류 해결!!!</strong>
@@ -96,11 +111,11 @@ export default function HomePage() {
             <li>플레이어 랜덤 이모지 생성</li>
             <li>게임 실시가 로그 추가</li>
             <li>타이머 추가</li>
+            <li>게임 페이지에서 라운드 수가 1/5로 고정 오류 해결</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>바가지 실패 시 노바가지 알림 없음</li>
-            <li>게임 페이지에서 라운드 수가 1/5로 고정</li>
             <li>마지막 라운드 점수 2배 적용 안됨</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
@@ -210,29 +225,13 @@ export default function HomePage() {
       >
         게임 설명 보기
       </button>
-      {/* 👇 후원 버튼 추가 위치 */}
-      <div className="mt-2">
-        <a
-          href="https://www.buymeacoffee.com/jinhan"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block"
-        >
-          <img
-            src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
-            alt="Buy Me A Coffee"
-            className="h-12"
-          />
-        </a>
-      </div>
-
       {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
 
       <div className="mt-12 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23)
       </div>
 
-      <div className="w-full flex justify-center mt-6">
+      <div className="absolute bottom-0 left-0 w-full flex justify-center bg-white py-2">
         <a
           href="https://link.coupang.com/a/cvkq2m"
           target="_blank"

@@ -18,7 +18,7 @@ import {
 } from "@/lib/gameUtils";
 
 import Card from "@/components/Card";
-import PlayerList from "@/components/PlayerList";
+//import PlayerList from "@/components/PlayerList";
 import ChatBox from "@/components/ChatBox";
 import BagajiOverlay from "@/components/BagajiOverlay";
 import SubmittedCard from "@/components/SubmittedCard";

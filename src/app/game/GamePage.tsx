@@ -495,7 +495,10 @@ export default function GamePage() {
         <div className="flex justify-center items-center gap-8">
           <AnimatePresence mode="wait">
             {submittedCards.length > 0 ? (
-              <SubmittedCard card={submittedCards.at(-1)!.card} />
+              <SubmittedCard
+                card={submittedCards.at(-1)!.card}
+                nickname={submittedCards.at(-1)!.nickname}
+              />
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}

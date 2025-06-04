@@ -526,49 +526,37 @@ export default function GamePage() {
   const [showChat, setShowChat] = useState(true); // 또는 false로 시작해도 됨
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-radial from-green-800 via-green-900 to-black text-white px-4 pt-20">
+    <div className="min-h-screen flex flex-col items-center bg-gradient-radial from-green-800 via-green-900 to-black text-white px-2 sm:px-4 pt-24">
       {/* ✅ 티츄비 스타일 상단 바 */}
-      <div className="w-full bg-white text-black flex justify-between items-center px-4 py-2 fixed top-0 left-0 z-50 shadow-md">
+      <div className="w-full bg-white text-black flex flex-wrap sm:flex-nowrap justify-between items-center px-4 py-2 fixed top-0 left-0 z-50 shadow-md gap-y-2">
         {/* 왼쪽: 라운드, 닉네임, 점수 */}
-        <div className="flex items-center space-x-4 text-sm sm:text-base font-semibold">
+        <div className="flex flex-wrap sm:flex-nowrap items-center space-x-2 text-xs sm:text-sm md:text-base font-semibold">
           <span>라운드: {round} / 5</span>
           <span>{nickname}님</span>
           <span>내 점수: {myScore}</span>
           <button
             onClick={() => setShowScoreModal(true)}
-            className="px-2 py-1 bg-gray-200 text-gray-800 text-xs rounded hover:bg-gray-300"
+            className="px-2 py-1 bg-gray-200 text-gray-800 text-xs sm:text-sm rounded hover:bg-gray-300"
           >
             점수 보기
           </button>
         </div>
 
         {/* 오른쪽: 채팅, 음소거, 나가기 */}
-        <div className="flex items-center space-x-3">
-          {/* 채팅 버튼 */}
-          <button
-            onClick={() => setShowChat((prev) => !prev)}
-            className="text-xl"
-          >
-            💬
-          </button>
-
-          {/* 음소거 버튼 */}
+        <div className="flex items-center space-x-2 text-lg sm:text-xl">
+          <button onClick={() => setShowChat((prev) => !prev)}>💬</button>
           <button
             onClick={() => {
               toggleSound();
               setSoundOn(isSoundEnabled());
             }}
-            className="text-xl"
           >
             {soundOn ? "🔊" : "🔇"}
           </button>
-
-          {/* 나가기 버튼 */}
           <button
             onClick={() => {
               if (confirm("게임을 나가시겠습니까?")) router.push("/");
             }}
-            className="text-xl"
           >
             ↩️
           </button>
@@ -576,7 +564,7 @@ export default function GamePage() {
       </div>
 
       {timer !== null && (
-        <div className="absolute top-[60px] left-4 text-white text-3xl font-bold z-50">
+        <div className="absolute top-[60px] left-4 text-white text-2xl sm:text-3xl font-bold z-50">
           {timer}
         </div>
       )}
@@ -591,7 +579,7 @@ export default function GamePage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="bg-black/70 text-white text-sm px-3 py-1 rounded shadow"
+                className="bg-black/70 text-white text-xs sm:text-sm px-3 py-1 rounded shadow"
               >
                 {msg}
               </motion.div>
@@ -601,7 +589,7 @@ export default function GamePage() {
       </div>
 
       {/* 👤 플레이어 표시 줄 */}
-      <div className="absolute top-[100px] left-4 z-40 flex flex-col gap-2">
+      <div className="absolute top-[100px] left-2 sm:left-4 z-40 flex flex-col gap-1 max-w-[80vw]">
         {playerList.map((player) => {
           const isCurrent = player === currentPlayer;
           const emoji = emojiMap[player] || "👤";
@@ -609,13 +597,13 @@ export default function GamePage() {
           return (
             <div
               key={player}
-              className={`flex items-center px-3 py-2 rounded-xl shadow-md text-sm transition-all ${
+              className={`flex items-center px-3 py-2 rounded-xl shadow-md text-xs sm:text-sm transition-all ${
                 isCurrent
                   ? "bg-yellow-300 text-black scale-105 ring-2 ring-yellow-500 animate-pulse"
                   : "bg-black/40 text-white"
               }`}
             >
-              <span className="text-xl mr-2">{emoji}</span>
+              <span className="text-lg sm:text-xl mr-2">{emoji}</span>
               <span>{player}</span>
             </div>
           );
@@ -626,19 +614,20 @@ export default function GamePage() {
 
       {/* 제출된 카드 및 덱 */}
       <div className="mb-6 w-full max-w-2xl">
-        <div className="flex justify-center items-center gap-8">
+        <div className="flex justify-center items-center gap-4 sm:gap-8">
           <AnimatePresence mode="wait">
             {submittedCards.length > 0 ? (
               <SubmittedCard
                 card={submittedCards.at(-1)!.card}
                 nickname={submittedCards.at(-1)!.nickname}
+                className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
               />
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-gray-400"
+                className="text-gray-400 text-sm"
               >
                 제출된 카드 없음
               </motion.div>
@@ -648,8 +637,7 @@ export default function GamePage() {
           <motion.img
             src="/cards/back.png"
             alt="덱"
-            className={`w-20 h-28 rounded shadow-lg cursor-pointer
-            ${
+            className={`w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32 rounded shadow-lg cursor-pointer ${
               !isMyTurn || mustSubmit || bbungPhase !== "idle"
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:scale-105 transition-transform"
@@ -671,18 +659,20 @@ export default function GamePage() {
             }
           />
         </div>
-        <div className="text-center text-sm text-yellow-300 mt-1">
+        <div className="text-center text-xs sm:text-sm text-yellow-300 mt-1">
           남은 카드: {remainingCards}
         </div>
       </div>
 
       {showScoreModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white text-black p-6 rounded-lg shadow-lg w-80">
-            <h2 className="text-xl font-bold mb-4 text-center">현재 점수</h2>
-            <ul className="space-y-1 text-sm">
+          <div className="bg-white text-black p-6 rounded-lg shadow-lg w-72 sm:w-80">
+            <h2 className="text-lg sm:text-xl font-bold mb-4 text-center">
+              현재 점수
+            </h2>
+            <ul className="space-y-1 text-xs sm:text-sm">
               {Object.entries(totalScores)
-                .sort(([, a], [, b]) => b - a) // 점수 내림차순 정렬
+                .sort(([, a], [, b]) => b - a)
                 .map(([player, score]) => (
                   <li key={player} className="flex justify-between">
                     <span>{player}</span>
@@ -692,7 +682,7 @@ export default function GamePage() {
             </ul>
             <button
               onClick={() => setShowScoreModal(false)}
-              className="mt-4 w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+              className="mt-4 w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
             >
               닫기
             </button>
@@ -702,7 +692,7 @@ export default function GamePage() {
 
       {/* 손패 및 버튼 */}
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
-        <h2 className="text-xl font-bold mb-4 text-center sm:text-left">
+        <h2 className="text-lg sm:text-xl font-bold mb-4 text-center sm:text-left">
           내 손패
         </h2>
         <div className="flex flex-wrap justify-center gap-2 mt-2 px-2">
@@ -714,6 +704,7 @@ export default function GamePage() {
               isRecent={card === recentDrawnCard}
               isNew={newCards.includes(card)}
               onClick={() => toggleBbungCard(card)}
+              className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
             />
           ))}
         </div>
@@ -722,7 +713,7 @@ export default function GamePage() {
           {canShowBbungButton() && (
             <button
               onClick={handleInitialBbung}
-              className="w-full px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded"
+              className="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm"
             >
               뻥! (같은 카드 2장 제출)
             </button>
@@ -730,7 +721,7 @@ export default function GamePage() {
           {isMyTurn && !mustSubmit && bbungPhase === "idle" && (
             <button
               onClick={handleStop}
-              className="w-full px-6 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded"
+              className="w-full px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded text-sm"
             >
               스탑!
             </button>
@@ -738,7 +729,7 @@ export default function GamePage() {
           {bbungPhase === "selectingExtra" && (
             <button
               onClick={handleExtraBbung}
-              className="w-full px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded"
+              className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded text-sm"
             >
               추가 카드 1장 제출
             </button>
@@ -746,7 +737,7 @@ export default function GamePage() {
           {isMyTurn && mustSubmit && bbungPhase === "idle" && (
             <button
               onClick={handleSubmitCard}
-              className="w-full px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+              className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
             >
               카드 제출
             </button>
@@ -754,7 +745,7 @@ export default function GamePage() {
           {isMyTurn && canDrawCard() && (
             <button
               onClick={() => getSocket().emit("draw-card", { roomCode })}
-              className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
             >
               카드 뽑기
             </button>
@@ -767,7 +758,7 @@ export default function GamePage() {
                   reason: "족보 완성",
                 })
               }
-              className="w-full px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded"
+              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm"
             >
               족보 완성!
             </button>
@@ -777,7 +768,6 @@ export default function GamePage() {
         {isDrawing && <DrawAnimationCard keyVal={drawAnimationKey} />}
         {showBbungEffect && <BbungTextEffect />}
 
-        {/* 📨 채팅창 */}
         {showChat && (
           <ChatBox
             chatMessages={chatMessages}

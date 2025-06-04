@@ -3,9 +3,14 @@ import { motion } from "framer-motion";
 type SubmittedCardProps = {
   card: string;
   nickname?: string;
+  className?: string; // ✅ className을 선택적으로 받을 수 있도록 추가
 };
 
-export default function SubmittedCard({ card, nickname }: SubmittedCardProps) {
+export default function SubmittedCard({
+  card,
+  nickname,
+  className = "",
+}: SubmittedCardProps) {
   const getCardColor = (card: string) =>
     card.includes("♥") || card.includes("♦") ? "text-red-500" : "text-black";
 
@@ -17,9 +22,9 @@ export default function SubmittedCard({ card, nickname }: SubmittedCardProps) {
         </div>
       )}
       <motion.div
-        className={`w-16 h-24 border-2 border-white rounded-lg flex items-center justify-center text-xl font-bold shadow ${getCardColor(
+        className={`border-2 border-white rounded-lg flex items-center justify-center text-xl font-bold shadow bg-white ${getCardColor(
           card
-        )} bg-white`}
+        )} ${className}`} // ✅ 외부 className 적용
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{

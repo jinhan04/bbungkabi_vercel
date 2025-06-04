@@ -51,6 +51,7 @@ export default function GamePage() {
   >([]);
   const [mustSubmit, setMustSubmit] = useState(false);
   const [bbungCards, setBbungCards] = useState<string[]>([]);
+  const [myScore, setMyScore] = useState(0);
   const [bbungPhase, setBbungPhase] = useState<"idle" | "selectingExtra">(
     "idle"
   );
@@ -281,6 +282,16 @@ export default function GamePage() {
     };
   }, []);
 
+  useEffect(() => {
+    const savedScores = sessionStorage.getItem("totalScores");
+    if (savedScores) {
+      const scoreMap = JSON.parse(savedScores);
+      if (nickname in scoreMap) {
+        setMyScore(scoreMap[nickname]);
+      }
+    }
+  }, [nickname]);
+
   const toggleBbungCard = (card: string) => {
     setBbungCards((prev) =>
       bbungPhase === "selectingExtra"
@@ -423,33 +434,49 @@ export default function GamePage() {
       </motion.div>
     );
   }
+  const [showChat, setShowChat] = useState(true); // 또는 false로 시작해도 됨
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-green-900 text-white p-4 relative">
-      {/* ✅ 좌상단: 방 코드 + 닉네임 */}
-      <div className="fixed top-2 left-2 z-50 text-sm sm:text-base">
-        <div className="font-bold">
-          방 코드: <span className="font-mono">{roomCode}</span>
+    <div className="flex flex-col items-center justify-start min-h-screen bg-green-900 text-white p-4 pt-20 relative">
+      {/* ✅ 티츄비 스타일 상단 바 */}
+      <div className="w-full bg-white text-black flex justify-between items-center px-4 py-2 fixed top-0 left-0 z-50 shadow-md">
+        {/* 왼쪽: 라운드, 닉네임, 점수 */}
+        <div className="flex items-center space-x-4 text-sm sm:text-base font-semibold">
+          <span>라운드: {round} / 5</span>
+          <span>{nickname}님</span>
+          <span>내 점수: {myScore}</span>
         </div>
-        <div>닉네임: {nickname}</div>
-      </div>
 
-      {/* ✅ 우상단: 사운드 버튼 + 라운드 정보 */}
-      <div className="fixed top-2 right-2 z-50 flex flex-col items-end gap-1 text-sm text-right">
-        <button
-          onClick={() => {
-            toggleSound();
-            setSoundOn(isSoundEnabled());
-          }}
-          className="px-3 py-1 bg-gray-800 text-white rounded text-sm hover:bg-gray-700"
-        >
-          {soundOn ? "🔊 사운드 켜짐" : "🔇 사운드 꺼짐"}
-        </button>
-        <div>
-          라운드: {round} / 5
-          {currentPlayerDrawn && (
-            <div className="text-yellow-400">(카드 드로우 완료)</div>
-          )}
+        {/* 오른쪽: 채팅, 음소거, 나가기 */}
+        <div className="flex items-center space-x-3">
+          {/* 채팅 버튼 */}
+          <button
+            onClick={() => setShowChat((prev) => !prev)}
+            className="text-xl"
+          >
+            💬
+          </button>
+
+          {/* 음소거 버튼 */}
+          <button
+            onClick={() => {
+              toggleSound();
+              setSoundOn(isSoundEnabled());
+            }}
+            className="text-xl"
+          >
+            {soundOn ? "🔊" : "🔇"}
+          </button>
+
+          {/* 나가기 버튼 */}
+          <button
+            onClick={() => {
+              if (confirm("게임을 나가시겠습니까?")) router.push("/");
+            }}
+            className="text-xl"
+          >
+            ↩️
+          </button>
         </div>
       </div>
 
@@ -590,14 +617,16 @@ export default function GamePage() {
         {showBbungEffect && <BbungTextEffect />}
 
         {/* 📨 채팅창 */}
-        <ChatBox
-          chatMessages={chatMessages}
-          chatInput={chatInput}
-          setChatInput={setChatInput}
-          canSend={canSend}
-          sendChat={sendChat}
-          className="w-full mt-4"
-        />
+        {showChat && (
+          <ChatBox
+            chatMessages={chatMessages}
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+            canSend={canSend}
+            sendChat={sendChat}
+            className="w-full mt-4"
+          />
+        )}
       </div>
 
       <BagajiOverlay show={showBagaji} text={bagajiText} />

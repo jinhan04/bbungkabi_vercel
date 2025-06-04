@@ -576,10 +576,11 @@ export default function GamePage() {
       </div>
 
       {timer !== null && (
-        <div className="absolute top-[60px] left-4 text-white text-lg font-bold z-50">
+        <div className="absolute top-[60px] left-4 text-white text-3xl font-bold z-50">
           {timer}
         </div>
       )}
+
       <div className="absolute top-[100px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
         <AnimatePresence>
           {logs.map((log) => {
@@ -599,11 +600,8 @@ export default function GamePage() {
         </AnimatePresence>
       </div>
 
-      {/* 👥 플레이어 목록 */}
-      {/* <PlayerList players={playerList} currentPlayer={currentPlayer} /> */}
-
       {/* 👤 플레이어 표시 줄 */}
-      <div className="flex justify-center gap-6 mt-4 flex-wrap">
+      <div className="absolute top-[100px] left-4 z-40 flex flex-col gap-2">
         {playerList.map((player) => {
           const isCurrent = player === currentPlayer;
           const emoji = emojiMap[player] || "👤";
@@ -625,10 +623,6 @@ export default function GamePage() {
       </div>
 
       <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
-
-      <div className="w-full px-4 mt-2 flex justify-end">
-        <h1 className="text-2xl font-bold text-white-300">뻥카비</h1>
-      </div>
 
       {/* 제출된 카드 및 덱 */}
       <div className="mb-6 w-full max-w-2xl">

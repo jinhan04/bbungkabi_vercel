@@ -44,6 +44,11 @@ export default function GamePage() {
   const [hand, setHand] = useState<string[]>([]);
   const [round, setRound] = useState<number>(1);
 
+  const [showScoreModal, setShowScoreModal] = useState(false);
+  const [totalScores, setTotalScores] = useState<{
+    [nickname: string]: number;
+  }>({});
+
   const [currentPlayer, setCurrentPlayer] = useState("");
   const [currentPlayerDrawn, setCurrentPlayerDrawn] = useState(false);
   const [submittedCards, setSubmittedCards] = useState<
@@ -250,6 +255,17 @@ export default function GamePage() {
   }, [hand]);
 
   useEffect(() => {
+    const scores = sessionStorage.getItem("totalScores");
+    if (scores) {
+      const parsed = JSON.parse(scores);
+      setTotalScores(parsed);
+      if (parsed[nickname] !== undefined) {
+        setMyScore(parsed[nickname]);
+      }
+    }
+  }, [nickname]);
+
+  useEffect(() => {
     const socket = getSocket();
     socket.on("next-round", ({ round }) => {
       setRound(round);
@@ -445,6 +461,12 @@ export default function GamePage() {
           <span>라운드: {round} / 5</span>
           <span>{nickname}님</span>
           <span>내 점수: {myScore}</span>
+          <button
+            onClick={() => setShowScoreModal(true)}
+            className="px-2 py-1 bg-gray-200 text-gray-800 text-xs rounded hover:bg-gray-300"
+          >
+            점수 보기
+          </button>
         </div>
 
         {/* 오른쪽: 채팅, 음소거, 나가기 */}
@@ -541,6 +563,30 @@ export default function GamePage() {
           남은 카드: {remainingCards}
         </div>
       </div>
+
+      {showScoreModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-white text-black p-6 rounded-lg shadow-lg w-80">
+            <h2 className="text-xl font-bold mb-4 text-center">현재 점수</h2>
+            <ul className="space-y-1 text-sm">
+              {Object.entries(totalScores)
+                .sort(([, a], [, b]) => b - a) // 점수 내림차순 정렬
+                .map(([player, score]) => (
+                  <li key={player} className="flex justify-between">
+                    <span>{player}</span>
+                    <span className="font-semibold">{score}점</span>
+                  </li>
+                ))}
+            </ul>
+            <button
+              onClick={() => setShowScoreModal(false)}
+              className="mt-4 w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 손패 및 버튼 */}
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">

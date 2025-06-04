@@ -71,6 +71,18 @@ export default function GamePage() {
   const [showRoundBanner, setShowRoundBanner] = useState(false);
   const [newCards, setNewCards] = useState<string[]>([]);
   const [soundOn, setSoundOn] = useState(true);
+  const animalEmojis = [
+    "🐶",
+    "🐱",
+    "🐻",
+    "🐸",
+    "🐵",
+    "🐯",
+    "🦊",
+    "🐼",
+    "🦁",
+    "🐷",
+  ];
 
   const isMyTurn = currentPlayer === nickname;
 
@@ -308,6 +320,28 @@ export default function GamePage() {
     }
   }, [nickname]);
 
+  const [emojiMap, setEmojiMap] = useState<{ [player: string]: string }>({});
+
+  useEffect(() => {
+    const map: { [player: string]: string } = {};
+    const used = new Set<string>();
+
+    playerList.forEach((p) => {
+      if (!emojiMap[p]) {
+        let emoji;
+        do {
+          emoji = animalEmojis[Math.floor(Math.random() * animalEmojis.length)];
+        } while (used.has(emoji));
+        used.add(emoji);
+        map[p] = emoji;
+      } else {
+        map[p] = emojiMap[p]; // 기존 값 유지
+      }
+    });
+
+    setEmojiMap(map);
+  }, [playerList]);
+
   const toggleBbungCard = (card: string) => {
     setBbungCards((prev) =>
       bbungPhase === "selectingExtra"
@@ -503,11 +537,34 @@ export default function GamePage() {
       </div>
 
       {/* 👥 플레이어 목록 */}
-      <PlayerList players={playerList} currentPlayer={currentPlayer} />
+      {/* <PlayerList players={playerList} currentPlayer={currentPlayer} /> */}
+
+      {/* 👤 플레이어 표시 줄 */}
+      <div className="flex justify-center gap-6 mt-4 flex-wrap">
+        {playerList.map((player) => {
+          const isCurrent = player === currentPlayer;
+          const emoji = emojiMap[player] || "👤";
+
+          return (
+            <div
+              key={player}
+              className={`flex flex-col items-center px-3 py-1 rounded-lg transition-all
+          ${
+            isCurrent
+              ? "bg-yellow-300 text-black animate-pulse font-bold"
+              : "bg-gray-800 text-white"
+          }`}
+            >
+              <div className="text-2xl">{emoji}</div>
+              <div className="text-sm mt-1">{player}</div>
+            </div>
+          );
+        })}
+      </div>
 
       <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
 
-      <h1 className="text-3xl mt-4 mb-6">🃏 뻥카비 게임</h1>
+      <h1 className="text-3xl mt-4 mb-6">뻥카비</h1>
 
       {/* 이하 생략 (제출된 카드, 손패, 버튼, 채팅 등은 그대로 유지) */}
 

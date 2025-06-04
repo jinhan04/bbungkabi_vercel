@@ -100,13 +100,12 @@ export default function LobbyPage() {
             socket.emit("start-game", {
               roomCode,
               nickname,
-              maxPlayers,
-              doubleFinal, // ✅ 추가
+              doubleFinal, // ✅ maxPlayers 제거
             });
           }}
-          disabled={players.length < maxPlayers}
+          disabled={players.length < 2 || players.length > 6} // ✅ 조건 수정
           className={`mt-8 px-6 py-2 font-semibold rounded-lg ${
-            players.length < maxPlayers
+            players.length < 2 || players.length > 6
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}
@@ -114,6 +113,7 @@ export default function LobbyPage() {
           게임 시작하기
         </button>
       )}
+
       <button
         onClick={() => setShowQR(true)}
         className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg"

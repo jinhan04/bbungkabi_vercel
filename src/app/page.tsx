@@ -8,7 +8,7 @@ export default function HomePage() {
   const [nickname, setNickname] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-  const [maxPlayers, setMaxPlayers] = useState(6);
+  const [maxPlayers] = useState(6);
   const [showMaxInput, setShowMaxInput] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(true);
   const [showRules, setShowRules] = useState(false);
@@ -45,7 +45,7 @@ export default function HomePage() {
     router.push(
       `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
         nickname
-      )}&max=${maxPlayers}&doubleFinal=${doubleFinalRound}`
+      )}&doubleFinal=${doubleFinalRound}`
     );
   };
 
@@ -172,15 +172,7 @@ export default function HomePage() {
 
       {showMaxInput && (
         <div className="flex flex-col items-center space-y-4">
-          <p className="text-black font-semibold">인원 (1~6)</p>
-          <input
-            type="number"
-            min={1}
-            max={6}
-            className="px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
-            value={maxPlayers}
-            onChange={(e) => setMaxPlayers(Number(e.target.value))}
-          />
+          {/* 이 전체 블록에서 인원 입력 부분 삭제 가능 */}
           <label className="flex items-center space-x-2 text-black">
             <input
               type="checkbox"

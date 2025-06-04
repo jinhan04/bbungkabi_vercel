@@ -100,6 +100,12 @@ export default function RoundResultPage() {
           if (me) {
             setTotalScore(me.total);
           }
+          // ✅ 전체 점수 sessionStorage에 저장
+          const scoreMap: { [nickname: string]: number } = {};
+          response.scores.forEach((entry) => {
+            scoreMap[entry.nickname] = entry.total;
+          });
+          sessionStorage.setItem("totalScores", JSON.stringify(scoreMap));
         }
       }
     );

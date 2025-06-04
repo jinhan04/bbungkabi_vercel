@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -40,6 +40,7 @@ export default function GamePage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawAnimationKey, setDrawAnimationKey] = useState(0);
   const [showBbungEffect, setShowBbungEffect] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
 
   const [hand, setHand] = useState<string[]>([]);
   const [round, setRound] = useState<number>(1);
@@ -66,6 +67,10 @@ export default function GamePage() {
   const [chatMessages, setChatMessages] = useState<
     { nickname: string; message: string }[]
   >([]);
+
+  const [timer, setTimer] = useState<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   const [chatInput, setChatInput] = useState("");
   const [canSend, setCanSend] = useState(true);
   const [showRoundBanner, setShowRoundBanner] = useState(false);
@@ -156,16 +161,38 @@ export default function GamePage() {
     socket.on("turn-info", ({ currentPlayer }) => {
       console.log("🌀 서버에서 받은 currentPlayer:", currentPlayer);
       setCurrentPlayer(currentPlayer);
-      setMustSubmit(false); // ✅ 반드시 초기화
+      setMustSubmit(false);
       setBbungPhase("idle");
-      setCurrentPlayerDrawn(false); // ✅ 드로우 여부도 초기화
-      setAnyoneDrewThisTurn(false); // ✅ 유효하게 초기화
-      setBbungCards([]); // ✅ 선택 카드도 초기화하면 안정적
+      setCurrentPlayerDrawn(false);
+      setAnyoneDrewThisTurn(false);
+      setBbungCards([]);
+
+      // ✅ 타이머 초기화 및 시작
+      if (currentPlayer === nickname) {
+        setTimer(10); // 10초 시작
+
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        timerRef.current = setInterval(() => {
+          setTimer((prev) => {
+            if (prev === 1) {
+              clearInterval(timerRef.current!);
+              return null;
+            }
+            return prev! - 1;
+          });
+        }, 1000);
+      } else {
+        setTimer(null);
+        if (timerRef.current) clearInterval(timerRef.current);
+      }
     });
 
-    socket.on("card-submitted", ({ nickname, card }) =>
-      setSubmittedCards((prev) => [...prev, { nickname, card }])
-    );
+    socket.on("card-submitted", ({ nickname, card }) => {
+      setSubmittedCards((prev) => [...prev, { nickname, card }]);
+      addLog(`${nickname} 님이 ${card}를 냈습니다`);
+    });
+
     socket.on("drawn-card", ({ card }) => {
       playSound("draw.mp3");
       setDrawAnimationKey((prev) => prev + 1);
@@ -303,6 +330,7 @@ export default function GamePage() {
       playSound("bbung.wav");
       setShowBbungEffect(true);
       setTimeout(() => setShowBbungEffect(false), 800);
+      addLog(`${bbunger} 님이 뻥을 했습니다`);
     });
 
     return () => {
@@ -460,6 +488,17 @@ export default function GamePage() {
     return result;
   };
 
+  const addLog = (message: string) => {
+    const id = crypto.randomUUID(); // 유니크 ID로 구분
+    const newMessage = `${id}::${message}`;
+
+    setLogs((prev) => [...prev, newMessage]);
+
+    setTimeout(() => {
+      setLogs((prev) => prev.filter((log) => log !== newMessage));
+    }, 1000);
+  };
+
   function DrawAnimationCard({ keyVal }: { keyVal: number }) {
     return (
       <motion.div
@@ -536,6 +575,30 @@ export default function GamePage() {
         </div>
       </div>
 
+      {timer !== null && (
+        <div className="absolute top-[60px] left-4 text-white text-lg font-bold z-50">
+          {timer}
+        </div>
+      )}
+      <div className="absolute top-[100px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
+        <AnimatePresence>
+          {logs.map((log) => {
+            const [id, msg] = log.split("::");
+            return (
+              <motion.div
+                key={id}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-black/70 text-white text-sm px-3 py-1 rounded shadow"
+              >
+                {msg}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
       {/* 👥 플레이어 목록 */}
       {/* <PlayerList players={playerList} currentPlayer={currentPlayer} /> */}
 
@@ -548,15 +611,14 @@ export default function GamePage() {
           return (
             <div
               key={player}
-              className={`flex flex-col items-center px-3 py-1 rounded-lg transition-all
-          ${
-            isCurrent
-              ? "bg-yellow-300 text-black animate-pulse font-bold"
-              : "bg-gray-800 text-white"
-          }`}
+              className={`flex items-center px-3 py-2 rounded-xl shadow-md text-sm transition-all ${
+                isCurrent
+                  ? "bg-yellow-300 text-black scale-105 ring-2 ring-yellow-500 animate-pulse"
+                  : "bg-black/40 text-white"
+              }`}
             >
-              <div className="text-2xl">{emoji}</div>
-              <div className="text-sm mt-1">{player}</div>
+              <span className="text-xl mr-2">{emoji}</span>
+              <span>{player}</span>
             </div>
           );
         })}
@@ -565,10 +627,8 @@ export default function GamePage() {
       <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
 
       <div className="w-full px-4 mt-2 flex justify-end">
-        <h1 className="text-2xl font-bold text-green-300">뻥카비</h1>
+        <h1 className="text-2xl font-bold text-white-300">뻥카비</h1>
       </div>
-
-      {/* 이하 생략 (제출된 카드, 손패, 버튼, 채팅 등은 그대로 유지) */}
 
       {/* 제출된 카드 및 덱 */}
       <div className="mb-6 w-full max-w-2xl">

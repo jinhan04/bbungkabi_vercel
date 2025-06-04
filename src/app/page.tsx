@@ -86,12 +86,13 @@ export default function HomePage() {
       {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 3.0</h2>
+          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 3.1</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
               <strong>1라운드 오류 해결!!!</strong>
             </li>
-            <li>족보 인식 오류 해결</li>
+            <li>게임 디자인 화면 개선</li>
+            <li>플레이어 목록 변경</li>
             <li>마지막 라운드 점수 2배 여부 설정 기능 추가</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
@@ -128,7 +129,9 @@ export default function HomePage() {
         </div>
       )}
 
-      <h1 className="text-4xl font-bold mb-8 text-black">🂡 뻥카비 v.2.3 🂡</h1>
+      <h1 className="text-4xl font-bold mb-8 text-black">
+        🂡 뻥카비 (ver 3.0) 🂡
+      </h1>
 
       <input
         type="text"
@@ -157,7 +160,7 @@ export default function HomePage() {
 
       {showMaxInput && (
         <div className="flex flex-col items-center space-y-4">
-          <p className="text-black font-semibold">최대 인원 (1~6)</p>
+          <p className="text-black font-semibold">인원 (1~6)</p>
           <input
             type="number"
             min={1}

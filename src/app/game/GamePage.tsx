@@ -564,13 +564,14 @@ export default function GamePage() {
 
       <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
 
-      <h1 className="text-3xl mt-4 mb-6">뻥카비</h1>
+      <div className="w-full px-4 mt-2 flex justify-end">
+        <h1 className="text-2xl font-bold text-green-300">뻥카비</h1>
+      </div>
 
       {/* 이하 생략 (제출된 카드, 손패, 버튼, 채팅 등은 그대로 유지) */}
 
       {/* 제출된 카드 및 덱 */}
       <div className="mb-6 w-full max-w-2xl">
-        <h2 className="text-xl mb-2 text-center">제출된 카드 및 드로우 덱</h2>
         <div className="flex justify-center items-center gap-8">
           <AnimatePresence mode="wait">
             {submittedCards.length > 0 ? (

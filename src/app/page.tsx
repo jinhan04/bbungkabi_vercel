@@ -8,7 +8,6 @@ export default function HomePage() {
   const [nickname, setNickname] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-  const [maxPlayers] = useState(6);
   const [showMaxInput, setShowMaxInput] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(true);
   const [showRules, setShowRules] = useState(false);
@@ -36,11 +35,6 @@ export default function HomePage() {
   };
 
   const confirmCreateRoom = () => {
-    if (maxPlayers < 1 || maxPlayers > 6) {
-      alert("최대 인원은 1명 이상 6명 이하만 가능합니다.");
-      return;
-    }
-
     const newRoomCode = generateRoomCode();
     router.push(
       `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(

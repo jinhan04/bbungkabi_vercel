@@ -158,9 +158,13 @@ export default function GamePage() {
     });
 
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));
-    socket.on("turn-info", ({ currentPlayer }) => {
+
+    socket.on("turn-info", ({ currentPlayer, round }) => {
       console.log("🌀 서버에서 받은 currentPlayer:", currentPlayer);
+      console.log("🎯 서버에서 받은 round:", round);
       setCurrentPlayer(currentPlayer);
+      if (round !== undefined) setRound(round); // ✅ 라운드 업데이트
+
       setMustSubmit(false);
       setBbungPhase("idle");
       setCurrentPlayerDrawn(false);
@@ -169,10 +173,8 @@ export default function GamePage() {
 
       // ✅ 타이머 초기화 및 시작
       if (currentPlayer === nickname) {
-        setTimer(10); // 10초 시작
-
+        setTimer(10);
         if (timerRef.current) clearInterval(timerRef.current);
-
         timerRef.current = setInterval(() => {
           setTimer((prev) => {
             if (prev === 1) {
@@ -569,7 +571,7 @@ export default function GamePage() {
         </div>
       )}
 
-      <div className="absolute top-[100px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
+      <div className="absolute top-[60px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
         <AnimatePresence>
           {logs.map((log) => {
             const [id, msg] = log.split("::");
@@ -617,11 +619,21 @@ export default function GamePage() {
         <div className="flex justify-center items-center gap-4 sm:gap-8">
           <AnimatePresence mode="wait">
             {submittedCards.length > 0 ? (
-              <SubmittedCard
-                card={submittedCards.at(-1)!.card}
-                nickname={submittedCards.at(-1)!.nickname}
-                className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
-              />
+              <motion.div
+                key={
+                  submittedCards.at(-1)!.card + submittedCards.at(-1)!.nickname
+                }
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                <SubmittedCard
+                  card={submittedCards.at(-1)!.card}
+                  nickname={submittedCards.at(-1)!.nickname}
+                  className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
+                />
+              </motion.div>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -692,9 +704,6 @@ export default function GamePage() {
 
       {/* 손패 및 버튼 */}
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
-        <h2 className="text-lg sm:text-xl font-bold mb-4 text-center sm:text-left">
-          내 손패
-        </h2>
         <div className="flex flex-wrap justify-center gap-2 mt-2 px-2">
           {hand.map((card) => (
             <Card

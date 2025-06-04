@@ -93,7 +93,9 @@ export default function HomePage() {
             </li>
             <li>게임 디자인 화면 개선</li>
             <li>플레이어 목록 변경</li>
-            <li>마지막 라운드 점수 2배 여부 설정 기능 추가</li>
+            <li>플레이어 랜덤 이모지 생성</li>
+            <li>게임 실시가 로그 추가</li>
+            <li>타이머 추가</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">
@@ -103,19 +105,16 @@ export default function HomePage() {
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>탈주 버튼 추가</li>
-            <li>게임 화면 디자인 개선</li>
-            <li>제출 카드 밑 제출 플레이어 표시</li>
             <li>라운드 수 설정 기능</li>
-            <li>라운드 결과 페이지에 타 플레이어 점수 표시</li>
+            <li>타이머 어벙 추가 로직</li>
+            <li>남은 패 장수</li>
             <li>게임 시작 사운드 추가</li>
             <li>뻥 제출 카드 애니메이션 추가</li>
             <li>최종 결과 시 효과음 추가</li>
             <li>카드 선택 시 사운드 추가</li>
             <li>라운드 종료 시 사운드 추가</li>
-            <li>타이머 + 어벙 처리 로직 추가</li>
+            <li>어벙 처리 로직 추가</li>
             <li>글씨체 변경</li>
-            <li>게임 종료 버튼 추가</li>
             <li>개인 프로필 생성 및 DB 연동 (승률, 코인 등)</li>
             <li>카카오 로그인 연동</li>
             <li>debounce 최적화</li>

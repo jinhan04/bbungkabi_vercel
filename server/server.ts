@@ -157,7 +157,10 @@ io.on("connection", (socket) => {
     console.log(
       `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
     );
-    io.to(roomCode).emit("turn-info", { currentPlayer });
+    io.to(roomCode).emit("turn-info", {
+      currentPlayer,
+      round: roundCount[roomCode],
+    });
   });
 
   socket.on("ready-next-round", ({ roomCode, nickname }) => {
@@ -251,7 +254,10 @@ io.on("connection", (socket) => {
 
       io.to(roomCode).emit("next-round", { round: roundCount[roomCode] });
 
-      io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
+      io.to(roomCode).emit("turn-info", {
+        currentPlayer: firstPlayer,
+        round: roundCount[roomCode],
+      });
       console.log(
         `[${new Date().toISOString()}][DEBUG ready-next-round] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
       );
@@ -349,7 +355,10 @@ io.on("connection", (socket) => {
 
     setTimeout(() => {
       const firstPlayer = players[0];
-      io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
+      io.to(roomCode).emit("turn-info", {
+        currentPlayer: firstPlayer,
+        round: roundCount[roomCode],
+      });
       console.log(
         `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
       );
@@ -364,7 +373,10 @@ io.on("connection", (socket) => {
       turnIndex[roomCode] = 0; // 🔧 이 줄이 핵심!
       const firstPlayer = rooms[roomCode][0];
       io.to(roomCode).emit("ready-ok");
-      io.to(roomCode).emit("turn-info", { currentPlayer: firstPlayer });
+      io.to(roomCode).emit("turn-info", {
+        currentPlayer: firstPlayer,
+        round: roundCount[roomCode],
+      });
       console.log(
         `[${new Date().toISOString()}][DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
       );
@@ -592,7 +604,10 @@ io.on("connection", (socket) => {
       turnIndex[roomCode] = nextIdx;
       drawFlag[roomCode].clear();
       const nextPlayer = players[nextIdx];
-      io.to(roomCode).emit("turn-info", { currentPlayer: nextPlayer });
+      io.to(roomCode).emit("turn-info", {
+        currentPlayer: nextPlayer,
+        round: roundCount[roomCode],
+      });
       console.log(
         `[${new Date().toISOString()}][DEBUG submit-bbung-extra] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
       );
@@ -665,7 +680,10 @@ io.on("connection", (socket) => {
     drawFlag[roomCode].clear();
     const nextPlayer = players[turnIndex[roomCode]];
 
-    io.to(roomCode).emit("turn-info", { currentPlayer: nextPlayer });
+    io.to(roomCode).emit("turn-info", {
+      currentPlayer: nextPlayer,
+      round: roundCount[roomCode],
+    });
     console.log(
       `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
     );

@@ -102,9 +102,9 @@ export default function LobbyPage() {
               doubleFinal, // ✅ maxPlayers 제거
             });
           }}
-          disabled={players.length < 2 || players.length > 6} // ✅ 조건 수정
+          disabled={players.length < 1 || players.length > 6} // ✅ 조건 수정
           className={`mt-8 px-6 py-2 font-semibold rounded-lg ${
-            players.length < 2 || players.length > 6
+            players.length < 1 || players.length > 6
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}

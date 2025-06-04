@@ -453,7 +453,7 @@ export default function GamePage() {
   const [showChat, setShowChat] = useState(true); // 또는 false로 시작해도 됨
 
   return (
-    <div className="min-h-screen bg-gradient-radial from-green-800 via-green-900 to-black">
+    <div className="min-h-screen flex flex-col items-center bg-gradient-radial from-green-800 via-green-900 to-black text-white px-4 pt-20">
       {/* ✅ 티츄비 스타일 상단 바 */}
       <div className="w-full bg-white text-black flex justify-between items-center px-4 py-2 fixed top-0 left-0 z-50 shadow-md">
         {/* 왼쪽: 라운드, 닉네임, 점수 */}

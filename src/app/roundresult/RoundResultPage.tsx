@@ -156,7 +156,7 @@ export default function RoundResultPage() {
       <div className="text-lg mb-2">방 코드: {roomCode}</div>
       <div className="text-lg mb-2">닉네임: {nickname}</div>
       <div className="text-lg mb-2">
-        다음 라운드: {round <= 5 ? `${round} / 5` : "없음"}
+        다음 라운드: {round < 5 ? `${round + 1} / 5` : "없음"}
       </div>{" "}
       {/* ✅ 출력 */}
       <div className="text-lg mb-6 text-yellow-300 max-w-xl text-center">

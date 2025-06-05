@@ -25,7 +25,7 @@ export const metadata = {
     url: "https://www.bbungkabe.com",
     images: [
       {
-        url: "https://www.bbungkabe.com/og-image.png", // ⬅ 이 경로 중요!
+        url: "https://www.bbungkabe.com/og-image.png",
         width: 1200,
         height: 630,
         alt: "뻥카비 로고",

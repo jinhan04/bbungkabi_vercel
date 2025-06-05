@@ -151,9 +151,9 @@ io.on("connection", (socket) => {
 
       // ✅ 점수 배열 초기화
       scores[roomCode] = {};
-      for (const nickname of players) {
+      rooms[roomCode].forEach((nickname) => {
         scores[roomCode][nickname] = [];
-      }
+      });
 
       turnIndex[roomCode] = 0;
       decks[roomCode] = shuffle(createDeck());

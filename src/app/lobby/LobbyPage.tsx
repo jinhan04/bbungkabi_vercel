@@ -25,6 +25,7 @@ export default function LobbyPage() {
   >([]);
   const [chatInput, setChatInput] = useState("");
   const [canSend, setCanSend] = useState(true);
+  const [emojiMap, setEmojiMap] = useState<{ [nickname: string]: string }>({});
 
   useEffect(() => {
     if (!roomCode || !nickname) return;
@@ -43,14 +44,16 @@ export default function LobbyPage() {
     socket.once("connect", handleConnect);
 
     socket.off("update-players");
-    socket.on("update-players", ({ players }) => {
+    socket.on("update-players", ({ players, emojis }) => {
       if (Array.isArray(players)) {
         setPlayers(players);
+        setEmojiMap(emojis || {});
       } else {
         console.warn("🚨 players가 배열이 아님:", players);
         setPlayers([]);
       }
     });
+
     socket.off("join-error");
     socket.on("join-error", (msg: string) => {
       alert(msg);
@@ -94,15 +97,11 @@ export default function LobbyPage() {
         입장한 플레이어들
       </h2>
       <ul className="text-black">
-        {Array.isArray(players) ? (
-          players.map((player, index) => (
-            <li key={index} className="text-lg">
-              {index + 1}. {emoji} {player}
-            </li>
-          ))
-        ) : (
-          <li className="text-red-600">플레이어 정보를 불러오는 중...</li>
-        )}
+        {players.map((player, index) => (
+          <li key={index} className="text-lg">
+            {index + 1}. {emojiMap[player] || "👤"} {player}
+          </li>
+        ))}
       </ul>
 
       {isHost && (

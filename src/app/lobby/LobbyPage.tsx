@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
+import { playSound } from "@/lib/sound";
 
 export default function LobbyPage() {
   const searchParams = useSearchParams();
@@ -65,6 +66,8 @@ export default function LobbyPage() {
 
     socket.off("game-started");
     socket.on("game-started", ({ roomCode }) => {
+      playSound("game-start.mp3");
+
       router.push(
         `/game?code=${roomCode}&nickname=${encodeURIComponent(nickname)}`
       );

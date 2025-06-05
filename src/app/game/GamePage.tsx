@@ -148,7 +148,8 @@ export default function GamePage() {
 
     socket.on("game-started", ({ round }) => {
       console.log("Game started with round:", round);
-      playSound("game-start.mp3");
+
+      // playSound("game-start.mp3");
 
       if (round) {
         setRound(round);
@@ -424,7 +425,7 @@ export default function GamePage() {
 
     const newHand = hand.filter((c) => c !== bbungCards[0]);
     setHand(sortHandByValue(newHand));
-    playSound("submit-card.wav");
+    playSound("submit-card.mp3");
     getSocket().emit("submit-card", { roomCode, card: bbungCards[0] });
     setBbungCards([]);
     setMustSubmit(false);

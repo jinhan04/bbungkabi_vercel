@@ -135,6 +135,7 @@ io.on("connection", (socket) => {
 
       console.log("doubleFinal 설정:", doubleFinal);
       console.log("doubleFinalRoundMap:", doubleFinalRoundMap[roomCode]);
+      console.log("uhbbung 설정:", uhbbung);
 
       if (!players || players.length < 1 || players.length > 6) {
         socket.emit("join-error", `최대 6명 이하일 때만 시작할 수 있습니다.`);
@@ -251,7 +252,6 @@ io.on("connection", (socket) => {
         firstPlayer = players[Math.floor(Math.random() * players.length)];
         console.log("[DEBUG] 1라운드 랜덤 시작 플레이어:", firstPlayer);
       } else {
-        // 🧮 2라운드부터는 최저 점수 플레이어
         const lastRoundScores = scores[roomCode];
         const validScores = Object.entries(lastRoundScores)
           .filter(([_, rounds]) => rounds.length > 0)

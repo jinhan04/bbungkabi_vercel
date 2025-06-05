@@ -325,12 +325,19 @@ export default function GamePage() {
     const scores = sessionStorage.getItem("totalScores");
     if (scores) {
       const parsed = JSON.parse(scores);
-      setTotalScores(parsed);
-      if (parsed[nickname] !== undefined) {
-        setMyScore(parsed[nickname]);
+
+      if (round === 1) {
+        setTotalScores({});
+        setMyScore(0);
+        sessionStorage.removeItem("totalScores");
+      } else {
+        setTotalScores(parsed);
+        if (parsed[nickname] !== undefined) {
+          setMyScore(parsed[nickname]);
+        }
       }
     }
-  }, [nickname]);
+  }, [nickname, round]);
 
   useEffect(() => {
     const socket = getSocket();

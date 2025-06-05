@@ -294,7 +294,7 @@ io.on("connection", (socket) => {
     playerHands[roomCode][stopper] = hand;
 
     const hands = playerHands[roomCode];
-    const scoresThisRound = calculateScores("stop", stopper, hands);
+    const scoresThisRound = calculateScores("stop", stopper, hands, roomCode);
 
     console.log("[DEBUG] 계산된 점수:", scoresThisRound);
 
@@ -742,7 +742,7 @@ function calculateScores(
   reason: string,
   stopper: string | null,
   hands: { [nickname: string]: string[] },
-  roomCode?: string
+  roomCode: string
 ): { [nickname: string]: number } {
   const scores: { [nickname: string]: number } = {};
 
@@ -865,12 +865,22 @@ function calculateScores(
     }
   }
 
+  console.log(
+    `[DEBUG] 점수 계산 시작 — reason: ${reason}, roomCode: ${roomCode}`
+  );
+  console.log(`[DEBUG] 현재 roundCount[${roomCode}] = ${roundCount[roomCode]}`);
+  console.log(
+    `[DEBUG] doubleFinalRoundMap[${roomCode}] = ${doubleFinalRoundMap[roomCode]}`
+  );
+
   // ✅ 마지막 라운드 점수 2배 처리
-  if (roomCode && roundCount[roomCode] === 4 && doubleFinalRoundMap[roomCode]) {
-    console.log("[DEBUG] 마지막 라운드 점수 2배 적용");
+  if (roomCode && roundCount[roomCode] === 5 && doubleFinalRoundMap[roomCode]) {
+    console.log("[DEBUG] 마지막 라운드 조건 충족 — 점수 2배 적용");
     for (const p of Object.keys(scores)) {
       scores[p] *= 2;
     }
+  } else {
+    console.log("[DEBUG] 마지막 라운드 조건 불충분 — 점수 2배 적용 안됨");
   }
 
   // 점수 반환

@@ -865,8 +865,13 @@ function calculateScores(
     }
   }
 
-  // ✅ 마지막 라운드 점수 2배 처리
-  if (roomCode && roundCount[roomCode] === 5 && doubleFinalRoundMap[roomCode]) {
+  function isLastRound(roomCode?: string): boolean {
+    if (!roomCode) return false;
+    return roundCount[roomCode] + 1 === 5 && doubleFinalRoundMap[roomCode];
+  }
+
+  // 사용 예시:
+  if (isLastRound(roomCode)) {
     console.log("[DEBUG] 마지막 라운드 점수 2배 적용");
     for (const p of Object.keys(scores)) {
       scores[p] *= 2;

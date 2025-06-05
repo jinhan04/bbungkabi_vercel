@@ -536,8 +536,6 @@ io.on("connection", (socket) => {
         scores[roomCode][nickname].push(score);
       }
 
-      // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
-
       roundResults[roomCode] = {
         scores: scoresThisRound,
         hands,
@@ -587,8 +585,6 @@ io.on("connection", (socket) => {
       for (const [nickname, score] of Object.entries(scoresThisRound)) {
         scores[roomCode][nickname].push(score);
       }
-
-      // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
       roundResults[roomCode] = {
         scores: scoresThisRound,
@@ -659,7 +655,7 @@ io.on("connection", (socket) => {
     }
 
     // ✅ 라운드 수 증가
-    roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+    // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
     // ✅ 결과 저장
     roundResults[roomCode] = {

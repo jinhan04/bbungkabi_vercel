@@ -78,18 +78,6 @@ export default function GamePage() {
   const [showRoundBanner, setShowRoundBanner] = useState(false);
   const [newCards, setNewCards] = useState<string[]>([]);
   const [soundOn, setSoundOn] = useState(true);
-  const animalEmojis = [
-    "🐶",
-    "🐱",
-    "🐻",
-    "🐸",
-    "🐵",
-    "🐯",
-    "🦊",
-    "🐼",
-    "🦁",
-    "🐷",
-  ];
 
   const isMyTurn = currentPlayer === nickname;
 

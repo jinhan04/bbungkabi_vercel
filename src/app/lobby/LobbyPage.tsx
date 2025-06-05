@@ -10,7 +10,9 @@ export default function LobbyPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const { emoji } = useAuth();
+  const emojiParam = searchParams.get("emoji");
+  const { emoji: defaultEmoji } = useAuth();
+  const emoji = emojiParam || defaultEmoji || "🐶";
 
   const roomCode = searchParams.get("code");
   const nickname = searchParams.get("nickname");

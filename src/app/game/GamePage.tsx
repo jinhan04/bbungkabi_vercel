@@ -180,13 +180,22 @@ export default function GamePage() {
       if (currentPlayer === nickname) {
         setTimer(10);
         if (timerRef.current) clearInterval(timerRef.current);
+
         timerRef.current = setInterval(() => {
           setTimer((prev) => {
-            if (prev === 1) {
+            if (prev === null || prev <= 1) {
               clearInterval(timerRef.current!);
               return null;
             }
-            return prev! - 1;
+
+            const next = prev - 1;
+
+            // ✅ 5초 이하일 때만 사운드 재생
+            if (next <= 5) {
+              playSound("tick.mp3");
+            }
+
+            return next;
           });
         }, 1000);
       } else {
@@ -246,6 +255,10 @@ export default function GamePage() {
       "round-ended",
       ({ reason, stopper, allPlayerHands, round, triggerer }) => {
         setRound(round);
+
+        if (reason === "stop") {
+          playSound("stop.wav");
+        }
         const myHand = allPlayerHands?.[nickname] || hand;
         if (reason === "족보 완성") playSound("jokbo_complete.mp3");
 

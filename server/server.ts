@@ -120,6 +120,9 @@ io.on("connection", (socket) => {
     doubleFinalRoundMap[roomCode] = !!doubleFinal;
     drawFlag[roomCode] = new Set();
 
+    console.log("doubleFinal 설정:", doubleFinal);
+    console.log("doubleFinalRoundMap:", doubleFinalRoundMap[roomCode]);
+
     if (!players || players.length < 1 || players.length > 6) {
       socket.emit("join-error", `최대 6명 이하일 때만 시작할 수 있습니다.`);
       return;

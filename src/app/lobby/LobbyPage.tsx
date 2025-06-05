@@ -116,6 +116,7 @@ export default function LobbyPage() {
             socket.emit("start-game", {
               roomCode,
               nickname,
+              maxPlayers: 6,
               doubleFinal,
             });
           }}

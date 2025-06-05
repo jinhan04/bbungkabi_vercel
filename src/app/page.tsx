@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import GameRulesModal from "@/components/GameRulesModal";
+import { useAuth } from "@/context/AuthContext";
 
 export default function HomePage() {
   const [nickname, setNickname] = useState("");
@@ -13,6 +14,8 @@ export default function HomePage() {
   const [showPatchNote, setShowPatchNote] = useState(true);
   const [showRules, setShowRules] = useState(false);
   const [doubleFinalRound, setDoubleFinalRound] = useState(false);
+  const { emoji, setEmoji } = useAuth();
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const router = useRouter();
   const handleClose = () => setShowPatchNote(false);
@@ -99,12 +102,13 @@ export default function HomePage() {
       {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 3.2</h2>
+          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 3.3</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
               <strong>1라운드 오류 해결!!!</strong>
             </li>
             <li>게임 디자인 화면 개선</li>
+            <li>인원 제한 설정 변경</li>
             <li>플레이어 목록 변경</li>
             <li>플레이어 랜덤 이모지 생성</li>
             <li>게임 실시가 로그 추가</li>
@@ -148,10 +152,39 @@ export default function HomePage() {
       <input
         type="text"
         placeholder="닉네임을 입력하세요"
-        className="mb-4 px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
+        className="px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
       />
+      <button
+        onClick={() => setShowEmojiPicker(true)}
+        className="text-2xl"
+        title="이모지 선택"
+      >
+        {emoji}
+      </button>
+
+      {showEmojiPicker && (
+        <div className="absolute z-50 bg-white text-black p-4 rounded shadow-md max-w-xs w-64">
+          <h3 className="font-bold mb-2">이모지를 선택하세요</h3>
+          <div className="grid grid-cols-5 gap-2 text-xl">
+            {["🐶", "🐱", "🐻", "🐸", "🐵", "🐯", "🦊", "🐼", "🦁", "🐷"].map(
+              (e) => (
+                <button
+                  key={e}
+                  onClick={() => {
+                    setEmoji(e);
+                    setShowEmojiPicker(false);
+                  }}
+                  className="hover:scale-110"
+                >
+                  {e}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      )}
 
       {!isJoiningRoom && !showMaxInput && (
         <div className="flex space-x-4">

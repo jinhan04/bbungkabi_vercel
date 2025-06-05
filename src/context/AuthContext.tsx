@@ -13,15 +13,18 @@ interface User {
 interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
+  emoji: string;
+  setEmoji: (emoji: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [emoji, setEmoji] = useState<string>("🐶"); // ✅ 기본 이모지
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ user, setUser, emoji, setEmoji }}>
       {children}
     </AuthContext.Provider>
   );

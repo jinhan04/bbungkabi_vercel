@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { QRCodeCanvas } from "qrcode.react";
+import { useAuth } from "@/context/AuthContext";
+
+const { emoji } = useAuth();
 
 export default function LobbyPage() {
   const searchParams = useSearchParams();
@@ -31,7 +34,7 @@ export default function LobbyPage() {
 
     const handleConnect = () => {
       if (!hasJoined) {
-        socket.emit("join-room", { roomCode, nickname });
+        socket.emit("join-room", { roomCode, nickname, emoji });
         setHasJoined(true);
       }
     };
@@ -84,10 +87,10 @@ export default function LobbyPage() {
       <h2 className="text-2xl font-semibold mt-8 mb-4 text-black">
         입장한 플레이어들
       </h2>
-      <ul className="list-disc text-black">
+      <ul className="text-black">
         {players.map((player, index) => (
           <li key={index} className="text-lg">
-            {index + 1}. {player}
+            {index + 1}. {emoji} {player}
           </li>
         ))}
       </ul>
@@ -99,10 +102,10 @@ export default function LobbyPage() {
             socket.emit("start-game", {
               roomCode,
               nickname,
-              doubleFinal, // ✅ maxPlayers 제거
+              doubleFinal,
             });
           }}
-          disabled={players.length < 1 || players.length > 6} // ✅ 조건 수정
+          disabled={players.length < 1 || players.length > 6}
           className={`mt-8 px-6 py-2 font-semibold rounded-lg ${
             players.length < 1 || players.length > 6
               ? "bg-gray-400 cursor-not-allowed"

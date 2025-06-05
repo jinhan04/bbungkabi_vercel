@@ -23,6 +23,7 @@ import ChatBox from "@/components/ChatBox";
 import BagajiOverlay from "@/components/BagajiOverlay";
 import SubmittedCard from "@/components/SubmittedCard";
 import RoundBanner from "@/components/RoundBanner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function GamePage() {
   const searchParams = useSearchParams();
@@ -36,6 +37,7 @@ export default function GamePage() {
 
   const [bagajiText, setBagajiText] = useState("");
   const [showBagaji, setShowBagaji] = useState(false);
+  const { emoji: myEmoji } = useAuth();
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawAnimationKey, setDrawAnimationKey] = useState(0);
@@ -594,7 +596,8 @@ export default function GamePage() {
       <div className="absolute top-[100px] left-2 sm:left-4 z-40 flex flex-col gap-1 max-w-[80vw]">
         {playerList.map((player) => {
           const isCurrent = player === currentPlayer;
-          const emoji = emojiMap[player] || "👤";
+          const emoji =
+            player === nickname ? myEmoji : emojiMap[player] || "👤"; // ✅ 여기 수정
 
           return (
             <div

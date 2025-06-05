@@ -27,6 +27,8 @@ const doubleFinalRoundMap: { [roomCode: string]: boolean } = {};
 const scores: { [key: string]: { [nickname: string]: number[] } } = {};
 const readyForNextRound: { [roomCode: string]: Set<string> } = {};
 const bbungEndTriggeredBy: { [roomCode: string]: string | null } = {}; // 유도자 저장
+const emojiMap: { [roomCode: string]: { [nickname: string]: string } } = {};
+
 const submittedHistory: {
   [key: string]: { nickname: string; card: string }[];
 } = {};
@@ -84,7 +86,7 @@ const shuffle = (array: string[]) => {
 io.on("connection", (socket) => {
   console.log("새 클라이언트 연결:", socket.id);
 
-  socket.on("join-room", ({ roomCode, nickname }) => {
+  socket.on("join-room", ({ roomCode, nickname, emoji }) => {
     if (!rooms[roomCode]) {
       rooms[roomCode] = [];
       decks[roomCode] = shuffle(createDeck());
@@ -93,6 +95,10 @@ io.on("connection", (socket) => {
       submittedHistory[roomCode] = [];
       drawFlag[roomCode] = new Set();
     }
+
+    if (!emojiMap[roomCode]) emojiMap[roomCode] = {};
+    emojiMap[roomCode][nickname] = emoji || "🐶";
+    io.to(roomCode).emit("update-emojis", emojiMap[roomCode]);
 
     if (rooms[roomCode].includes(nickname)) {
       socket.emit("join-error", "중복된 닉네임입니다.");
@@ -103,7 +109,10 @@ io.on("connection", (socket) => {
     socketIdToNickname[socket.id] = nickname;
     socket.join(roomCode);
 
-    io.to(roomCode).emit("update-players", rooms[roomCode]);
+    io.to(roomCode).emit("update-players", {
+      players: rooms[roomCode],
+      emojis: emojiMap[roomCode],
+    });
   });
 
   socket.on("start-game", ({ roomCode, nickname, maxPlayers, doubleFinal }) => {
@@ -705,7 +714,10 @@ io.on("connection", (socket) => {
         delete drawFlag[roomCode];
       }
 
-      io.to(roomCode).emit("update-players", rooms[roomCode]);
+      io.to(roomCode).emit("update-players", {
+        players: rooms[roomCode],
+        emojis: emojiMap[roomCode],
+      });
     });
 
     delete socketIdToNickname[socket.id];

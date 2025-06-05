@@ -6,11 +6,11 @@ import { getSocket } from "@/lib/socket";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
 
-const { emoji } = useAuth();
-
 export default function LobbyPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const { emoji } = useAuth();
 
   const roomCode = searchParams.get("code");
   const nickname = searchParams.get("nickname");

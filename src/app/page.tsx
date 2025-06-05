@@ -149,16 +149,9 @@ export default function HomePage() {
         🂡 뻥카비 (ver 3.0) 🂡
       </h1>
 
-      <input
-        type="text"
-        placeholder="닉네임을 입력하세요"
-        className="px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-      />
       <button
         onClick={() => setShowEmojiPicker(true)}
-        className="text-2xl"
+        className="text-4xl mb-2"
         title="이모지 선택"
       >
         {emoji}
@@ -185,6 +178,15 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* 닉네임 입력란 */}
+      <input
+        type="text"
+        placeholder="닉네임을 입력하세요"
+        className="px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+      />
 
       {!isJoiningRoom && !showMaxInput && (
         <div className="flex space-x-4">

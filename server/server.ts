@@ -877,7 +877,10 @@ function calculateScores(
   if (roomCode && roundCount[roomCode] === 5 && doubleFinalRoundMap[roomCode]) {
     console.log("[DEBUG] 마지막 라운드 조건 충족 — 점수 2배 적용");
     for (const p of Object.keys(scores)) {
-      scores[p] *= 2;
+      const original = scores[p];
+      const doubled = typeof original === "number" ? original * 2 : 0;
+      scores[p] = doubled;
+      console.log(`[DEBUG] ${p} 점수 2배 적용: ${original} -> ${doubled}`);
     }
   } else {
     console.log("[DEBUG] 마지막 라운드 조건 불충분 — 점수 2배 적용 안됨");

@@ -131,12 +131,17 @@ export default function GamePage() {
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 
-    socket.emit("join-room", { roomCode, nickname });
+    socket.emit("join-room", { roomCode, nickname, emoji: myEmoji });
+
     console.log("🙋 내 닉네임:", nickname);
 
     socket.removeAllListeners();
 
-    socket.on("update-players", (players: string[]) => setPlayerList(players));
+    socket.on("update-players", ({ players, emojis }) => {
+      setPlayerList(players);
+      setEmojiMap(emojis); // ✅ 서버에서 전달된 emojiMap 사용
+    });
+
     socket.emit("get-player-list", { roomCode }, (players: string[]) =>
       setPlayerList(players)
     );
@@ -353,26 +358,6 @@ export default function GamePage() {
   }, [nickname]);
 
   const [emojiMap, setEmojiMap] = useState<{ [player: string]: string }>({});
-
-  useEffect(() => {
-    const map: { [player: string]: string } = {};
-    const used = new Set<string>();
-
-    playerList.forEach((p) => {
-      if (!emojiMap[p]) {
-        let emoji;
-        do {
-          emoji = animalEmojis[Math.floor(Math.random() * animalEmojis.length)];
-        } while (used.has(emoji));
-        used.add(emoji);
-        map[p] = emoji;
-      } else {
-        map[p] = emojiMap[p]; // 기존 값 유지
-      }
-    });
-
-    setEmojiMap(map);
-  }, [playerList]);
 
   const toggleBbungCard = (card: string) => {
     setBbungCards((prev) =>

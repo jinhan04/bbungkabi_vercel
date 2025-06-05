@@ -88,11 +88,15 @@ export default function LobbyPage() {
         입장한 플레이어들
       </h2>
       <ul className="text-black">
-        {players.map((player, index) => (
-          <li key={index} className="text-lg">
-            {index + 1}. {emoji} {player}
-          </li>
-        ))}
+        {Array.isArray(players) ? (
+          players.map((player, index) => (
+            <li key={index} className="text-lg">
+              {index + 1}. {emoji} {player}
+            </li>
+          ))
+        ) : (
+          <li className="text-red-600">플레이어 정보를 불러오는 중...</li>
+        )}
       </ul>
 
       {isHost && (

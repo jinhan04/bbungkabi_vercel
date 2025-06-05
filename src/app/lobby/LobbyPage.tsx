@@ -43,8 +43,14 @@ export default function LobbyPage() {
     socket.once("connect", handleConnect);
 
     socket.off("update-players");
-    socket.on("update-players", setPlayers);
-
+    socket.on("update-players", ({ players }) => {
+      if (Array.isArray(players)) {
+        setPlayers(players);
+      } else {
+        console.warn("🚨 players가 배열이 아님:", players);
+        setPlayers([]);
+      }
+    });
     socket.off("join-error");
     socket.on("join-error", (msg: string) => {
       alert(msg);

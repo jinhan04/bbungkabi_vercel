@@ -16,6 +16,7 @@ export default function HomePage() {
   const [doubleFinalRound, setDoubleFinalRound] = useState(false);
   const { emoji, setEmoji } = useAuth();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [uhbbungEnabled, setUhbbungEnabled] = useState(false);
 
   const router = useRouter();
   const handleClose = () => setShowPatchNote(false);
@@ -48,7 +49,9 @@ export default function HomePage() {
     router.push(
       `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
         nickname
-      )}&doubleFinal=${doubleFinalRound}&emoji=${encodeURIComponent(emoji)}`
+      )}&doubleFinal=${doubleFinalRound}&uhbbung=${uhbbungEnabled}&emoji=${encodeURIComponent(
+        emoji
+      )}`
     );
   };
 
@@ -107,13 +110,10 @@ export default function HomePage() {
             <li>
               <strong>1라운드 오류 해결!!!</strong>
             </li>
-            <li>게임 디자인 화면 개선</li>
-            <li>인원 제한 설정 변경</li>
             <li>플레이어 이모지 추가</li>
             <li>게임 실시간 로그 추가</li>
             <li>타이머 추가</li>
             <li>마지막 라운드 점수 2배 적용 가능</li>
-            <li>게임 페이지에서 라운드 수가 1/5로 고정 오류 해결</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">
@@ -121,15 +121,10 @@ export default function HomePage() {
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>라운드 수 설정 기능</li>
             <li>타이머 어벙 추가 로직</li>
-            <li>남은 패 장수</li>
             <li>최종 결과 시 효과음 추가</li>
-            <li>라운드 종료 시 사운드 추가</li>
-            <li>글씨체 변경</li>
             <li>개인 프로필 생성 및 DB 연동 (승률, 코인 등)</li>
             <li>카카오 로그인 연동</li>
-            <li>debounce 최적화</li>
           </ul>
           <button
             onClick={handleClose}
@@ -140,9 +135,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <h1 className="text-4xl font-bold mb-8 text-black">
-        🂡 뻥카비 (ver 3.0) 🂡
-      </h1>
+      <h1 className="text-4xl font-bold mb-8 text-black">뻥카비 (ver 3.1)</h1>
 
       <button
         onClick={() => setShowEmojiPicker(true)}
@@ -209,6 +202,14 @@ export default function HomePage() {
               onChange={(e) => setDoubleFinalRound(e.target.checked)}
             />
             <span>마지막 라운드 점수 2배 적용</span>
+          </label>
+          <label className="flex items-center space-x-2 text-black">
+            <input
+              type="checkbox"
+              checked={uhbbungEnabled}
+              onChange={(e) => setUhbbungEnabled(e.target.checked)}
+            />
+            <span>어벙(10초 오버 시 +10점) 적용</span>
           </label>
           <button
             onClick={confirmCreateRoom}

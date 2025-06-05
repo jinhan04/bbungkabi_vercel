@@ -34,6 +34,7 @@ export default function GamePage() {
   const nicknameRaw = searchParams.get("nickname") || "";
   const nickname = decodeURIComponent(nicknameRaw);
   const [playerList, setPlayerList] = useState<string[]>([]);
+  const uhbbungEnabled = searchParams.get("uhbbung") === "true";
 
   const [bagajiText, setBagajiText] = useState("");
   const [showBagaji, setShowBagaji] = useState(false);
@@ -186,6 +187,12 @@ export default function GamePage() {
           setTimer((prev) => {
             if (prev === null || prev <= 1) {
               clearInterval(timerRef.current!);
+              if (uhbbungEnabled && currentPlayer === nickname) {
+                getSocket().emit("uhbbung", { roomCode, nickname });
+                addLog(`${nickname} 님이 어벙으로 +10점`);
+                return 10; // 어벙 점수 부여 후 10초 재시작
+              }
+
               return null;
             }
 

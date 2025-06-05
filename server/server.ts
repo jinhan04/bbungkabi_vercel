@@ -867,6 +867,9 @@ function calculateScores(
 
   function isLastRound(roomCode?: string): boolean {
     if (!roomCode) return false;
+
+    console.log(`[DEBUG] 현재 roundCount: ${roundCount[roomCode]}`);
+
     return roundCount[roomCode] + 1 === 5 && doubleFinalRoundMap[roomCode];
   }
 

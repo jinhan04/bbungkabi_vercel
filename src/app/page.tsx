@@ -179,11 +179,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 닉네임 입력란 */}
       <input
         type="text"
         placeholder="닉네임을 입력하세요"
-        className="px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
+        className="mt-2 mb-6 px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
       />

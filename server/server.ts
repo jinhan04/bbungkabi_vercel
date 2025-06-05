@@ -102,7 +102,7 @@ const shuffle = (array: string[]) => {
 };
 
 io.on("connection", (socket) => {
-  console.log("새 클라이언트 연결:", socket.id);
+  logInfo(`새 클라이언트 연결: ${socket.id}`);
 
   socket.on("join-room", ({ roomCode, nickname, emoji }) => {
     if (!rooms[roomCode]) {

@@ -46,7 +46,7 @@ export default function HomePage() {
 
     const newRoomCode = generateRoomCode();
     router.push(
-      `/lobby?code=${roomCode}&nickname=${encodeURIComponent(
+      `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
         nickname
       )}&doubleFinal=${doubleFinalRound}&emoji=${encodeURIComponent(emoji)}`
     );

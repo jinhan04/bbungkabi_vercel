@@ -290,10 +290,33 @@ io.on("connection", (socket) => {
     if (!playerHands[roomCode]) playerHands[roomCode] = {};
     playerHands[roomCode][stopper] = hand;
 
-    handleRoundEnd({
-      roomCode,
+    const hands = playerHands[roomCode];
+    const scoresThisRound = calculateScores("stop", stopper, hands);
+
+    console.log("[DEBUG] 계산된 점수:", scoresThisRound);
+
+    // 점수 누적
+    for (const [nickname, score] of Object.entries(scoresThisRound)) {
+      scores[roomCode][nickname].push(score);
+    }
+
+    // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+
+    roundResults[roomCode] = {
+      scores: scoresThisRound,
+      hands,
       reason: "stop",
       stopper,
+    };
+
+    roundInProgress[roomCode] = false;
+
+    // ✅ 카드 정보는 보내지 않고 최소한의 정보만 emit
+    io.to(roomCode).emit("round-ended", {
+      reason: "stop",
+      stopper,
+      allPlayerHands: playerHands[roomCode],
+      round: roundCount[roomCode],
     });
   });
 
@@ -421,10 +444,14 @@ io.on("connection", (socket) => {
 
     if (!deck || deck.length === 0) {
       console.log("[DEBUG] 덱이 비어 있음 — 라운드 종료 처리");
-      handleRoundEnd({
-        roomCode,
+      roundInProgress[roomCode] = false;
+
+      io.to(roomCode).emit("round-ended", {
         reason: "deck-empty",
+        allPlayerHands: playerHands[roomCode],
+        round: roundCount[roomCode],
       });
+
       return;
     }
   });
@@ -505,10 +532,24 @@ io.on("connection", (socket) => {
       );
       console.log("[DEBUG] 뻥 종료 (즉시) — 계산된 점수:", scoresThisRound);
 
-      handleRoundEnd({
-        roomCode,
+      for (const [nickname, score] of Object.entries(scoresThisRound)) {
+        scores[roomCode][nickname].push(score);
+      }
+
+      // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+
+      roundResults[roomCode] = {
+        scores: scoresThisRound,
+        hands,
         reason: "bbung-end",
-        triggerer: bbungEndTriggeredBy[roomCode],
+      };
+      roundInProgress[roomCode] = false;
+
+      io.to(roomCode).emit("round-ended", {
+        reason: "bbung-end",
+        allPlayerHands: playerHands[roomCode],
+        round: roundCount[roomCode],
+        triggerer: bbungEndTriggeredBy[roomCode], // ✅ 이 줄 추가!
       });
     }
     io.to(roomCode).emit("bbung-effect", {
@@ -534,9 +575,32 @@ io.on("connection", (socket) => {
       const last = submittedHistory[roomCode].at(-1);
       if (last) bbungEndTriggeredBy[roomCode] = last.nickname;
 
-      handleRoundEnd({
-        roomCode,
+      const hands = playerHands[roomCode];
+      const scoresThisRound = calculateScores(
+        "bbung-end",
+        null,
+        hands,
+        roomCode
+      );
+      console.log("[DEBUG] 뻥 종료 — 계산된 점수:", scoresThisRound);
+
+      for (const [nickname, score] of Object.entries(scoresThisRound)) {
+        scores[roomCode][nickname].push(score);
+      }
+
+      // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+
+      roundResults[roomCode] = {
+        scores: scoresThisRound,
+        hands,
         reason: "bbung-end",
+      };
+      roundInProgress[roomCode] = false;
+
+      io.to(roomCode).emit("round-ended", {
+        reason: "bbung-end",
+        allPlayerHands: playerHands[roomCode],
+        round: roundCount[roomCode],
         triggerer: bbungEndTriggeredBy[roomCode],
       });
     } else {
@@ -557,9 +621,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("hand-empty", ({ roomCode }) => {
-    handleRoundEnd({
-      roomCode,
+    roundInProgress[roomCode] = false;
+
+    io.to(roomCode).emit("round-ended", {
       reason: "hand-empty",
+      allPlayerHands: playerHands[roomCode],
+      round: roundCount[roomCode],
     });
   });
 
@@ -573,43 +640,43 @@ io.on("connection", (socket) => {
     });
   });
 
-  // // --- round-ended 핸들러 내부 ---
-  // socket.on("round-ended", ({ roomCode, reason }) => {
-  //   const hands = playerHands[roomCode];
-  //   const stopper =
-  //     reason === "stop" ? rooms[roomCode]?.[turnIndex[roomCode]] : undefined;
+  // --- round-ended 핸들러 내부 ---
+  socket.on("round-ended", ({ roomCode, reason }) => {
+    const hands = playerHands[roomCode];
+    const stopper =
+      reason === "stop" ? rooms[roomCode]?.[turnIndex[roomCode]] : undefined;
 
-  //   const roundScore = calculateScores(
-  //     reason,
-  //     stopper || null,
-  //     hands,
-  //     roomCode
-  //   );
+    const roundScore = calculateScores(
+      reason,
+      stopper || null,
+      hands,
+      roomCode
+    );
 
-  //   // ✅ 점수 누적
-  //   for (const [nickname, score] of Object.entries(roundScore)) {
-  //     scores[roomCode][nickname].push(score);
-  //   }
+    // ✅ 점수 누적
+    for (const [nickname, score] of Object.entries(roundScore)) {
+      scores[roomCode][nickname].push(score);
+    }
 
-  //   // ✅ 라운드 수 증가
-  //   roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+    // ✅ 라운드 수 증가
+    roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
-  //   // ✅ 결과 저장
-  //   roundResults[roomCode] = {
-  //     scores: roundScore,
-  //     hands,
-  //     reason,
-  //     stopper,
-  //   };
-  //   roundInProgress[roomCode] = false;
+    // ✅ 결과 저장
+    roundResults[roomCode] = {
+      scores: roundScore,
+      hands,
+      reason,
+      stopper,
+    };
+    roundInProgress[roomCode] = false;
 
-  //   io.to(roomCode).emit("round-ended", {
-  //     reason,
-  //     stopper,
-  //     allPlayerHands: playerHands[roomCode],
-  //     round: roundCount[roomCode],
-  //   });
-  // });
+    io.to(roomCode).emit("round-ended", {
+      reason,
+      stopper,
+      allPlayerHands: playerHands[roomCode],
+      round: roundCount[roomCode],
+    });
+  });
 
   socket.on("get-player-emojis", ({ roomCode }, callback) => {
     const map = emojiMap[roomCode] || {};
@@ -665,47 +732,6 @@ io.on("connection", (socket) => {
     console.log("클라이언트 연결 해제:", socket.id);
   });
 });
-
-function handleRoundEnd({
-  roomCode,
-  reason,
-  stopper = null,
-  triggerer = null,
-}: {
-  roomCode: string;
-  reason: string;
-  stopper?: string | null;
-  triggerer?: string | null;
-}) {
-  const hands = playerHands[roomCode];
-  const roundScore = calculateScores(reason, stopper, hands, roomCode);
-
-  // ✅ 점수 누적
-  for (const [nickname, score] of Object.entries(roundScore)) {
-    scores[roomCode][nickname].push(score);
-  }
-
-  // ✅ 라운드 수 증가
-  roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
-
-  // ✅ 결과 저장
-  roundResults[roomCode] = {
-    scores: roundScore,
-    hands,
-    reason,
-    stopper: stopper || undefined,
-  };
-
-  roundInProgress[roomCode] = false;
-
-  io.to(roomCode).emit("round-ended", {
-    reason,
-    stopper,
-    triggerer,
-    allPlayerHands: hands,
-    round: roundCount[roomCode],
-  });
-}
 
 const PORT = 4000;
 httpServer.listen(PORT, () => {

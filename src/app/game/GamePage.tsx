@@ -130,6 +130,14 @@ export default function GamePage() {
       setEmojiMap(emojis); // ✅ 서버에서 전달된 emojiMap 사용
     });
 
+    socket.emit(
+      "get-player-emojis",
+      { roomCode },
+      (map: { [nickname: string]: string }) => {
+        setEmojiMap(map);
+      }
+    );
+
     socket.emit("get-player-list", { roomCode }, (players: string[]) =>
       setPlayerList(players)
     );
@@ -570,7 +578,11 @@ export default function GamePage() {
         {playerList.map((player) => {
           const isCurrent = player === currentPlayer;
           const emoji =
-            player === nickname ? myEmoji : emojiMap[player] || "👤"; // ✅ 여기 수정
+            player === nickname
+              ? myEmoji
+              : emojiMap[player] !== undefined
+              ? emojiMap[player]
+              : "👤";
 
           return (
             <div

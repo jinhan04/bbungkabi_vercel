@@ -678,6 +678,11 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("get-player-emojis", ({ roomCode }, callback) => {
+    const map = emojiMap[roomCode] || {};
+    callback(map);
+  });
+
   const nextTurn = (roomCode: string) => {
     const players = rooms[roomCode];
     if (!players) return;

@@ -181,7 +181,7 @@ export default function GamePage() {
       setMustSubmit(false);
       setBbungPhase("idle");
       setCurrentPlayerDrawn(false);
-      setAnyoneDrewThisTurn(false);
+      // setAnyoneDrewThisTurn(false);
       setBbungCards([]);
 
       // ✅ 타이머 초기화 및 시작
@@ -248,8 +248,9 @@ export default function GamePage() {
 
     socket.on("player-drawn", ({ nickname }) => {
       if (nickname === currentPlayer) setCurrentPlayerDrawn(true);
-      setAnyoneDrewThisTurn(true);
+      // setAnyoneDrewThisTurn(true);
     });
+
     socket.on("bagaji-declared", ({ nickname, isBagaji }) => {
       const message = isBagaji ? "🚨 바가지! 🚨" : "❌ 노 바가지 ❌";
       setBagajiText(message);

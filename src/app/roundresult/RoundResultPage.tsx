@@ -357,7 +357,7 @@ function generateReasonDescription(
     )?.[0];
 
     if (triggerer && bbungFinisher) {
-      return `${triggerer}님이 ${bbungFinisher}님을 뻥하게 유도하여 +30점을 획득했습니다.`;
+      return `ㅋㅋ ${triggerer} 뻥이쥬~ (${bbungFinisher}님을 뻥하게 하여 +30점)`;
     }
 
     return `${triggerer}님이 ${bbungFinisher}님을 뻥하게 유도하여 +30점을 획득했습니다.`;

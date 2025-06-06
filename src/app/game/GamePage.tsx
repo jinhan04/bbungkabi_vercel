@@ -122,7 +122,8 @@ export default function GamePage() {
 
     socket.emit("join-room", { roomCode, nickname, emoji: myEmoji });
 
-    console.log("🙋 내 닉네임:", nickname);
+    console.log("🙋내 닉네임:", nickname);
+    console.log("내 이모지:", myEmoji);
 
     socket.removeAllListeners();
 

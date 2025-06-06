@@ -187,28 +187,22 @@ export default function GamePage() {
         setTimer(10);
         if (timerRef.current) clearInterval(timerRef.current);
 
-        const socket = getSocket();
-
         timerRef.current = setInterval(() => {
           setTimer((prev) => {
             if (prev === null || prev <= 1) {
               clearInterval(timerRef.current!);
-
-              // 💡 클로저 문제 방지: 최신 nickname과 currentPlayer 재확인
-              if (
-                uhbbungEnabled &&
-                nickname === currentPlayer && // 닉네임 아직도 턴 주인인가?
-                socket.connected
-              ) {
-                socket.emit("uhbbung", { roomCode, nickname });
+              if (uhbbungEnabled && currentPlayer === nickname) {
+                getSocket().emit("uhbbung", { roomCode, nickname });
                 addLog(`${nickname} 님이 어벙으로 +10점`);
+                return 10; // 어벙 점수 부여 후 10초 재시작
               }
 
-              return 10; // 점수 부여 후 타이머 재시작
+              return null;
             }
 
             const next = prev - 1;
 
+            // ✅ 5초 이하일 때만 사운드 재생
             if (next <= 5) {
               playSound("tick.mp3");
             }

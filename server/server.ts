@@ -306,34 +306,19 @@ io.on("connection", (socket) => {
 
   socket.on("uhbbung", ({ roomCode, nickname }) => {
     if (!roomSettings[roomCode]?.uhbbungEnabled) return;
-    if (!roundInProgress[roomCode]) {
-      logDebug(`[BLOCKED] 어벙 요청 무시: 라운드 종료 상태 — ${nickname}`);
-      return;
-    }
+    if (!scores[roomCode]) return;
 
-    const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
-    if (nickname !== currentPlayer) {
-      logDebug(`[BLOCKED] 어벙 요청 무시: 턴 아님 — ${nickname}`);
-      return;
-    }
-
-    if (
-      !scores[roomCode]?.[nickname] ||
-      scores[roomCode][nickname].length === 0
-    ) {
-      logDebug(`[BLOCKED] 어벙 요청 무시: 점수 없음 — ${nickname}`);
-      return;
-    }
-
+    // 이전 점수 가져오기
     const prev = scores[roomCode][nickname];
-    const current = prev[prev.length - 1] ?? 0;
+    if (!prev) return;
+
+    const current = prev[prev.length - 1] || 0;
     const newScore = current + 10;
     scores[roomCode][nickname][prev.length - 1] = newScore;
 
-    logDebug(
-      `[DEBUG] ${nickname} 어벙 발생 → +10점 (${current} → ${newScore})`
-    );
+    logDebug(`어벙 발생 — ${nickname} 점수 +10 (${current} → ${newScore})`);
 
+    // 클라이언트 실시간 점수 갱신 원한다면 emit 가능
     io.to(roomCode).emit("uhbbung-update", {
       nickname,
       newScore,

@@ -129,7 +129,12 @@ export default function GamePage() {
 
     socket.on("update-players", ({ players, emojis }) => {
       setPlayerList(players);
-      setEmojiMap(emojis); // ✅ 서버에서 전달된 emojiMap 사용
+      const fixedEmojiMap = {
+        ...emojis,
+        [nickname]: emojis[nickname] || myEmoji,
+      };
+
+      setEmojiMap(fixedEmojiMap);
     });
 
     socket.emit(

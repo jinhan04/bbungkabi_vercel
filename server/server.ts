@@ -306,22 +306,33 @@ io.on("connection", (socket) => {
 
   socket.on("uhbbung", ({ roomCode, nickname }) => {
     if (!roomSettings[roomCode]?.uhbbungEnabled) return;
-    if (!roundInProgress[roomCode]) return; // ✅ 라운드 중일 때만
+    if (!roundInProgress[roomCode]) {
+      logDebug(`[BLOCKED] 어벙 요청 무시: 라운드 종료 상태 — ${nickname}`);
+      return;
+    }
 
     const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
     if (nickname !== currentPlayer) {
-      logDebug(`🚫 어벙 거부: ${nickname}은 현재 턴 아님`);
+      logDebug(`[BLOCKED] 어벙 요청 무시: 턴 아님 — ${nickname}`);
+      return;
+    }
+
+    if (
+      !scores[roomCode]?.[nickname] ||
+      scores[roomCode][nickname].length === 0
+    ) {
+      logDebug(`[BLOCKED] 어벙 요청 무시: 점수 없음 — ${nickname}`);
       return;
     }
 
     const prev = scores[roomCode][nickname];
-    if (!prev || prev.length === 0) return;
-
     const current = prev[prev.length - 1] ?? 0;
     const newScore = current + 10;
     scores[roomCode][nickname][prev.length - 1] = newScore;
 
-    logDebug(`어벙 발생 — ${nickname} 점수 +10 (${current} → ${newScore})`);
+    logDebug(
+      `[DEBUG] ${nickname} 어벙 발생 → +10점 (${current} → ${newScore})`
+    );
 
     io.to(roomCode).emit("uhbbung-update", {
       nickname,

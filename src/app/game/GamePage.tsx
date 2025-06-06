@@ -66,7 +66,6 @@ export default function GamePage() {
   );
   const [jokboAvailable, setJokboAvailable] = useState(false);
   const [recentDrawnCard, setRecentDrawnCard] = useState<string | null>(null);
-  const [setAnyoneDrewThisTurn] = useState(false);
   const [chatMessages, setChatMessages] = useState<
     { nickname: string; message: string }[]
   >([]);
@@ -181,7 +180,6 @@ export default function GamePage() {
       setMustSubmit(false);
       setBbungPhase("idle");
       setCurrentPlayerDrawn(false);
-      // setAnyoneDrewThisTurn(false);
       setBbungCards([]);
 
       // ✅ 타이머 초기화 및 시작
@@ -248,9 +246,7 @@ export default function GamePage() {
 
     socket.on("player-drawn", ({ nickname }) => {
       if (nickname === currentPlayer) setCurrentPlayerDrawn(true);
-      // setAnyoneDrewThisTurn(true);
     });
-
     socket.on("bagaji-declared", ({ nickname, isBagaji }) => {
       const message = isBagaji ? "🚨 바가지! 🚨" : "❌ 노 바가지 ❌";
       setBagajiText(message);
@@ -478,8 +474,8 @@ export default function GamePage() {
   const canShowBbungButton = () => {
     if (
       bbungPhase !== "idle" ||
-      currentPlayer !== nickname || // 내 턴이 아닐 경우
-      currentPlayerDrawn || // 내가 드로우 했을 경우
+      currentPlayer !== nickname ||
+      currentPlayerDrawn ||
       bbungCards.length !== 2
     )
       return false;

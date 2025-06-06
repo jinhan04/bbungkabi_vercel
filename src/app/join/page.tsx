@@ -19,9 +19,12 @@ export default function JoinPage() {
       alert("닉네임을 입력하세요");
       return;
     }
-    setGlobalEmoji(emoji); // ✅ AuthContext에 반영
+
+    setGlobalEmoji(emoji); // AuthContext에도 저장
     router.push(
-      `/lobby?code=${roomCode}&nickname=${encodeURIComponent(nickname)}`
+      `/lobby?code=${roomCode}&nickname=${encodeURIComponent(
+        nickname
+      )}&emoji=${encodeURIComponent(emoji)}`
     );
   };
 

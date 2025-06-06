@@ -22,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [emoji, setEmoji] = useState("🐶"); // 기본 이모지
+  const emoji = emojiParam || defaultEmoji || "🐶";
 
   return (
     <AuthContext.Provider value={{ user, setUser, emoji, setEmoji }}>

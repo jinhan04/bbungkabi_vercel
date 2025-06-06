@@ -66,7 +66,7 @@ export default function GamePage() {
   );
   const [jokboAvailable, setJokboAvailable] = useState(false);
   const [recentDrawnCard, setRecentDrawnCard] = useState<string | null>(null);
-  const [anyoneDrewThisTurn, setAnyoneDrewThisTurn] = useState(false);
+  const [setAnyoneDrewThisTurn] = useState(false);
   const [chatMessages, setChatMessages] = useState<
     { nickname: string; message: string }[]
   >([]);

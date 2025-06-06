@@ -237,6 +237,8 @@ export default function GamePage() {
         return newHand;
       });
       setMustSubmit(true);
+      setCurrentPlayerDrawn(true); // ✅ 이 줄을 추가!
+
       setRecentDrawnCard(card);
       setTimeout(() => {
         setRecentDrawnCard(null);

@@ -115,7 +115,7 @@ io.on("connection", (socket) => {
     }
 
     if (!emojiMap[roomCode]) emojiMap[roomCode] = {};
-    emojiMap[roomCode][nickname] = emoji || "🐶";
+    // emojiMap[roomCode][nickname] = emoji || "🐶";
     io.to(roomCode).emit("update-emojis", emojiMap[roomCode]);
 
     if (rooms[roomCode].includes(nickname)) {

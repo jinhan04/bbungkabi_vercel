@@ -477,9 +477,9 @@ export default function GamePage() {
   const canShowBbungButton = () => {
     if (
       bbungPhase !== "idle" ||
-      currentPlayerDrawn ||
-      bbungCards.length !== 2 ||
-      anyoneDrewThisTurn
+      currentPlayer !== nickname || // 내 턴이 아닐 경우
+      currentPlayerDrawn || // 내가 드로우 했을 경우
+      bbungCards.length !== 2
     )
       return false;
     const latest = submittedCards.at(-1);

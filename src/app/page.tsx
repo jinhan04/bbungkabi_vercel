@@ -134,7 +134,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <h1 className="text-4xl font-bold mb-8 text-black">뻥카비 (ver 3.1)</h1>
+      <h1 className="text-4xl font-bold mb-8 text-black">뻥카비</h1>
 
       <button
         onClick={() => setShowEmojiPicker(true)}
@@ -246,7 +246,7 @@ export default function HomePage() {
       {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
 
       <div className="mt-2 text-sm text-gray-500 text-center">
-        © 임진한 (국민대 정보보안암호수학과 23)
+        © 임진한 (국민대 정보보안암호수학과 23) ver.3.1.8
       </div>
 
       <div className="absolute bottom-0 left-0 w-full flex justify-center bg-white py-2">

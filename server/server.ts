@@ -162,6 +162,12 @@ io.on("connection", (socket) => {
       logDebug(`doubleFinal 설정: ${doubleFinal}`);
       logDebug(`doubleFinalRoundMap: ${doubleFinalRoundMap[roomCode]}`);
       logDebug(`uhbbung 설정: ${uhbbung}`);
+      logDebug(`현재 방의 플레이어 이모지 목록 (${roomCode}):`);
+      for (const [nickname, emoji] of Object.entries(
+        emojiMap[roomCode] || {}
+      )) {
+        logDebug(`- ${nickname}: ${emoji}`);
+      }
 
       if (!players || players.length < 1 || players.length > 6) {
         socket.emit("join-error", `최대 6명 이하일 때만 시작할 수 있습니다.`);

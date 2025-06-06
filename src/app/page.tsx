@@ -102,10 +102,9 @@ export default function HomePage() {
         </a>
       </div>
 
-      {/* ✅ 패치 노트 팝업 */}
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
-          <h2 className="text-xl font-bold mb-2">📌 패치노트 ver 3.4</h2>
+          <h2 className="text-xl font-bold mb-2">📌 업데이트 사항 ver 3.4</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
               <strong>1라운드 오류 해결!!!</strong>
@@ -117,11 +116,11 @@ export default function HomePage() {
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>5장 바가지에서 노바가지가 되면 노바가지 알림 없음</li>
+            <li>5장 바가지에서 노바가지가 되면 알림 없음</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>타이머 어벙 추가 로직</li>
+            <li>타이머 어벙 추가 로직 개발중...</li>
             <li>최종 결과 시 효과음 추가</li>
             <li>개인 프로필 생성 및 DB 연동 (승률, 코인 등)</li>
             <li>카카오 로그인 연동</li>
@@ -194,7 +193,6 @@ export default function HomePage() {
 
       {showMaxInput && (
         <div className="flex flex-col items-center space-y-4">
-          {/* 이 전체 블록에서 인원 입력 부분 삭제 가능 */}
           <label className="flex items-center space-x-2 text-black">
             <input
               type="checkbox"

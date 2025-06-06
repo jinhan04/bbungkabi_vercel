@@ -330,17 +330,14 @@ function generateReasonDescription(
     for (const [name, h] of Object.entries(allHands)) {
       if (Array.isArray(h) && h.length === 6) {
         const values = h.map(cardToValue);
-        if (isStraight(values))
-          return `${name}님이 스트레이트 족보를 완성하여 라운드가 종료되었습니다.`;
+        if (isStraight(values)) return `${name}님이 스트레이트 족보를 완성!`;
         if (isPairPairPair(values))
-          return `${name}님이 페어페어페어 족보를 완성하여 라운드가 종료되었습니다.`;
+          return `${name}님이 페어페어페어 족보를 완성!`;
         if (isTripleTriple(values))
-          return `${name}님이 트리플트리플 족보를 완성하여 라운드가 종료되었습니다.`;
+          return `${name}님이 트리플트리플 족보를 완성!`;
         const total = sum(values);
-        if (total <= 14)
-          return `${name}님이 로우 족보(총합 ≤ 14)를 완성하여 라운드가 종료되었습니다.`;
-        if (total >= 65)
-          return `${name}님이 하이 족보(총합 ≥ 65)를 완성하여 라운드가 종료되었습니다.`;
+        if (total <= 14) return `${name}님이 로우 족보(총합 ≤ 14)를 완성!`;
+        if (total >= 65) return `${name}님이 하이 족보(총합 ≥ 65)를 완성!`;
       }
     }
     return `${nickname}님이 족보를 완성하여 라운드가 종료되었습니다.`;
@@ -360,7 +357,7 @@ function generateReasonDescription(
       return `ㅋㅋ ${triggerer} 뻥이쥬~ (${bbungFinisher}님을 뻥하게 하여 +30점)`;
     }
 
-    return `${triggerer}님이 ${bbungFinisher}님을 뻥하게 유도하여 +30점을 획득했습니다.`;
+    return `ㅋㅋ ${triggerer} 뻥이쥬~ (${bbungFinisher}님을 뻥하게 하여 +30점)`;
   }
 
   if (reason === "hand-empty") {
@@ -368,7 +365,7 @@ function generateReasonDescription(
   }
 
   if (reason === "deck-empty") {
-    return `덱에 남은 카드가 없어 라운드가 종료되었습니다.`;
+    return `남은 카드가 없음!`;
   }
 
   return `라운드 종료 사유: ${reason}`;

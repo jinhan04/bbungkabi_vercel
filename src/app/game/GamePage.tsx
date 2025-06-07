@@ -533,9 +533,9 @@ export default function GamePage() {
       <div className="w-full bg-white text-black flex flex-wrap sm:flex-nowrap justify-between items-center px-4 py-2 fixed top-0 left-0 z-50 shadow-md gap-y-2">
         {/* 왼쪽: 라운드, 닉네임, 점수 */}
         <div className="flex flex-wrap sm:flex-nowrap items-center space-x-2 text-xs sm:text-sm md:text-base font-semibold">
-          <span>라운드: {round} / 5</span>
+          <span className="text-blue-600">라운드: {round} / 5</span>
           <span>{nickname}님</span>
-          <span>내 점수: {myScore}</span>
+          <span className="text-orange-500">내 점수: {myScore}</span>
           <button
             onClick={() => setShowScoreModal(true)}
             className="px-2 py-1 bg-gray-200 text-gray-800 text-xs sm:text-sm rounded hover:bg-gray-300"

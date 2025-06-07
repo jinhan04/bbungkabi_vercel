@@ -2,13 +2,6 @@
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 
-<Head>
-  <meta
-    name="naver-site-verification"
-    content="040cad5c44fd15048edc3f3365dc4ee94f391aa7"
-  />
-</Head>;
-
 export default function RootLayout({
   children,
 }: {

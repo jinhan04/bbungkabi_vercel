@@ -53,7 +53,7 @@ export default function HomePage() {
     if (newCount >= 10) {
       setShowEasterEgg(true);
       setLogoClickCount(0);
-      setTimeout(() => setShowEasterEgg(false), 2000);
+      setTimeout(() => setShowEasterEgg(false), 1000);
     } else {
       logoClickTimeoutRef.current = setTimeout(
         () => setLogoClickCount(0),

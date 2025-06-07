@@ -42,23 +42,27 @@ export default function HomePage() {
     setIsJoiningRoom(false);
   };
 
+  const logoClickCountRef = useRef(0);
+
   const handleLogoClick = () => {
-    if (logoClickTimeoutRef.current) {
-      clearTimeout(logoClickTimeoutRef.current);
+    if (logoClickCountRef.current === 0) {
+      // ⏱ 최초 클릭 시 타이머 시작
+      logoClickTimeoutRef.current = setTimeout(() => {
+        logoClickCountRef.current = 0; // 3초 안에 10번 못 누르면 초기화
+      }, 3000);
     }
 
-    const newCount = logoClickCount + 1;
-    setLogoClickCount(newCount);
+    logoClickCountRef.current += 1;
 
-    if (newCount >= 10) {
+    if (logoClickCountRef.current >= 10) {
       setShowEasterEgg(true);
-      setLogoClickCount(0);
+      logoClickCountRef.current = 0;
+      if (logoClickTimeoutRef.current) {
+        clearTimeout(logoClickTimeoutRef.current); // 타이머 정리
+      }
+
+      // 3초 후 이스터에그 닫기
       setTimeout(() => setShowEasterEgg(false), 3000);
-    } else {
-      logoClickTimeoutRef.current = setTimeout(
-        () => setLogoClickCount(0),
-        1000
-      );
     }
   };
 

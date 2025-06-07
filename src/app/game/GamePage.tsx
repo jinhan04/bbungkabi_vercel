@@ -226,6 +226,7 @@ export default function GamePage() {
         return newHand;
       });
       setMustSubmit(true);
+      setCurrentPlayerDrawn(true);
       setRecentDrawnCard(card);
       setTimeout(() => {
         setRecentDrawnCard(null);

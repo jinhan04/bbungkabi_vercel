@@ -39,4 +39,8 @@ export const metadata = {
       },
     ],
   },
+  // ✅ 여기에 추가!
+  other: {
+    "naver-site-verification": "040cad5c44fd15048edc3f3365dc4ee94f391aa7",
+  },
 };

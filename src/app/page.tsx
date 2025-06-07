@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import GameRulesModal from "@/components/GameRulesModal";
 import { useAuth } from "@/context/AuthContext";
@@ -17,6 +17,9 @@ export default function HomePage() {
   const { emoji, setEmoji } = useAuth();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [uhbbungEnabled, setUhbbungEnabled] = useState(false);
+  const [logoClickCount, setLogoClickCount] = useState(0);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
+  const logoClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const router = useRouter();
   const handleClose = () => setShowPatchNote(false);
@@ -37,6 +40,27 @@ export default function HomePage() {
     }
     setShowMaxInput(true);
     setIsJoiningRoom(false);
+  };
+
+  const handleLogoClick = () => {
+    if (logoClickTimeoutRef.current) {
+      clearTimeout(logoClickTimeoutRef.current);
+    }
+
+    const newCount = logoClickCount + 1;
+    setLogoClickCount(newCount);
+
+    if (newCount >= 10) {
+      setShowEasterEgg(true);
+      setLogoClickCount(0);
+      // 3초 후 이스터에그 닫기
+      setTimeout(() => setShowEasterEgg(false), 3000);
+    } else {
+      logoClickTimeoutRef.current = setTimeout(
+        () => setLogoClickCount(0),
+        3000
+      );
+    }
   };
 
   const confirmCreateRoom = () => {
@@ -135,10 +159,14 @@ export default function HomePage() {
       )}
 
       <div className="text-center mb-8">
-        <div className="text-6xl font-extrabold text-black transition-all duration-300 hover:bg-gradient-to-r hover:from-red-500 hover:to-yellow-400 hover:text-transparent hover:bg-clip-text">
+        <div
+          onClick={handleLogoClick}
+          className="text-6xl font-extrabold text-black transition-all duration-300 hover:bg-gradient-to-r hover:from-red-500 hover:to-yellow-400 hover:text-transparent hover:bg-clip-text cursor-pointer"
+        >
           뻥카비
         </div>
-        <p className="text-sm mt-1 text-gray-600 italic">
+
+        <p className="text-sm mt-1 text-gray-600 it alic">
           뻥의 미학, 전략의 승부
         </p>
       </div>
@@ -170,6 +198,11 @@ export default function HomePage() {
               )
             )}
           </div>
+        </div>
+      )}
+      {showEasterEgg && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-200 border border-yellow-400 text-yellow-900 px-6 py-3 rounded-xl shadow-xl z-50 animate-bounce text-center text-lg font-bold">
+          🎉 진한이 숨겨둔 이스터에그, 당신이 찾았다!
         </div>
       )}
 

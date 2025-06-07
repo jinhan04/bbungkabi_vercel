@@ -134,7 +134,14 @@ export default function HomePage() {
         </div>
       )}
 
-      <h1 className="text-4xl font-bold mb-8 text-black">뻥카비</h1>
+      <div className="text-center">
+        <div className="text-6xl font-extrabold bg-gradient-to-r from-red-500 to-yellow-400 text-transparent bg-clip-text hover:animate-pulse">
+          뻥카비
+        </div>
+        <p className="text-sm mt-1 text-gray-600 italic">
+          뻥의 미학, 전략의 승부
+        </p>
+      </div>
 
       <button
         onClick={() => setShowEmojiPicker(true)}

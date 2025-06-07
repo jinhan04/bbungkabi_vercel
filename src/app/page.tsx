@@ -168,7 +168,7 @@ export default function HomePage() {
         </div>
 
         <p className="text-sm mt-1 text-gray-600 it alic">
-          뻥의 미학, 전략의 승부
+          이제 언제 어디든, 뻥카비
         </p>
       </div>
 
@@ -205,7 +205,7 @@ export default function HomePage() {
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-200 border border-yellow-400 text-yellow-900 px-6 py-3 rounded-xl shadow-xl z-50 animate-bounce text-center text-lg font-bold">
           🎉 진한이 숨겨둔 이스터에그, 당신이 찾았군..
           <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;화면 캡쳐해서 보내면 기프티콘 드림
+          &nbsp;&nbsp;&nbsp;&nbsp;화면 캡쳐해서 보내면 기프티콘 드립니다.
         </div>
       )}
 

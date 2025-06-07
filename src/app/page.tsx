@@ -131,10 +131,11 @@ export default function HomePage() {
           <h2 className="text-xl font-bold mb-2">📌 업데이트 사항 ver 3.4</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
-              <strong>1라운드 오류 해결!!!</strong>
+              <strong>
+                뻥카비에 숨겨진 이스터 에그를 찾으면 기프티콘을 드립니다~!
+              </strong>
             </li>
             <li>플레이어 이모지 추가</li>
-            <li>게임 실시간 로그 추가</li>
             <li>타이머 추가</li>
             <li>마지막 라운드 점수 2배 적용 가능</li>
           </ul>
@@ -202,7 +203,8 @@ export default function HomePage() {
       )}
       {showEasterEgg && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-200 border border-yellow-400 text-yellow-900 px-6 py-3 rounded-xl shadow-xl z-50 animate-bounce text-center text-lg font-bold">
-          🎉 진한이 숨겨둔 이스터에그, 당신이 찾았다!
+          🎉 진한이 숨겨둔 이스터에그, 당신이 찾았군..화면 캡쳐해서 보내면
+          기프티콘 드림
         </div>
       )}
 

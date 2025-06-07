@@ -43,7 +43,7 @@ export default function GameRulesModal({ onClose }: { onClose: () => void }) {
 - 이후 1장은 자유
 
 [추가 효과]
-- 뻥을 유도한 직전 제출자 +50점 (유효한 뻥 성공 시)
+- 뻥을 유도한 직전 제출자 +30점 (유효한 뻥 성공 시)
 - 뻥 중 손패가 0장이 되면 라운드 종료
 
 2. 바가지 시스템
@@ -69,7 +69,7 @@ export default function GameRulesModal({ onClose }: { onClose: () => void }) {
 
 [효과]
 - 본인보다 점수가 같거나 낮은 플레이어가 있으면:
-  본인 +50점, 그 플레이어들은 0점
+  본인 +30점, 그 플레이어들은 0점
   나머지는 손패 기준 점수 유지
 
 5. 점수 계산

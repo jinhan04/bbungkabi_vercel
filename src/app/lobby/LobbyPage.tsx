@@ -187,10 +187,12 @@ export default function LobbyPage() {
             <h2 className="text-xl font-bold mb-4 text-black">
               QR 코드로 초대하기
             </h2>
-            <QRCodeCanvas
-              value={`https://bbungkabe.com/join?code=${roomCode}`}
-              size={200}
-            />
+            <div className="flex justify-center">
+              <QRCodeCanvas
+                value={`https://bbungkabe.com/join?code=${roomCode}`}
+                size={200}
+              />
+            </div>
             <p className="text-sm text-gray-600 mt-2 break-all">
               https://bbungkabe.com/lobby?code={roomCode}
             </p>

@@ -17,7 +17,6 @@ export default function HomePage() {
   const { emoji, setEmoji } = useAuth();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [uhbbungEnabled, setUhbbungEnabled] = useState(false);
-  const [logoClickCount, setLogoClickCount] = useState(0);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   const logoClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 

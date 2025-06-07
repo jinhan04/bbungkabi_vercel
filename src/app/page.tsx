@@ -53,8 +53,7 @@ export default function HomePage() {
     if (newCount >= 10) {
       setShowEasterEgg(true);
       setLogoClickCount(0);
-      // 3초 후 이스터에그 닫기
-      setTimeout(() => setShowEasterEgg(false), 3000);
+      setTimeout(() => setShowEasterEgg(false), 2000);
     } else {
       logoClickTimeoutRef.current = setTimeout(
         () => setLogoClickCount(0),
@@ -133,6 +132,7 @@ export default function HomePage() {
             <li>
               <strong>
                 뻥카비에 숨겨진 이스터 에그를 찾으면 기프티콘을 드립니다~!
+                (현재까지 찾은 사람: 1명)
               </strong>
             </li>
             <li>플레이어 이모지 추가</li>

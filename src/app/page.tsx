@@ -134,12 +134,8 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="text-center">
-        <div
-          className="text-6xl font-extrabold bg-gradient-to-r -from-gray-500 to-black-400
-+from-gray-500 to-black
- text-transparent bg-clip-text animate-pulse"
-        >
+      <div className="text-center mb-8">
+        <div className="text-6xl font-extrabold text-black transition-all duration-300 hover:bg-gradient-to-r hover:from-red-500 hover:to-yellow-400 hover:text-transparent hover:bg-clip-text">
           뻥카비
         </div>
         <p className="text-sm mt-1 text-gray-600 italic">

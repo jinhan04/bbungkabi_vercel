@@ -34,7 +34,6 @@ export default function GamePage() {
   const nicknameRaw = searchParams.get("nickname") || "";
   const nickname = decodeURIComponent(nicknameRaw);
   const [playerList, setPlayerList] = useState<string[]>([]);
-  const uhbbungEnabled = searchParams.get("uhbbung") === "true";
 
   const [bagajiText, setBagajiText] = useState("");
   const [showBagaji, setShowBagaji] = useState(false);
@@ -66,6 +65,7 @@ export default function GamePage() {
   );
   const [jokboAvailable, setJokboAvailable] = useState(false);
   const [recentDrawnCard, setRecentDrawnCard] = useState<string | null>(null);
+  const [anyoneDrewThisTurn, setAnyoneDrewThisTurn] = useState(false);
   const [chatMessages, setChatMessages] = useState<
     { nickname: string; message: string }[]
   >([]);
@@ -121,19 +121,13 @@ export default function GamePage() {
 
     socket.emit("join-room", { roomCode, nickname, emoji: myEmoji });
 
-    console.log("🙋내 닉네임:", nickname);
-    console.log("내 이모지:", myEmoji);
+    console.log("🙋 내 닉네임:", nickname);
 
     socket.removeAllListeners();
 
     socket.on("update-players", ({ players, emojis }) => {
       setPlayerList(players);
-      const fixedEmojiMap = {
-        ...emojis,
-        [nickname]: emojis[nickname] || myEmoji,
-      };
-
-      setEmojiMap(fixedEmojiMap);
+      setEmojiMap(emojis); // ✅ 서버에서 전달된 emojiMap 사용
     });
 
     socket.emit(
@@ -180,6 +174,7 @@ export default function GamePage() {
       setMustSubmit(false);
       setBbungPhase("idle");
       setCurrentPlayerDrawn(false);
+      setAnyoneDrewThisTurn(false);
       setBbungCards([]);
 
       // ✅ 타이머 초기화 및 시작
@@ -191,12 +186,6 @@ export default function GamePage() {
           setTimer((prev) => {
             if (prev === null || prev <= 1) {
               clearInterval(timerRef.current!);
-              if (uhbbungEnabled && currentPlayer === nickname) {
-                getSocket().emit("uhbbung", { roomCode, nickname });
-                addLog(`${nickname} 님이 어벙으로 +10점`);
-                return 10; // 어벙 점수 부여 후 10초 재시작
-              }
-
               return null;
             }
 
@@ -237,8 +226,6 @@ export default function GamePage() {
         return newHand;
       });
       setMustSubmit(true);
-      setCurrentPlayerDrawn(true); // ✅ 이 줄을 추가!
-
       setRecentDrawnCard(card);
       setTimeout(() => {
         setRecentDrawnCard(null);
@@ -248,6 +235,7 @@ export default function GamePage() {
 
     socket.on("player-drawn", ({ nickname }) => {
       if (nickname === currentPlayer) setCurrentPlayerDrawn(true);
+      setAnyoneDrewThisTurn(true);
     });
     socket.on("bagaji-declared", ({ nickname, isBagaji }) => {
       const message = isBagaji ? "🚨 바가지! 🚨" : "❌ 노 바가지 ❌";
@@ -330,19 +318,12 @@ export default function GamePage() {
     const scores = sessionStorage.getItem("totalScores");
     if (scores) {
       const parsed = JSON.parse(scores);
-
-      if (round === 1) {
-        setTotalScores({});
-        setMyScore(0);
-        sessionStorage.removeItem("totalScores");
-      } else {
-        setTotalScores(parsed);
-        if (parsed[nickname] !== undefined) {
-          setMyScore(parsed[nickname]);
-        }
+      setTotalScores(parsed);
+      if (parsed[nickname] !== undefined) {
+        setMyScore(parsed[nickname]);
       }
     }
-  }, [nickname, round]);
+  }, [nickname]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -476,9 +457,9 @@ export default function GamePage() {
   const canShowBbungButton = () => {
     if (
       bbungPhase !== "idle" ||
-      currentPlayer !== nickname ||
       currentPlayerDrawn ||
-      bbungCards.length !== 2
+      bbungCards.length !== 2 ||
+      anyoneDrewThisTurn
     )
       return false;
     const latest = submittedCards.at(-1);

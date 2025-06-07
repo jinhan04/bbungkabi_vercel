@@ -57,7 +57,7 @@ export default function HomePage() {
     } else {
       logoClickTimeoutRef.current = setTimeout(
         () => setLogoClickCount(0),
-        2000
+        1000
       );
     }
   };

@@ -135,7 +135,11 @@ export default function HomePage() {
       )}
 
       <div className="text-center">
-        <div className="text-6xl font-extrabold bg-gradient-to-r from-red-500 to-yellow-400 text-transparent bg-clip-text hover:animate-pulse">
+        <div
+          className="text-6xl font-extrabold bg-gradient-to-r -from-gray-500 to-black-400
++from-gray-500 to-black
+ text-transparent bg-clip-text animate-pulse"
+        >
           뻥카비
         </div>
         <p className="text-sm mt-1 text-gray-600 italic">

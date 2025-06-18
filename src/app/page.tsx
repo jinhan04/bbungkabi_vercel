@@ -139,7 +139,7 @@ export default function HomePage() {
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
               <strong>
-                뻥카비에 숨겨진 이스터 에그를 찾으면 기프티콘을 드립니다~!
+                뻥카비에 숨겨진 이스터에그(2개)를 찾으면 기프티콘을 드립니다~!
                 (현재까지 찾은 사람: 1명)
               </strong>
             </li>

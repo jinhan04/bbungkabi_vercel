@@ -135,7 +135,7 @@ export default function HomePage() {
 
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
-          <h2 className="text-xl font-bold mb-2">📌 업데이트 사항 ver 3.4</h2>
+          <h2 className="text-xl font-bold mb-2">📌 업데이트 사항 ver 4.0</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
               <strong>
@@ -297,7 +297,7 @@ export default function HomePage() {
       {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
 
       <div className="mt-2 text-sm text-gray-500 text-center">
-        © 임진한 (국민대 정보보안암호수학과 23) ver.3.1.8
+        © 임진한 (국민대 정보보안암호수학과 23) ver.3.2.2
       </div>
 
       <div className="absolute bottom-0 left-0 w-full flex justify-center bg-white py-2">

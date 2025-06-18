@@ -139,11 +139,13 @@ export default function HomePage() {
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
               <strong>
-                뻥카비에 숨겨진 이스터에그(2개)를 찾으면 기프티콘을 드립니다~!
-                (현재까지 찾은 사람: 1명)
+                뻥카비에 숨겨진 이스터에그를 찾으면 기프티콘을 드립니다~!
               </strong>
             </li>
-            <li>플레이어 이모지 추가</li>
+            <li>이스터에그 1: 난이도 ★★★☆☆(찾은 사람: 1명)</li>
+            <li>
+              이스터에그 2: 난이도 ★★★★★★★★★★(찾은 사람: 없음, 2027년 공개 예정)
+            </li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">

@@ -66,6 +66,11 @@ export default function HomePage() {
   };
 
   const confirmCreateRoom = () => {
+    if (nickname.trim() === "임진한") {
+      router.push("/dev-easteregg");
+      return;
+    }
+
     if (maxPlayers < 1 || maxPlayers > 6) {
       alert("최대 인원은 1명 이상 6명 이하만 가능합니다.");
       return;
@@ -139,8 +144,6 @@ export default function HomePage() {
               </strong>
             </li>
             <li>플레이어 이모지 추가</li>
-            <li>타이머 추가</li>
-            <li>마지막 라운드 점수 2배 적용 가능</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">

@@ -521,7 +521,7 @@ export default function GamePage() {
         transition={{ duration: 0.8 }}
         className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-extrabold text-red-600 z-50"
       >
-        뻥!
+        BBUNG!
       </motion.div>
     );
   }

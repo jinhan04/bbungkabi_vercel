@@ -19,7 +19,7 @@ export default function DevEasterEggPage() {
           언제 어디서든 뻥카비를 퍼뜨려 주세요.
           <br />저 대신… 자유를 즐겨 주세요.
         </p>
-        <p className="text-sm text-gray-400 mt-6">- 훈련병 임진한 씀</p>
+        <p className="text-sm text-gray-400 mt-6">- 일병 임진한 씀</p>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
-// import { playSound } from "@/lib/sound";
+import { playSound } from "@/lib/sound";
 
 type CombinedPlayer = {
   nickname: string;
@@ -13,7 +13,6 @@ type CombinedPlayer = {
   difficulty?: "easy" | "normal" | "hard";
 };
 
-// 1) 위쪽 타입 선언부 근처에 유니온 타입 별도로 선언
 type BotDifficulty = "easy" | "normal" | "hard";
 
 export default function LobbyPage() {
@@ -28,7 +27,7 @@ export default function LobbyPage() {
   const nickname = searchParams.get("nickname") || "";
   const doubleFinal = searchParams.get("doubleFinal") === "true";
 
-  // 기존(사람 전용) 목록 — 서버의 update-players 이벤트 용
+  // 기존(사람 전용) 목록 — 서버의 update-players 이벤트 용 (방장 판단용으로 유지)
   const [players, setPlayers] = useState<string[]>([]);
   // 통합(사람+봇) 목록 — 서버의 player-list 이벤트 용
   const [combinedPlayers, setCombinedPlayers] = useState<CombinedPlayer[]>([]);
@@ -44,18 +43,17 @@ export default function LobbyPage() {
 
   const [emojiMap, setEmojiMap] = useState<{ [nickname: string]: string }>({});
 
-  // 방장 여부: 기존 로직(사람 목록의 1번이 본인)
-  const isHost = useMemo(() => {
-    return players.length > 0 && players[0] === nickname;
-  }, [players, nickname]);
+  // 방장: 사람 목록의 첫 번째가 본인
+  const isHost = useMemo(
+    () => players.length > 0 && players[0] === nickname,
+    [players, nickname]
+  );
 
-  // 2) 상태도 해당 타입으로 지정
+  // 로비에서 선택할 봇 난이도
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>("easy");
 
-  // 3) onChange 핸들러에 타입 부여(권장)
   const handleDifficultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const v = e.target.value as BotDifficulty; // options의 value가 정확히 셋 중 하나이므로 안전
-    setBotDifficulty(v);
+    setBotDifficulty(e.target.value as BotDifficulty);
   };
 
   useEffect(() => {
@@ -76,7 +74,7 @@ export default function LobbyPage() {
     socket.off("connect");
     socket.once("connect", handleConnect);
 
-    // 1) update-players
+    // 사람 전용 목록 + 이모지
     socket.off("update-players");
     socket.on(
       "update-players",
@@ -92,19 +90,19 @@ export default function LobbyPage() {
       }
     );
 
-    // 이모지 별도 업데이트도 반영
+    // 이모지 별도 갱신
     socket.off("update-emojis");
     socket.on("update-emojis", (map: { [nickname: string]: string }) => {
       setEmojiMap(map || {});
     });
 
-    // 새 통합 목록 이벤트
+    // 사람+봇 통합 목록
     socket.off("player-list");
     socket.on("player-list", ({ players }: { players: CombinedPlayer[] }) => {
       setCombinedPlayers(Array.isArray(players) ? players : []);
     });
 
-    // 누군가 들어오고/나가면 목록 새로고침
+    // 입장/퇴장 시 통합 목록 새로고침
     socket.off("player-joined");
     socket.on("player-joined", () => {
       socket.emit("request-player-list", { roomCode });
@@ -114,11 +112,6 @@ export default function LobbyPage() {
       socket.emit("request-player-list", { roomCode });
     });
 
-    socket.off("error-message");
-    socket.on("error-message", ({ message }: { message: string }) => {
-      alert(message);
-    });
-
     socket.off("join-error");
     socket.on("join-error", (msg: string) => {
       alert(msg);
@@ -126,19 +119,27 @@ export default function LobbyPage() {
       router.push("/");
     });
 
-    // 3) chat-message
-    socket.off("chat-message");
+    // 게임 시작 신호 → /game 라우팅
+    socket.off("game-started");
     socket.on(
-      "chat-message",
-      (payload: { nickname: string; message: string }) => {
-        setChatMessages((prev) => [
-          ...prev,
-          { nickname: payload.nickname, message: payload.message },
-        ]);
+      "game-started",
+      ({ roomCode: rc }: { roomCode: string; round: number }) => {
+        playSound("game-start.mp3");
+        router.push(
+          `/game?code=${rc}&nickname=${encodeURIComponent(
+            nickname
+          )}&emoji=${encodeURIComponent(emoji)}`
+        );
       }
     );
 
-    // 마운트 시 한 번 더 요청(새로고침 대비)
+    // 채팅
+    socket.off("chat-message");
+    socket.on("chat-message", ({ nickname, message }) => {
+      setChatMessages((prev) => [...prev, { nickname, message }]);
+    });
+
+    // 새로고침 대비 1회 더 요청
     socket.emit("request-player-list", { roomCode });
 
     return () => {
@@ -147,7 +148,6 @@ export default function LobbyPage() {
       socket.off("player-list");
       socket.off("player-joined");
       socket.off("player-left");
-      socket.off("error-message");
       socket.off("join-error");
       socket.off("game-started");
       socket.off("chat-message");
@@ -161,7 +161,7 @@ export default function LobbyPage() {
     socket.emit("chat-message", { roomCode, nickname, message: chatInput });
     setChatInput("");
     setCanSend(false);
-    setTimeout(() => setCanSend(true), 10000);
+    setTimeout(() => setCanSend(true), 10_000);
   };
 
   const startGame = () => {
@@ -184,6 +184,9 @@ export default function LobbyPage() {
     socket.emit("remove-bot", { roomCode, nickname: botName });
   };
 
+  // 서버 정책과 동일: 총원(사람+봇) 1~6일 때만 시작 버튼 활성
+  const totalCount = combinedPlayers.length;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white px-4">
       <h1 className="text-3xl font-bold mb-6 text-black">🂡 뻥카비 대기방 🂡</h1>
@@ -194,7 +197,7 @@ export default function LobbyPage() {
         </div>
       )}
 
-      {/* 방장 전용: AI 추가/삭제 UI */}
+      {/* 방장 전용: AI 관리 */}
       {isHost && (
         <div className="w-full max-w-xl mb-6">
           <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
@@ -218,7 +221,7 @@ export default function LobbyPage() {
               </button>
             </div>
 
-            {/* 통합 목록에서 봇만 필터해서 제거 버튼 제공 */}
+            {/* 추가된 AI 목록 + 제거 */}
             <div className="mt-3">
               <div className="text-sm text-gray-600 mb-1">추가된 AI</div>
               <div className="flex flex-wrap gap-2">
@@ -274,7 +277,7 @@ export default function LobbyPage() {
               )}
             </span>
 
-            {/* 방장일 때만, 봇 제거 버튼을 항목마다 제공(위에 관리 블록에도 있음 — 사용성 위해 중복 제공) */}
+            {/* 방장일 때만, 봇 제거 버튼(항목별) */}
             {isHost && p.isBot && (
               <button
                 onClick={() => removeAI(p.nickname)}
@@ -291,10 +294,9 @@ export default function LobbyPage() {
       {isHost && (
         <button
           onClick={startGame}
-          // 서버는 사람 수로만 시작 허용(최소 1, 최대 6)을 체크하니, 여기선 기존 조건 유지
-          disabled={players.length < 1 || players.length > 6}
+          disabled={totalCount < 1 || totalCount > 6}
           className={`mt-6 px-6 py-2 font-semibold rounded-lg ${
-            players.length < 1 || players.length > 6
+            totalCount < 1 || totalCount > 6
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}
@@ -367,7 +369,7 @@ export default function LobbyPage() {
               />
             </div>
             <p className="text-sm text-gray-600 mt-2 break-all">
-              https://bbungkabe.com/lobby?code={roomCode}
+              https://bbungkabe.com/join?code={roomCode}
             </p>
             <button
               className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"

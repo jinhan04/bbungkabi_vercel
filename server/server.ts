@@ -44,6 +44,151 @@ const roundResults: {
   };
 } = {};
 
+// [AI] === 봇 타입/상태/유틸 추가 시작 ===
+type Difficulty = "easy" | "normal" | "hard";
+
+interface BotInfo {
+  nickname: string;
+  difficulty: Difficulty;
+}
+
+const roomBots: { [roomCode: string]: BotInfo[] } = {};
+
+function getBots(roomCode: string): BotInfo[] {
+  return roomBots[roomCode] || [];
+}
+function addBot(roomCode: string, bot: BotInfo) {
+  if (!roomBots[roomCode]) roomBots[roomCode] = [];
+  roomBots[roomCode].push(bot);
+}
+function removeBot(roomCode: string, nickname: string) {
+  roomBots[roomCode] = (roomBots[roomCode] || []).filter(
+    (b) => b.nickname !== nickname
+  );
+}
+
+// 사람 + 봇을 합친 로비용 목록
+function broadcastPlayerList(roomCode: string) {
+  const humans = rooms[roomCode] || [];
+  const bots = getBots(roomCode);
+  io.to(roomCode).emit("player-list", {
+    players: [
+      ...humans.map((n) => ({ nickname: n, isBot: false })),
+      ...bots.map((b) => ({
+        nickname: b.nickname,
+        isBot: true,
+        difficulty: b.difficulty,
+      })),
+    ],
+  });
+}
+// [AI] === 봇 타입/상태/유틸 추가 끝 ===
+
+// [AI-STEP3] === 공용 액션/봇 로직/턴 브로드캐스트 ===
+
+// 사람+봇 전체 플레이어
+function getAllPlayers(roomCode: string): string[] {
+  const humans = rooms[roomCode] || [];
+  const bots = getBots(roomCode).map((b) => b.nickname);
+  return [...humans, ...bots];
+}
+
+// 서버 내부에서 "카드 제출" 실행 (사람/봇 공용 경로)
+function serverSubmitSingleCard(
+  roomCode: string,
+  nickname: string,
+  card: string
+) {
+  if (!playerHands[roomCode] || !playerHands[roomCode][nickname]) return;
+  const idx = playerHands[roomCode][nickname].indexOf(card);
+  if (idx === -1) return;
+  playerHands[roomCode][nickname].splice(idx, 1);
+  submittedHistory[roomCode].push({ nickname, card });
+  io.to(roomCode).emit("card-submitted", { nickname, card });
+  nextTurn(roomCode); // 기존 턴 진행 재사용
+}
+
+// 서버 내부에서 "드로우" 실행 (사람/봇 공용 경로)
+function serverDraw(roomCode: string, nickname: string) {
+  const deck = decks[roomCode];
+  if (!deck || deck.length === 0) return;
+  const card = deck.shift();
+  if (card) {
+    if (!playerHands[roomCode]) playerHands[roomCode] = {};
+    if (!playerHands[roomCode][nickname]) playerHands[roomCode][nickname] = [];
+    playerHands[roomCode][nickname].push(card);
+    // 봇은 개별 socket이 없으니 모두에게 브로드캐스트만
+    io.to(roomCode).emit("player-drawn", { nickname });
+  }
+  io.to(roomCode).emit("deck-update", { remaining: deck.length });
+
+  if (deck.length === 0) {
+    roundInProgress[roomCode] = false;
+    io.to(roomCode).emit("round-ended", {
+      reason: "deck-empty",
+      allPlayerHands: playerHands[roomCode],
+      round: roundCount[roomCode],
+    });
+  }
+}
+
+// 지금 낼 수 있는 "단일 카드" 후보 (최소 구현: 손패 전체)
+function getLegalSingles(roomCode: string, nickname: string): string[] {
+  return [...(playerHands[roomCode]?.[nickname] || [])];
+}
+
+// 난이도별 생각시간
+function botThinkMs(diff: Difficulty): [number, number] {
+  if (diff === "hard") return [800, 1500];
+  if (diff === "normal") return [600, 1200];
+  return [400, 900];
+}
+function wait(ms: number) {
+  return new Promise((res) => setTimeout(res, ms));
+}
+
+// 턴 브로드캐스트 + (현재 턴이 봇이면) 봇 실행
+function broadcastTurn(roomCode: string, currentPlayer: string) {
+  io.to(roomCode).emit("turn-info", {
+    currentPlayer,
+    round: roundCount[roomCode],
+  });
+
+  // 현재 플레이어가 봇이면 실행
+  const bot = getBots(roomCode).find((b) => b.nickname === currentPlayer);
+  if (!bot) return;
+
+  const [minMs, maxMs] = botThinkMs(bot.difficulty);
+  const think = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+
+  (async () => {
+    await wait(think);
+
+    // 간단 정책: 낼 단일 카드가 있으면 첫 장 제출, 아니면 드로우
+    const singles = getLegalSingles(roomCode, bot.nickname);
+    if (singles.length > 0) {
+      serverSubmitSingleCard(roomCode, bot.nickname, singles[0]);
+      return;
+    }
+    serverDraw(roomCode, bot.nickname);
+  })().catch(console.error);
+}
+
+function nextTurn(roomCode: string) {
+  const players = getAllPlayers(roomCode);
+  if (!players || players.length === 0) return;
+
+  turnIndex[roomCode] = (turnIndex[roomCode] + 1) % players.length;
+  drawFlag[roomCode].clear();
+
+  const nextPlayer = players[turnIndex[roomCode]];
+  broadcastTurn(roomCode, nextPlayer);
+
+  console.log(
+    `[${new Date().toISOString()}][DEBUG nextTurn] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
+  );
+}
+
 const createDeck = () => {
   const suits = ["♠", "♥", "♣", "♦"];
   const ranks = [
@@ -113,17 +258,24 @@ io.on("connection", (socket) => {
       players: rooms[roomCode],
       emojis: emojiMap[roomCode],
     });
+
+    // [AI] 사람/봇 통합 목록도 같이 브로드캐스트 (로비용)
+    broadcastPlayerList(roomCode);
   });
 
   socket.on("start-game", ({ roomCode, nickname, maxPlayers, doubleFinal }) => {
-    const players = rooms[roomCode];
+    // [AI-STEP3] 사람+봇 전체 기준으로 변경
+    const humans = rooms[roomCode];
+    const bots = getBots(roomCode).map((b) => b.nickname);
+    const allPlayers = [...(humans || []), ...bots];
+
     doubleFinalRoundMap[roomCode] = !!doubleFinal;
     drawFlag[roomCode] = new Set();
 
     console.log("doubleFinal 설정:", doubleFinal);
     console.log("doubleFinalRoundMap:", doubleFinalRoundMap[roomCode]);
 
-    if (!players || players.length < 1 || players.length > 6) {
+    if (!allPlayers || allPlayers.length < 1 || allPlayers.length > 6) {
       socket.emit("join-error", `최대 6명 이하일 때만 시작할 수 있습니다.`);
       return;
     }
@@ -136,10 +288,10 @@ io.on("connection", (socket) => {
       }`
     );
 
-    // ✅ 점수 배열 초기화
+    // ✅ 점수 배열 초기화 — 사람+봇 모두
     scores[roomCode] = {};
-    for (const nickname of players) {
-      scores[roomCode][nickname] = [];
+    for (const n of allPlayers) {
+      scores[roomCode][n] = [];
     }
 
     turnIndex[roomCode] = 0;
@@ -147,8 +299,10 @@ io.on("connection", (socket) => {
     submittedHistory[roomCode] = [];
     drawFlag[roomCode] = new Set();
 
-    for (const nickname of players) {
-      playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
+    // 사람+봇 모두 분배
+    for (const n of allPlayers) {
+      if (!playerHands[roomCode]) playerHands[roomCode] = {};
+      playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
     }
 
     // ✅ 남은 카드 수 전송
@@ -160,16 +314,16 @@ io.on("connection", (socket) => {
       round: roundCount[roomCode],
     });
 
-    const randomPlayer = players[Math.floor(Math.random() * players.length)];
-    turnIndex[roomCode] = players.indexOf(randomPlayer);
-    const currentPlayer = players[turnIndex[roomCode]];
+    const randomPlayer =
+      allPlayers[Math.floor(Math.random() * allPlayers.length)];
+    turnIndex[roomCode] = allPlayers.indexOf(randomPlayer);
+    const currentPlayer = allPlayers[turnIndex[roomCode]];
     console.log(
       `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
     );
-    io.to(roomCode).emit("turn-info", {
-      currentPlayer,
-      round: roundCount[roomCode],
-    });
+
+    // [AI-STEP3] 단일화된 브로드캐스트
+    broadcastTurn(roomCode, currentPlayer);
   });
 
   socket.on("ready-next-round", ({ roomCode, nickname }) => {
@@ -199,15 +353,15 @@ io.on("connection", (socket) => {
       Array.from(readyForNextRound[roomCode])
     );
 
-    // ✅ 중복 라운드 시작 방지
+    // ✅ 중복 라운드 시작 방지 (사람들 기준)
     if (
       readyForNextRound[roomCode].size === rooms[roomCode]?.length &&
       roundCount[roomCode] <= 5 &&
-      !roundInProgress[roomCode] // 라운드가 아직 시작되지 않았다면
+      !roundInProgress[roomCode]
     ) {
       console.log("[DEBUG] All players ready. Advancing round.");
 
-      roundInProgress[roomCode] = true; // ✅ 라운드 시작 표시
+      roundInProgress[roomCode] = true;
       readyForNextRound[roomCode].clear();
 
       // ✅ 라운드 수 증가
@@ -218,16 +372,21 @@ io.on("connection", (socket) => {
       decks[roomCode] = shuffle(createDeck());
       submittedHistory[roomCode] = [];
       drawFlag[roomCode] = new Set();
-      const players = rooms[roomCode];
 
-      for (const nickname of rooms[roomCode]) {
-        playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
+      // [AI-STEP3] 사람+봇 전체 목록
+      const humans = rooms[roomCode] || [];
+      const bots = getBots(roomCode).map((b) => b.nickname);
+      const players = [...humans, ...bots];
+
+      // 분배
+      for (const n of players) {
+        playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
       }
       io.to(roomCode).emit("deck-update", {
         remaining: decks[roomCode].length,
       });
 
-      // ✅ 시작 플레이어 결정
+      // 시작 플레이어 결정
       let firstPlayer = players[0]; // fallback
 
       if (roundCount[roomCode] === 1) {
@@ -263,13 +422,8 @@ io.on("connection", (socket) => {
 
       io.to(roomCode).emit("next-round", { round: roundCount[roomCode] });
 
-      io.to(roomCode).emit("turn-info", {
-        currentPlayer: firstPlayer,
-        round: roundCount[roomCode],
-      });
-      console.log(
-        `[${new Date().toISOString()}][DEBUG ready-next-round] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
-      );
+      // [AI-STEP3]
+      broadcastTurn(roomCode, firstPlayer);
     }
   });
 
@@ -302,8 +456,6 @@ io.on("connection", (socket) => {
     for (const [nickname, score] of Object.entries(scoresThisRound)) {
       scores[roomCode][nickname].push(score);
     }
-
-    // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
 
     roundResults[roomCode] = {
       scores: scoresThisRound,
@@ -350,9 +502,14 @@ io.on("connection", (socket) => {
     submittedHistory[roomCode] = [];
     drawFlag[roomCode] = new Set();
 
-    const players = rooms[roomCode];
-    for (const nickname of players) {
-      playerHands[roomCode][nickname] = decks[roomCode].splice(0, 5);
+    // [AI-STEP3] 사람+봇 전체
+    const humans = rooms[roomCode] || [];
+    const bots = getBots(roomCode).map((b) => b.nickname);
+    const players = [...humans, ...bots];
+
+    for (const n of players) {
+      if (!playerHands[roomCode]) playerHands[roomCode] = {};
+      playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
     }
 
     // ✅ 남은 카드 수 전송
@@ -364,13 +521,8 @@ io.on("connection", (socket) => {
 
     setTimeout(() => {
       const firstPlayer = players[0];
-      io.to(roomCode).emit("turn-info", {
-        currentPlayer: firstPlayer,
-        round: roundCount[roomCode],
-      });
-      console.log(
-        `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
-      );
+      // [AI-STEP3]
+      broadcastTurn(roomCode, firstPlayer);
     }, 500);
   });
 
@@ -378,14 +530,13 @@ io.on("connection", (socket) => {
     if (!readyPlayers[roomCode]) readyPlayers[roomCode] = new Set();
     readyPlayers[roomCode].add(nickname);
 
-    if (readyPlayers[roomCode].size === rooms[roomCode]?.length) {
-      turnIndex[roomCode] = 0; // 🔧 이 줄이 핵심!
-      const firstPlayer = rooms[roomCode][0];
+    if (readyPlayers[roomCode].size === (rooms[roomCode]?.length || 0)) {
+      // [AI-STEP3] 첫 턴도 전체 리스트 기준
+      const playersAll = getAllPlayers(roomCode);
+      turnIndex[roomCode] = 0;
+      const firstPlayer = playersAll[0] || nickname;
       io.to(roomCode).emit("ready-ok");
-      io.to(roomCode).emit("turn-info", {
-        currentPlayer: firstPlayer,
-        round: roundCount[roomCode],
-      });
+      broadcastTurn(roomCode, firstPlayer);
       console.log(
         `[${new Date().toISOString()}][DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
       );
@@ -396,23 +547,14 @@ io.on("connection", (socket) => {
     const nickname = socketIdToNickname[socket.id];
     if (!nickname || !roomCode) return;
 
-    const currentPlayer = rooms[roomCode]?.[turnIndex[roomCode]];
+    // [AI-STEP3] 현재 턴 플레이어 계산(사람+봇)
+    const allPlayers = getAllPlayers(roomCode);
+    const currentPlayer = allPlayers?.[turnIndex[roomCode]];
 
     console.log(
       `[DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
     );
     console.log(`[DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`);
-    console.log(`[DEBUG] rooms =`, rooms[roomCode]);
-    console.log(`[DEBUG] turnIndex = ${turnIndex[roomCode]}`);
-    console.log(`[DEBUG] rooms =`, rooms[roomCode]);
-    console.log(`[DEBUG] playerHands =`, Object.keys(playerHands[roomCode]));
-
-    console.log(
-      `[${new Date().toISOString()}][DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
-    );
-    console.log(
-      `[${new Date().toISOString()}][DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`
-    );
 
     if (nickname !== currentPlayer) {
       console.log(
@@ -603,16 +745,15 @@ io.on("connection", (socket) => {
         triggerer: bbungEndTriggeredBy[roomCode],
       });
     } else {
-      const players = rooms[roomCode];
+      // [AI-STEP3] 다음 플레이어 계산도 전체 기준
+      const players = getAllPlayers(roomCode);
       const bbungIdx = players.indexOf(nickname);
       const nextIdx = (bbungIdx + 1) % players.length;
       turnIndex[roomCode] = nextIdx;
       drawFlag[roomCode].clear();
       const nextPlayer = players[nextIdx];
-      io.to(roomCode).emit("turn-info", {
-        currentPlayer: nextPlayer,
-        round: roundCount[roomCode],
-      });
+
+      broadcastTurn(roomCode, nextPlayer);
       console.log(
         `[${new Date().toISOString()}][DEBUG submit-bbung-extra] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
       );
@@ -657,9 +798,6 @@ io.on("connection", (socket) => {
       scores[roomCode][nickname].push(score);
     }
 
-    // ✅ 라운드 수 증가
-    // roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
-
     // ✅ 결과 저장
     roundResults[roomCode] = {
       scores: roundScore,
@@ -682,22 +820,87 @@ io.on("connection", (socket) => {
     callback(map);
   });
 
-  const nextTurn = (roomCode: string) => {
-    const players = rooms[roomCode];
-    if (!players) return;
+  // [AI] 현재(사람+봇) 플레이어 목록 요청 → player-list 브로드캐스트
+  socket.on("request-player-list", ({ roomCode }: { roomCode: string }) => {
+    broadcastPlayerList(roomCode);
+  });
 
-    turnIndex[roomCode] = (turnIndex[roomCode] + 1) % players.length;
-    drawFlag[roomCode].clear();
-    const nextPlayer = players[turnIndex[roomCode]];
+  // [AI] 로비에서 AI(봇) 추가
+  socket.on(
+    "add-bot",
+    ({
+      roomCode,
+      difficulty,
+    }: {
+      roomCode: string;
+      difficulty?: Difficulty;
+    }) => {
+      const d: Difficulty = difficulty || "easy";
 
-    io.to(roomCode).emit("turn-info", {
-      currentPlayer: nextPlayer,
-      round: roundCount[roomCode],
-    });
-    console.log(
-      `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
-    );
-  };
+      // 인원 제한(사람+봇 합산) — 최대 6명
+      const totalCount =
+        (rooms[roomCode]?.length || 0) + getBots(roomCode).length;
+      if (totalCount >= 6) {
+        socket.emit("error-message", {
+          message: "최대 인원(6명)을 초과할 수 없습니다.",
+        });
+        return;
+      }
+
+      // 닉네임 중복 회피: AI-1, AI-2, ...
+      const existing = new Set<string>([
+        ...(rooms[roomCode] || []),
+        ...getBots(roomCode).map((b) => b.nickname),
+      ]);
+      let idx = 1;
+      let nickname = `AI-${idx}`;
+      while (existing.has(nickname)) {
+        idx += 1;
+        nickname = `AI-${idx}`;
+      }
+
+      // 방 구조 초기화(손패 등)
+      addBot(roomCode, { nickname, difficulty: d });
+      if (!playerHands[roomCode]) playerHands[roomCode] = {};
+      playerHands[roomCode][nickname] = [];
+
+      // 알림 & 목록 갱신
+      io.to(roomCode).emit("player-joined", {
+        nickname,
+        isBot: true,
+        difficulty: d,
+      });
+      broadcastPlayerList(roomCode);
+
+      // (선택) 이모지도 붙이고 싶다면:
+      if (!emojiMap[roomCode]) emojiMap[roomCode] = {};
+      if (!emojiMap[roomCode][nickname]) {
+        emojiMap[roomCode][nickname] = "🤖"; // 기본 봇 이모지
+        io.to(roomCode).emit("update-emojis", emojiMap[roomCode]);
+      }
+    }
+  );
+
+  // [AI] 로비에서 AI(봇) 제거
+  socket.on(
+    "remove-bot",
+    ({ roomCode, nickname }: { roomCode: string; nickname: string }) => {
+      const found = getBots(roomCode).some((b) => b.nickname === nickname);
+      if (!found) return;
+
+      removeBot(roomCode, nickname);
+      if (playerHands[roomCode]) delete playerHands[roomCode][nickname];
+
+      io.to(roomCode).emit("player-left", { nickname });
+      broadcastPlayerList(roomCode);
+
+      // (선택) 이모지 정리
+      if (emojiMap[roomCode] && emojiMap[roomCode][nickname]) {
+        delete emojiMap[roomCode][nickname];
+        io.to(roomCode).emit("update-emojis", emojiMap[roomCode]);
+      }
+    }
+  );
 
   socket.on("disconnecting", () => {
     const roomsJoined = Array.from(socket.rooms);
@@ -722,6 +925,9 @@ io.on("connection", (socket) => {
         players: rooms[roomCode],
         emojis: emojiMap[roomCode],
       });
+
+      // [AI] 사람/봇 통합 목록 재브로드캐스트
+      broadcastPlayerList(roomCode);
     });
 
     delete socketIdToNickname[socket.id];
@@ -803,10 +1009,7 @@ function calculateScores(
       return total;
     }
 
-    if (
-      hand.length === 3 &&
-      values.every((v) => v === values[0]) // 모두 같은 숫자
-    ) {
+    if (hand.length === 3 && values.every((v) => v === values[0])) {
       return 0;
     }
 

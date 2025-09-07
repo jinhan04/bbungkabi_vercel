@@ -106,6 +106,12 @@ function serverSubmitSingleCard(
   submittedHistory[roomCode].push({ nickname, card });
   io.to(roomCode).emit("card-submitted", { nickname, card });
 
+  // 👇 제출 직후 봇이면 가끔 채팅
+  const bot = getBotInfo(roomCode, nickname);
+  if (bot && canChat(roomCode, nickname) && chance(CHAT_CHANCE.submit)) {
+    botSay(roomCode, nickname, pick(BOT_CHAT_LINES.submit));
+  }
+
   // ⬇️ 추가: 방금 낸 카드에 대해 봇이 뻥 가능한지 체크
   void maybeBotBbung(roomCode);
 
@@ -195,6 +201,80 @@ function botThinkMs(diff: Difficulty): [number, number] {
 }
 function wait(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
+}
+
+// === [BOT CHAT] 랜덤/확률 유틸 ===
+function chance(p: number) {
+  return Math.random() < p;
+}
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+function now() {
+  return Date.now();
+}
+
+// 방별-봇별 다음 채팅 가능 시간(스팸 방지)
+const nextBotChatAt: { [room: string]: { [nick: string]: number } } = {};
+
+// 채팅 문구(가볍게 섞어둠)
+const BOT_CHAT_LINES = {
+  draw: [
+    "한 장 믿고 간다.",
+    "느낌 왔다.",
+    "덱 냄새가… 수상해 😑",
+    "제발 좋은 거!",
+    "아 덜덜…",
+  ],
+  submit: [
+    "이거나 먹어라.",
+    "가볍게 한 장~",
+    "정리하고 갑니다.",
+    "버리자 버려!",
+    "고오급 카드 방출 🫠",
+  ],
+  bbung: ["뻥!", "BBUNG! 🔥", "같은 숫자 둘~", "이건 못 참지 ㅋㅋ", "빠빠빵~"],
+  bbung_extra: ["덤 하나 얹어줄게.", "서비스 한 장 ^^", "보너스~"],
+  taunt: [
+    "그 숫자 계속 낼 수 있어? 🤭",
+    "덱 다 태웠네?",
+    "이제부터 시작이지?",
+    "내가 유도한 거 알지? ㅎㅎ",
+    "집중 좀 해봐~",
+  ],
+};
+
+// 쿨다운: 8~14초 랜덤
+function resetChatCooldown(roomCode: string, nickname: string) {
+  const min = 8000,
+    max = 14000;
+  const next = now() + Math.floor(Math.random() * (max - min + 1)) + min;
+  nextBotChatAt[roomCode] ||= {};
+  nextBotChatAt[roomCode][nickname] = next;
+}
+function canChat(roomCode: string, nickname: string) {
+  const nextAt = nextBotChatAt[roomCode]?.[nickname] ?? 0;
+  return now() >= nextAt;
+}
+
+// 실제 채팅 브로드캐스트
+function botSay(roomCode: string, nickname: string, text: string) {
+  io.to(roomCode).emit("chat-message", { nickname, message: text });
+  resetChatCooldown(roomCode, nickname);
+}
+
+// 상황별 확률(원하면 튜닝)
+const CHAT_CHANCE = {
+  draw: 0.25, // 카드 뽑은 직후
+  submit: 0.35, // 카드 낸 직후
+  bbung: 0.9, // 뻥 성공
+  bbung_extra: 0.5, // 뻥 추가 1장
+  taunt: 0.2, // 가끔 도발
+};
+
+// 봇 정보 얻기
+function getBotInfo(roomCode: string, nickname: string) {
+  return getBots(roomCode).find((b) => b.nickname === nickname);
 }
 
 // === [BBUNG] 유틸 ===
@@ -368,6 +448,11 @@ async function maybeBotBbung(roomCode: string) {
     // 1) 뻥 2장 제출
     serverSubmitBbung(roomCode, bot.nickname, pair);
 
+    // 👇 뻥 성공하면 거의 항상 외침
+    if (canChat(roomCode, bot.nickname) && chance(CHAT_CHANCE.bbung)) {
+      botSay(roomCode, bot.nickname, pick(BOT_CHAT_LINES.bbung));
+    }
+
     // 라운드가 끝났으면 종료
     if (!roundInProgress[roomCode]) return;
 
@@ -432,6 +517,11 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
     const deck = decks[roomCode];
     if (deck && deck.length > 0 && !drawFlag[roomCode].has(bot.nickname)) {
       const ended = serverDraw(roomCode, bot.nickname); // ⬅️ 여기서 끝났는지 확인
+
+      // 👇 드로우 직후 가끔 채팅
+      if (canChat(roomCode, bot.nickname) && chance(CHAT_CHANCE.draw)) {
+        botSay(roomCode, bot.nickname, pick(BOT_CHAT_LINES.draw));
+      }
       await wait(150);
       if (ended) return; // ✅ 족보/덱소진으로 라운드가 끝났으면 더 하지 않음
     }

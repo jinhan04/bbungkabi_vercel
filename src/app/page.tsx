@@ -135,7 +135,7 @@ export default function HomePage() {
 
       {showPatchNote && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
-          <h2 className="text-xl font-bold mb-2">📌 업데이트 사항 ver 4.0</h2>
+          <h2 className="text-xl font-bold mb-2">📌 업데이트 사항 ver 5.0</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>
               <strong>
@@ -146,6 +146,9 @@ export default function HomePage() {
             <li>
               이스터에그 2: 난이도 ★★★★★★★★★★(찾은 사람: 없음, 2027년 공개 예정)
             </li>
+            <li>
+              <strong>AI 봇 추가 됨(난이도 설정 개발중...)</strong>
+            </li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">
@@ -153,7 +156,6 @@ export default function HomePage() {
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
           <ul className="list-disc list-inside text-sm mb-4">
-            <li>AI 봇 추가 됨(난이도 설정 개발중...)</li>
             <li>타이머 어벙 추가 로직 개발중...</li>
             <li>최종 결과 시 효과음 추가</li>
             <li>개인 프로필 생성 및 DB 연동 (승률, 코인 등)</li>
@@ -298,7 +300,7 @@ export default function HomePage() {
       {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
 
       <div className="mt-2 text-sm text-gray-500 text-center">
-        © 임진한 (국민대 정보보안암호수학과 23) ver.3.2.2
+        © 임진한 (국민대 정보보안암호수학과 23) ver.5.6.19
       </div>
 
       <div className="absolute bottom-0 left-0 w-full flex justify-center bg-white py-2">

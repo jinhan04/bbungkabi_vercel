@@ -118,7 +118,61 @@ function serverSubmitSingleCard(
   nextTurn(roomCode); // 기존 턴 진행 재사용
 }
 
-// 서버 내부에서 "드로우" 실행 (사람/봇 공용 경로)
+// === [STOP AI] 서버 내부 전용: 봇이 스탑 선언 ===
+function serverStop(roomCode: string, stopper: string) {
+  const hands = playerHands[roomCode] || {};
+  const scoresThisRound = calculateScores("stop", stopper, hands, roomCode);
+
+  // 점수 누적
+  for (const [n, s] of Object.entries(scoresThisRound)) {
+    if (!scores[roomCode][n]) scores[roomCode][n] = [];
+    scores[roomCode][n].push(s);
+  }
+
+  // 결과 저장
+  roundResults[roomCode] = {
+    scores: scoresThisRound,
+    hands,
+    reason: "stop",
+    stopper,
+  };
+  roundInProgress[roomCode] = false;
+
+  // 브로드캐스트
+  io.to(roomCode).emit("round-ended", {
+    reason: "stop",
+    stopper,
+    allPlayerHands: playerHands[roomCode],
+    round: roundCount[roomCode],
+  });
+}
+
+// === [STOP AI] 스탑 여부 판단 ===
+function shouldBotStop(roomCode: string, bot: BotInfo): boolean {
+  // 드로우를 이미 했다면(같은 턴) 사람 규칙과 맞춰 스탑 금지
+  if (drawFlag[roomCode]?.has(bot.nickname)) return false;
+
+  const hand = playerHands[roomCode]?.[bot.nickname] || [];
+  if (hand.length === 0) return false;
+
+  const score = _handScoreForDecision(hand);
+  const deckLeft = decks[roomCode]?.length ?? 0;
+
+  // 난이도별 기본 임계치 (점수가 낮을수록 유리한 게임 규칙)
+  let threshold = 18; // normal
+  if (bot.difficulty === "easy") threshold = 20;
+  if (bot.difficulty === "hard") threshold = 16;
+
+  // 막판일수록 조금 더 공격적으로 스탑
+  if (deckLeft <= 10) threshold += 2;
+
+  // 약간의 랜덤성(사람스러움)
+  const jitter = Math.floor(Math.random() * 5) - 2; // -2..+2
+  threshold += jitter;
+
+  return score <= threshold;
+}
+
 // 서버 내부에서 "드로우" 실행 (사람/봇 공용 경로)
 // ⬇️ 반환값: true면 라운드가 이 호출로 종료됨
 function serverDraw(roomCode: string, nickname: string): boolean {
@@ -265,11 +319,11 @@ function botSay(roomCode: string, nickname: string, text: string) {
 
 // 상황별 확률(원하면 튜닝)
 const CHAT_CHANCE = {
-  draw: 0.25, // 카드 뽑은 직후
-  submit: 0.35, // 카드 낸 직후
+  draw: 0.2, // 카드 뽑은 직후
+  submit: 0.2, // 카드 낸 직후
   bbung: 0.9, // 뻥 성공
-  bbung_extra: 0.5, // 뻥 추가 1장
-  taunt: 0.2, // 가끔 도발
+  bbung_extra: 0.2, // 뻥 추가 1장
+  taunt: 0.1, // 가끔 도발
 };
 
 // 봇 정보 얻기
@@ -495,6 +549,69 @@ function pickHighestCardFromHand(
   return best;
 }
 
+// === [STOP AI] 손패 점수 계산(결정용) ===
+function _handScoreForDecision(hand: string[]): number {
+  // A=1, J=11, Q=12, K=13 은 _cardToValueN와 동일 규칙을 사용
+  const cardToValueN = (card: string) => _cardToValueN(card);
+
+  const sum = (vals: number[]) => vals.reduce((a, b) => a + b, 0);
+
+  const isStraight = (values: number[]) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    for (let i = 1; i < sorted.length; i++) {
+      if (
+        (sorted[i] - sorted[i - 1] + 13) % 13 !== 1 &&
+        sorted[i] - sorted[i - 1] !== 1
+      )
+        return false;
+    }
+    return true;
+  };
+
+  const isPairPairPair = (values: number[]) => {
+    const counts: Record<number, number> = {};
+    values.forEach((v) => (counts[v] = (counts[v] || 0) + 1));
+    return Object.values(counts).filter((c) => c === 2).length === 3;
+  };
+
+  const isTripleTriple = (values: number[]) => {
+    const counts: Record<number, number> = {};
+    values.forEach((v) => (counts[v] = (counts[v] || 0) + 1));
+    return Object.values(counts).filter((c) => c === 3).length === 2;
+  };
+
+  if (hand.length === 0) return 0;
+
+  const values = hand.map(cardToValueN);
+  const total = sum(values);
+
+  // 6장 특수 규칙 (서버 점수 규칙과 동일)
+  if (hand.length === 6) {
+    if (isStraight(values)) return -total;
+    if (isPairPairPair(values)) return 0;
+    if (isTripleTriple(values)) return 0;
+    if (total <= 14) return -100;
+    if (total >= 65) return -total;
+    return total;
+  }
+
+  // 3장 트리플 0점
+  if (hand.length === 3 && values.every((v) => v === values[0])) return 0;
+
+  // 6장이 아닐 때 3-오브-어-카인드면 나머지 합
+  const counts: Record<number, number> = {};
+  values.forEach((v) => (counts[v] = (counts[v] || 0) + 1));
+  const tripleKey = Object.keys(counts).find((k) => counts[parseInt(k)] === 3);
+  if (tripleKey && Object.values(counts).filter((c) => c === 3).length === 1) {
+    const v = parseInt(tripleKey);
+    const rest = values.filter((x) => x !== v);
+    return sum(rest);
+  }
+
+  // 일반 합
+  return total;
+}
+
 // 턴 브로드캐스트 + (현재 턴이 봇이면) 봇 실행
 function broadcastTurn(roomCode: string, currentPlayer: string) {
   io.to(roomCode).emit("turn-info", {
@@ -511,6 +628,24 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
   (async () => {
     await wait(think);
 
+    // === [STOP AI] 생각 후 스탑 먼저 판단 ===
+    if (shouldBotStop(roomCode, bot)) {
+      // 제출/드로우 전에 스탑
+      serverStop(roomCode, bot.nickname);
+
+      // (선택) 봇 채팅 사용 중이면 한마디
+      try {
+        if (typeof canChat === "function" && canChat(roomCode, bot.nickname)) {
+          // BOT_CHAT_LINES.stop 없으면 추가해도 좋아요
+          const line = "스탑! 여기서 승부 보자 😎";
+          if (typeof botSay === "function")
+            botSay(roomCode, bot.nickname, line);
+        }
+      } catch {}
+
+      return; // 라운드가 끝났으니 종료
+    }
+
     if (!drawFlag[roomCode]) drawFlag[roomCode] = new Set();
 
     // 1) 드로우 먼저
@@ -526,10 +661,10 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
       if (ended) return; // ✅ 족보/덱소진으로 라운드가 끝났으면 더 하지 않음
     }
 
-    // 2) 그 다음 낼 수 있으면 1장 제출 (최고 카드 선택 + 제출 전 1~5초 랜덤 딜레이)
+    // 2) 그 다음 낼 수 있으면 1장 제출 (최고 카드 선택 + 제출 전 0.5 ~ 3초 랜덤 딜레이)
     const best = pickHighestCardFromHand(roomCode, bot.nickname);
     if (best) {
-      const submitDelayMs = Math.floor(Math.random() * (5000 - 500 + 1)) + 1000;
+      const submitDelayMs = Math.floor(Math.random() * (3000 - 500 + 1)) + 1000;
       await wait(submitDelayMs);
 
       // 대기 중 라운드 종료/턴 변경 되었으면 취소

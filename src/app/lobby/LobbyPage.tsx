@@ -16,15 +16,6 @@ type CombinedPlayer = {
 // 1) 위쪽 타입 선언부 근처에 유니온 타입 별도로 선언
 type BotDifficulty = "easy" | "normal" | "hard";
 
-// 2) 상태도 해당 타입으로 지정
-const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>("easy");
-
-// 3) onChange 핸들러에 타입 부여(권장)
-const handleDifficultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  const v = e.target.value as BotDifficulty; // options의 value가 정확히 셋 중 하나이므로 안전
-  setBotDifficulty(v);
-};
-
 export default function LobbyPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -58,10 +49,14 @@ export default function LobbyPage() {
     return players.length > 0 && players[0] === nickname;
   }, [players, nickname]);
 
-  // 로비에서 선택할 봇 난이도
-  const [botDifficulty, setBotDifficulty] = useState<
-    "easy" | "normal" | "hard"
-  >("easy");
+  // 2) 상태도 해당 타입으로 지정
+  const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>("easy");
+
+  // 3) onChange 핸들러에 타입 부여(권장)
+  const handleDifficultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const v = e.target.value as BotDifficulty; // options의 value가 정확히 셋 중 하나이므로 안전
+    setBotDifficulty(v);
+  };
 
   useEffect(() => {
     if (!roomCode || !nickname) return;

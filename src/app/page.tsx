@@ -147,7 +147,7 @@ export default function HomePage() {
               이스터에그 2: 난이도 ★★★★★★★★★★(찾은 사람: 없음, 2027년 공개 예정)
             </li>
             <li>
-              <strong>AI 봇 추가 됨(난이도 설정 개발중...)</strong>
+              <strong>AI 봇 추가 됨(난이도별 봇 학습중...)</strong>
             </li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>

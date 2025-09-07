@@ -47,6 +47,100 @@ const roundResults: {
 // [AI] === 봇 타입/상태/유틸 추가 시작 ===
 type Difficulty = "easy" | "normal" | "hard";
 
+// === [BOT NAME] 숫자 대신 테마 이름 생성 ===
+const BOT_NAME_POOL = [
+  "블러프킹",
+  "포커여우",
+  "하트여왕",
+  "스페이드마법사",
+  "뻥요정",
+  "카드요정",
+  "대충내봇",
+  "정직한봇",
+  "모찌고래",
+  "라떼호랑이",
+  "초코칩",
+  "수달선생",
+  "딜러토끼",
+  "고수인척",
+  "병장 임진한",
+  "상병 임진한",
+  "일병 임진한",
+  "이병 임진한",
+  "말수적은봇",
+  "옥교수님",
+];
+
+const BOT_ADJ = [
+  "용감한",
+  "수줍은",
+  "재빠른",
+  "뻔뻔한",
+  "낙관적인",
+  "도발적인",
+  "진지한",
+  "달콤한",
+  "시끄러운",
+  "느긋한",
+];
+const BOT_ANIMAL = [
+  "여우",
+  "늑대",
+  "토끼",
+  "고양이",
+  "곰",
+  "판다",
+  "수달",
+  "참새",
+  "돌고래",
+  "너구리",
+  "두더지",
+  "다람쥐",
+  "펭귄",
+  "부엉이",
+];
+const BOT_SUFFIX = [
+  "장인",
+  "고수",
+  "선배",
+  "주니어",
+  "마스터",
+  "스페셜",
+  "프로",
+  "초보",
+];
+
+function generateBotNickname(roomCode: string): string {
+  const existing = new Set<string>([
+    ...(rooms[roomCode] || []),
+    ...getBots(roomCode).map((b) => b.nickname),
+  ]);
+
+  // 1) 준비된 풀 우선 사용
+  for (const name of BOT_NAME_POOL) {
+    if (!existing.has(name)) return name;
+  }
+
+  // 2) 조합식 (형태: "<형용사> <동물>" 또는 "<형용사> <동물> <접미사>")
+  //   * 숫자 사용 금지
+  for (let i = 0; i < 300; i++) {
+    const base = `${pick(BOT_ADJ)} ${pick(BOT_ANIMAL)}`;
+    const name = chance(0.5) ? `${base} ${pick(BOT_SUFFIX)}` : base;
+    if (!existing.has(name)) return name;
+  }
+
+  // 3) (희귀) 충돌이 계속 나면 접미사만 더 붙여서라도 회피 (여전히 숫자 없음)
+  for (let i = 0; i < 300; i++) {
+    const name = `${pick(BOT_ADJ)} ${pick(BOT_ANIMAL)} ${pick(
+      BOT_SUFFIX
+    )} ${pick(BOT_SUFFIX)}`;
+    if (!existing.has(name)) return name;
+  }
+
+  // 최후의 수단(거의 도달 X): 고정값
+  return "이름없는봇";
+}
+
 interface BotInfo {
   nickname: string;
   difficulty: Difficulty;
@@ -295,6 +389,7 @@ const BOT_CHAT_LINES = {
     "이제부터 시작이지?",
     "내가 유도한 거 알지? ㅎㅎ",
     "집중 좀 해봐~",
+    "빨리 좀 해라!!!",
   ],
 };
 
@@ -1399,17 +1494,8 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // 닉네임 중복 회피: AI-1, AI-2, ...
-      const existing = new Set<string>([
-        ...(rooms[roomCode] || []),
-        ...getBots(roomCode).map((b) => b.nickname),
-      ]);
-      let idx = 1;
-      let nickname = `AI-${idx}`;
-      while (existing.has(nickname)) {
-        idx += 1;
-        nickname = `AI-${idx}`;
-      }
+      // 닉네임 생성 (숫자 금지)
+      const nickname = generateBotNickname(roomCode);
 
       // 방 구조 초기화(손패 등)
       addBot(roomCode, { nickname, difficulty: d });

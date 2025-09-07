@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
-import { playSound } from "@/lib/sound";
+// import { playSound } from "@/lib/sound";
 
 type CombinedPlayer = {
   nickname: string;

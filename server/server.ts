@@ -164,13 +164,26 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
   (async () => {
     await wait(think);
 
-    // 간단 정책: 낼 단일 카드가 있으면 첫 장 제출, 아니면 드로우
+    // 안전 가드
+    if (!drawFlag[roomCode]) drawFlag[roomCode] = new Set();
+
+    // 1) 이번 턴에 아직 드로우 안했으면 먼저 드로우
+    const deck = decks[roomCode];
+    if (deck && deck.length > 0 && !drawFlag[roomCode].has(bot.nickname)) {
+      serverDraw(roomCode, bot.nickname);
+      // 손패/덱 브로드캐스트 반영될 시간을 아주 조금 줌
+      await wait(150);
+    }
+
+    // 2) 그 다음 낼 수 있으면 한 장 제출
     const singles = getLegalSingles(roomCode, bot.nickname);
     if (singles.length > 0) {
       serverSubmitSingleCard(roomCode, bot.nickname, singles[0]);
-      return;
+      return; // 제출 시 nextTurn 호출됨
     }
-    serverDraw(roomCode, bot.nickname);
+
+    // 싱글 후보가 전혀 없는 경우는 거의 없음(손패가 비었을 때 정도).
+    // 이 경우에는 별도 행동 없이 대기(덱 소진/라운드 종료 등의 다른 경로가 처리).
   })().catch(console.error);
 }
 

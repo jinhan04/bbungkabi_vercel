@@ -150,6 +150,7 @@ export default function HomePage() {
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>5장 바가지에서 노바가지가 되면 알림 없음</li>
+            <li>AI 플레이어 추가 중...(사용 X)</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
           <ul className="list-disc list-inside text-sm mb-4">

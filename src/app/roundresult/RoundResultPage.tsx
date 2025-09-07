@@ -41,17 +41,17 @@ export default function RoundResultPage() {
       if (!all || Object.keys(all).length === 0) return scores;
 
       if (reason === "stop" && stopper) {
-        const stopperScore = calculateScore(all[stopper] || [], "stop");
+        const stopperScore = calculateScore(all[stopper] || []);
         const hasLowerOrEqual = Object.entries(all).some(([name, h]) => {
           if (Array.isArray(h)) {
-            const comp = calculateScore(h, "stop");
+            const comp = calculateScore(h);
             return name !== stopper && comp <= stopperScore;
           }
           return false;
         });
 
         for (const [name, h] of Object.entries(all)) {
-          const s = calculateScore(h, "stop");
+          const s = calculateScore(h);
           scores[name] =
             name === stopper
               ? s + (hasLowerOrEqual ? 50 : 0)
@@ -62,7 +62,7 @@ export default function RoundResultPage() {
       } else {
         const triggerer = sessionStorage.getItem("bbungTriggerer");
         for (const [name, h] of Object.entries(all)) {
-          let s = calculateScore(h, reason);
+          let s = calculateScore(h);
           if (reason === "bbung-end" && triggerer && name === triggerer) {
             s += 30;
           }
@@ -108,10 +108,10 @@ export default function RoundResultPage() {
 
     // 내 점수
     if (reason === "stop" && stopper) {
-      const stopperScore = calculateScore(parsedAll[stopper] || [], "stop");
+      const stopperScore = calculateScore(parsedAll[stopper] || []);
       const hasLowerOrEqual = Object.entries(parsedAll).some(([name, h]) => {
         if (Array.isArray(h)) {
-          const comp = calculateScore(h, "stop");
+          const comp = calculateScore(h);
           return name !== stopper && comp <= stopperScore;
         }
         return false;
@@ -121,11 +121,11 @@ export default function RoundResultPage() {
         const final = stopperScore + (hasLowerOrEqual ? 50 : 0);
         setScore(final);
       } else {
-        const myScore = calculateScore(savedHand, "stop");
+        const myScore = calculateScore(savedHand);
         setScore(hasLowerOrEqual ? 0 : myScore);
       }
     } else {
-      let myScore = calculateScore(savedHand, reason);
+      let myScore = calculateScore(savedHand);
       const triggerer = sessionStorage.getItem("bbungTriggerer");
       if (reason === "bbung-end" && triggerer === nickname) {
         myScore += 30;
@@ -375,7 +375,7 @@ function isTripleTriple(values: number[]): boolean {
   return Object.values(counts).filter((c) => c === 3).length === 2;
 }
 
-function calculateScore(hand: string[], reason: string): number {
+function calculateScore(hand: string[]): number {
   if (!Array.isArray(hand) || hand.length === 0) return 0;
   const values = hand.map(cardToValue);
   const total = sum(values);
@@ -417,7 +417,7 @@ function generateReasonDescription(
     const scores: { [name: string]: number } = {};
     for (const [name, h] of Object.entries(allHands)) {
       if (Array.isArray(h)) {
-        scores[name] = calculateScore(h, "stop");
+        scores[name] = calculateScore(h);
       }
     }
     const stopperScore = scores[stopper];

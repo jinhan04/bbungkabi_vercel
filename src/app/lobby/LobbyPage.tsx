@@ -69,19 +69,21 @@ export default function LobbyPage() {
     socket.off("connect");
     socket.once("connect", handleConnect);
 
-    // 기존 사람 전용 목록 (유지)
+    // 1) update-players
     socket.off("update-players");
-    socket.on("update-players", ({ players, emojis }) => {
-      if (Array.isArray(players)) {
-        setPlayers(players);
-        setEmojiMap(emojis || {});
-      } else {
-        console.warn("🚨 players가 배열이 아님:", players);
-        setPlayers([]);
+    socket.on(
+      "update-players",
+      (payload: { players: string[]; emojis?: Record<string, string> }) => {
+        const { players, emojis } = payload;
+        if (Array.isArray(players)) {
+          setPlayers(players);
+          setEmojiMap(emojis || {});
+        } else {
+          console.warn("🚨 players가 배열이 아님:", players);
+          setPlayers([]);
+        }
       }
-      // 사람+봇 통합 목록도 최신화
-      socket.emit("request-player-list", { roomCode });
-    });
+    );
 
     // 이모지 별도 업데이트도 반영
     socket.off("update-emojis");
@@ -117,13 +119,17 @@ export default function LobbyPage() {
       router.push("/");
     });
 
-    socket.off("game-started");
-    socket.on("game-started", ({ roomCode }) => {
-      playSound("game-start.mp3");
-      router.push(
-        `/game?code=${roomCode}&nickname=${encodeURIComponent(nickname)}`
-      );
-    });
+    // 3) chat-message
+    socket.off("chat-message");
+    socket.on(
+      "chat-message",
+      (payload: { nickname: string; message: string }) => {
+        setChatMessages((prev) => [
+          ...prev,
+          { nickname: payload.nickname, message: payload.message },
+        ]);
+      }
+    );
 
     socket.off("chat-message");
     socket.on("chat-message", ({ nickname, message }) => {

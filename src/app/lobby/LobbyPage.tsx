@@ -13,6 +13,18 @@ type CombinedPlayer = {
   difficulty?: "easy" | "normal" | "hard";
 };
 
+// 1) 위쪽 타입 선언부 근처에 유니온 타입 별도로 선언
+type BotDifficulty = "easy" | "normal" | "hard";
+
+// 2) 상태도 해당 타입으로 지정
+const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>("easy");
+
+// 3) onChange 핸들러에 타입 부여(권장)
+const handleDifficultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const v = e.target.value as BotDifficulty; // options의 value가 정확히 셋 중 하나이므로 안전
+  setBotDifficulty(v);
+};
+
 export default function LobbyPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -131,11 +143,6 @@ export default function LobbyPage() {
       }
     );
 
-    socket.off("chat-message");
-    socket.on("chat-message", ({ nickname, message }) => {
-      setChatMessages((prev) => [...prev, { nickname, message }]);
-    });
-
     // 마운트 시 한 번 더 요청(새로고침 대비)
     socket.emit("request-player-list", { roomCode });
 
@@ -201,7 +208,7 @@ export default function LobbyPage() {
               <label className="text-sm text-gray-700">난이도</label>
               <select
                 value={botDifficulty}
-                onChange={(e) => setBotDifficulty(e.target.value as any)}
+                onChange={handleDifficultyChange}
                 className="text-black px-2 py-1 border rounded"
               >
                 <option value="easy">easy</option>

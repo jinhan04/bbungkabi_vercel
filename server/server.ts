@@ -193,6 +193,13 @@ function wait(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
+// 현재 턴의 플레이어 닉네임 반환
+function getCurrentPlayerName(roomCode: string): string | undefined {
+  const players = getAllPlayers(roomCode);
+  if (!players || players.length === 0) return undefined;
+  return players[turnIndex[roomCode]];
+}
+
 // 턴 브로드캐스트 + (현재 턴이 봇이면) 봇 실행
 function broadcastTurn(roomCode: string, currentPlayer: string) {
   io.to(roomCode).emit("turn-info", {
@@ -219,9 +226,24 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
       if (ended) return; // ✅ 족보/덱소진으로 라운드가 끝났으면 더 하지 않음
     }
 
-    // 2) 그 다음 낼 수 있으면 1장 제출
+    // 2) 그 다음 낼 수 있으면 1장 제출 (제출 전 1~5초 랜덤 딜레이)
     const singles = getLegalSingles(roomCode, bot.nickname);
     if (singles.length > 0) {
+      // 1~5초 랜덤 지연
+      const submitDelayMs =
+        Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
+      await wait(submitDelayMs);
+
+      // 지연 중 라운드가 끝났거나 턴이 바뀌었는지 재확인
+      if (getCurrentPlayerName(roomCode) !== bot.nickname) {
+        console.log(
+          `[${new Date().toISOString()}][AI] ${
+            bot.nickname
+          } 제출 대기 중 턴 변경 감지 → 제출 취소`
+        );
+        return;
+      }
+
       serverSubmitSingleCard(roomCode, bot.nickname, singles[0]);
       return;
     }

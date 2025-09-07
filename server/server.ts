@@ -116,9 +116,10 @@ function generateBotNickname(roomCode: string): string {
     ...getBots(roomCode).map((b) => b.nickname),
   ]);
 
-  // 1) 준비된 풀 우선 사용
-  for (const name of BOT_NAME_POOL) {
-    if (!existing.has(name)) return name;
+  // 1) 준비된 풀에서 "남아있는 후보"를 모아 랜덤 선택  ✅
+  const available = BOT_NAME_POOL.filter((n) => !existing.has(n));
+  if (available.length > 0) {
+    return pick(available); // pick: 배열에서 임의 요소 선택
   }
 
   // 2) 조합식 (형태: "<형용사> <동물>" 또는 "<형용사> <동물> <접미사>")

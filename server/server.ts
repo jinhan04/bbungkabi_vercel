@@ -254,9 +254,9 @@ function shouldBotStop(roomCode: string, bot: BotInfo): boolean {
   const deckLeft = decks[roomCode]?.length ?? 0;
 
   // 난이도별 기본 임계치 (점수가 낮을수록 유리한 게임 규칙)
-  let threshold = 18; // normal
+  let threshold = 16; // normal
   if (bot.difficulty === "easy") threshold = 20;
-  if (bot.difficulty === "hard") threshold = 16;
+  if (bot.difficulty === "hard") threshold = 12;
 
   // 막판일수록 조금 더 공격적으로 스탑
   if (deckLeft <= 10) threshold += 2;

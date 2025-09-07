@@ -200,6 +200,25 @@ function getCurrentPlayerName(roomCode: string): string | undefined {
   return players[turnIndex[roomCode]];
 }
 
+// 손패에서 '가장 높은' 카드 하나 고르기
+function pickHighestCardFromHand(
+  roomCode: string,
+  nickname: string
+): string | null {
+  const hand = playerHands[roomCode]?.[nickname] || [];
+  if (hand.length === 0) return null;
+  let best = hand[0];
+  let bestVal = _cardToValueN(best);
+  for (const c of hand) {
+    const v = _cardToValueN(c);
+    if (v > bestVal) {
+      best = c;
+      bestVal = v;
+    }
+  }
+  return best;
+}
+
 // 턴 브로드캐스트 + (현재 턴이 봇이면) 봇 실행
 function broadcastTurn(roomCode: string, currentPlayer: string) {
   io.to(roomCode).emit("turn-info", {
@@ -226,15 +245,13 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
       if (ended) return; // ✅ 족보/덱소진으로 라운드가 끝났으면 더 하지 않음
     }
 
-    // 2) 그 다음 낼 수 있으면 1장 제출 (제출 전 1~5초 랜덤 딜레이)
-    const singles = getLegalSingles(roomCode, bot.nickname);
-    if (singles.length > 0) {
-      // 1~5초 랜덤 지연
-      const submitDelayMs =
-        Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
+    // 2) 그 다음 낼 수 있으면 1장 제출 (최고 카드 선택 + 제출 전 1~5초 랜덤 딜레이)
+    const best = pickHighestCardFromHand(roomCode, bot.nickname);
+    if (best) {
+      const submitDelayMs = Math.floor(Math.random() * (5000 - 500 + 1)) + 1000;
       await wait(submitDelayMs);
 
-      // 지연 중 라운드가 끝났거나 턴이 바뀌었는지 재확인
+      // 대기 중 라운드 종료/턴 변경 되었으면 취소
       if (getCurrentPlayerName(roomCode) !== bot.nickname) {
         console.log(
           `[${new Date().toISOString()}][AI] ${
@@ -244,7 +261,7 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
         return;
       }
 
-      serverSubmitSingleCard(roomCode, bot.nickname, singles[0]);
+      serverSubmitSingleCard(roomCode, bot.nickname, best);
       return;
     }
   })().catch(console.error);

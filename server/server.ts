@@ -105,6 +105,10 @@ function serverSubmitSingleCard(
   playerHands[roomCode][nickname].splice(idx, 1);
   submittedHistory[roomCode].push({ nickname, card });
   io.to(roomCode).emit("card-submitted", { nickname, card });
+
+  // ⬇️ 추가: 방금 낸 카드에 대해 봇이 뻥 가능한지 체크
+  void maybeBotBbung(roomCode);
+
   nextTurn(roomCode); // 기존 턴 진행 재사용
 }
 
@@ -191,6 +195,193 @@ function botThinkMs(diff: Difficulty): [number, number] {
 }
 function wait(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
+}
+
+// === [BBUNG] 유틸 ===
+function _numStr(card: string): string {
+  return card.replace(/[^0-9JQKA]/g, "");
+}
+function _pickTwoSameNumber(hand: string[], numStr: string): string[] | null {
+  const m = hand.filter((c) => _numStr(c) === numStr);
+  return m.length >= 2 ? [m[0], m[1]] : null;
+}
+function _pickHighestCard(roomCode: string, nickname: string): string | null {
+  const hand = playerHands[roomCode]?.[nickname] || [];
+  if (!hand.length) return null;
+  const val = (c: string) => {
+    const v = _numStr(c);
+    if (v === "A") return 1;
+    if (v === "J") return 11;
+    if (v === "Q") return 12;
+    if (v === "K") return 13;
+    return parseInt(v, 10);
+  };
+  return hand.reduce(
+    (best, cur) => (val(cur) > val(best) ? cur : best),
+    hand[0]
+  );
+}
+
+// === [BBUNG] 서버 내부 전용: 뻥 2장 제출 ===
+function serverSubmitBbung(
+  roomCode: string,
+  nickname: string,
+  cards: string[]
+) {
+  if (!cards || cards.length !== 2) return;
+
+  // 규칙 검증 (드로우 후 금지 / 숫자 동일 / 자기 카드에 자기 뻥 금지)
+  if (drawFlag[roomCode]?.has(nickname)) return;
+  const nums = cards.map(_numStr);
+  if (nums[0] !== nums[1]) return;
+
+  const last = submittedHistory[roomCode].at(-1);
+  const lastNum = last?.card ? _numStr(last.card) : null;
+  if (!lastNum || lastNum !== nums[0]) return;
+  if (last?.nickname === nickname) return;
+
+  // 실제 제출
+  for (const card of cards) {
+    const idx = playerHands[roomCode][nickname].indexOf(card);
+    if (idx === -1) return; // 안전장치
+    playerHands[roomCode][nickname].splice(idx, 1);
+    submittedHistory[roomCode].push({ nickname, card });
+    io.to(roomCode).emit("card-submitted", { nickname, card });
+  }
+
+  // 이펙트 브로드캐스트
+  io.to(roomCode).emit("bbung-effect", { nickname });
+
+  // 손이 비면 라운드 종료 (사람 로직과 동일)
+  if (playerHands[roomCode][nickname].length === 0) {
+    const back3 = submittedHistory[roomCode].at(-3);
+    const bbungNumber = _numStr(cards[0]);
+    if (
+      back3 &&
+      back3.nickname !== nickname &&
+      _numStr(back3.card) === bbungNumber
+    ) {
+      bbungEndTriggeredBy[roomCode] = back3.nickname;
+    }
+
+    const hands = playerHands[roomCode];
+    const scoresThisRound = calculateScores("bbung-end", null, hands, roomCode);
+    for (const [n, s] of Object.entries(scoresThisRound)) {
+      scores[roomCode][n].push(s);
+    }
+    roundResults[roomCode] = {
+      scores: scoresThisRound,
+      hands,
+      reason: "bbung-end",
+    };
+    roundInProgress[roomCode] = false;
+
+    io.to(roomCode).emit("round-ended", {
+      reason: "bbung-end",
+      allPlayerHands: playerHands[roomCode],
+      round: roundCount[roomCode],
+      triggerer: bbungEndTriggeredBy[roomCode],
+    });
+  }
+}
+
+// === [BBUNG] 서버 내부 전용: 추가 1장 제출 ===
+function serverSubmitBbungExtra(
+  roomCode: string,
+  nickname: string,
+  card: string
+) {
+  const idx = playerHands[roomCode][nickname].indexOf(card);
+  if (idx !== -1) {
+    playerHands[roomCode][nickname].splice(idx, 1);
+    submittedHistory[roomCode].push({ nickname, card });
+    io.to(roomCode).emit("card-submitted", { nickname, card });
+  }
+
+  if (playerHands[roomCode][nickname].length === 0) {
+    const last = submittedHistory[roomCode].at(-1);
+    if (last) bbungEndTriggeredBy[roomCode] = last.nickname;
+
+    const hands = playerHands[roomCode];
+    const scoresThisRound = calculateScores("bbung-end", null, hands, roomCode);
+    for (const [n, s] of Object.entries(scoresThisRound)) {
+      scores[roomCode][n].push(s);
+    }
+    roundResults[roomCode] = {
+      scores: scoresThisRound,
+      hands,
+      reason: "bbung-end",
+    };
+    roundInProgress[roomCode] = false;
+
+    io.to(roomCode).emit("round-ended", {
+      reason: "bbung-end",
+      allPlayerHands: playerHands[roomCode],
+      round: roundCount[roomCode],
+      triggerer: bbungEndTriggeredBy[roomCode],
+    });
+  } else {
+    // 다음 턴으로
+    const players = getAllPlayers(roomCode);
+    const i = players.indexOf(nickname);
+    const nextIdx = (i + 1) % players.length;
+    turnIndex[roomCode] = nextIdx;
+    drawFlag[roomCode].clear();
+    const nextPlayer = players[nextIdx];
+    broadcastTurn(roomCode, nextPlayer);
+  }
+}
+
+// === [BBUNG] 봇 뻥 판단 & 실행 ===
+async function maybeBotBbung(roomCode: string) {
+  const last = submittedHistory[roomCode].at(-1);
+  if (!last) return;
+
+  const lastNum = _numStr(last.card);
+  const bots = getBots(roomCode);
+  if (!bots.length) return;
+
+  // 여러 봇이 가능한 경우, "가장 먼저 갖춘" 한 명만 시도(경합 방지)
+  for (const bot of bots) {
+    // 자기 자신이 방금 낸 카드에는 뻥 금지
+    if (bot.nickname === last.nickname) continue;
+    if (drawFlag[roomCode]?.has(bot.nickname)) continue; // 드로우 후 뻥 금지
+
+    const hand = playerHands[roomCode]?.[bot.nickname] || [];
+    const pair = _pickTwoSameNumber(hand, lastNum);
+    if (!pair) continue;
+
+    // 난이도별 반응 지연 (사람스러움)
+    const [minMs, maxMs] =
+      bot.difficulty === "hard"
+        ? [250, 700]
+        : bot.difficulty === "normal"
+        ? [400, 900]
+        : [600, 1200];
+    const waitMs = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+    await wait(waitMs);
+
+    // 지연 중 다른 카드가 또 나왔는지 재검증
+    const still = submittedHistory[roomCode].at(-1);
+    if (!still || _numStr(still.card) !== lastNum) continue;
+
+    // 1) 뻥 2장 제출
+    serverSubmitBbung(roomCode, bot.nickname, pair);
+
+    // 라운드가 끝났으면 종료
+    if (!roundInProgress[roomCode]) return;
+
+    // 2) 손이 남아 있으면 "추가 1장"도 자동 제출(잠깐 더 기다렸다가)
+    const extraDelay = Math.floor(Math.random() * 500) + 300;
+    await wait(extraDelay);
+
+    // 추가 제출 카드(여긴 간단히 가장 높은 카드 사용)
+    const extra = _pickHighestCard(roomCode, bot.nickname);
+    if (extra) {
+      serverSubmitBbungExtra(roomCode, bot.nickname, extra);
+    }
+    return; // 한 봇만 실행
+  }
 }
 
 // 현재 턴의 플레이어 닉네임 반환
@@ -744,6 +935,9 @@ io.on("connection", (socket) => {
     playerHands[roomCode][nickname].splice(index, 1);
     submittedHistory[roomCode].push({ nickname, card });
     io.to(roomCode).emit("card-submitted", { nickname, card });
+
+    // ⬇️ 추가: 사람 카드 제출에도 즉시 봇 뻥 체크
+    void maybeBotBbung(roomCode);
 
     nextTurn(roomCode);
   });

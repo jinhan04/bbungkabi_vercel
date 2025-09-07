@@ -150,10 +150,10 @@ export default function HomePage() {
           <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
           <ul className="list-disc list-inside text-sm mb-4">
             <li>5장 바가지에서 노바가지가 되면 알림 없음</li>
-            <li>AI 플레이어 추가 중...(아직 멍청함)</li>
           </ul>
           <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
           <ul className="list-disc list-inside text-sm mb-4">
+            <li>AI 플레이어 추가 중...(아직 멍청함)</li>
             <li>타이머 어벙 추가 로직 개발중...</li>
             <li>최종 결과 시 효과음 추가</li>
             <li>개인 프로필 생성 및 DB 연동 (승률, 코인 등)</li>

@@ -109,19 +109,62 @@ function serverSubmitSingleCard(
 }
 
 // 서버 내부에서 "드로우" 실행 (사람/봇 공용 경로)
-function serverDraw(roomCode: string, nickname: string) {
+// 서버 내부에서 "드로우" 실행 (사람/봇 공용 경로)
+// ⬇️ 반환값: true면 라운드가 이 호출로 종료됨
+function serverDraw(roomCode: string, nickname: string): boolean {
   const deck = decks[roomCode];
-  if (!deck || deck.length === 0) return;
+  if (!deck || deck.length === 0) return false;
+
   const card = deck.shift();
   if (card) {
     if (!playerHands[roomCode]) playerHands[roomCode] = {};
     if (!playerHands[roomCode][nickname]) playerHands[roomCode][nickname] = [];
     playerHands[roomCode][nickname].push(card);
+
     // 봇은 개별 socket이 없으니 모두에게 브로드캐스트만
     io.to(roomCode).emit("player-drawn", { nickname });
   }
+
   io.to(roomCode).emit("deck-update", { remaining: deck.length });
 
+  // ⬇️ 여기서 "봇 족보 자동 종료"를 먼저 검사
+  const isBot = getBots(roomCode).some((b) => b.nickname === nickname);
+  if (isBot) {
+    const hand = playerHands[roomCode]?.[nickname] || [];
+    if (_isJokboHand(hand)) {
+      console.log(
+        `[${new Date().toISOString()}][AI] ${nickname} 족보 완성 → 라운드 즉시 종료`
+      );
+
+      const hands = playerHands[roomCode];
+      const scoresThisRound = calculateScores(
+        "족보 완성",
+        null,
+        hands,
+        roomCode
+      );
+      for (const [n, score] of Object.entries(scoresThisRound)) {
+        scores[roomCode][n].push(score);
+      }
+
+      roundResults[roomCode] = {
+        scores: scoresThisRound,
+        hands,
+        reason: "족보 완성",
+      };
+      roundInProgress[roomCode] = false;
+
+      io.to(roomCode).emit("round-ended", {
+        reason: "족보 완성",
+        allPlayerHands: playerHands[roomCode],
+        round: roundCount[roomCode],
+      });
+
+      return true; // ✅ 이 드로우로 라운드가 끝났음을 상위에 알림
+    }
+  }
+
+  // (그 다음) 덱이 완전히 비었으면 라운드 종료
   if (deck.length === 0) {
     roundInProgress[roomCode] = false;
     io.to(roomCode).emit("round-ended", {
@@ -129,7 +172,10 @@ function serverDraw(roomCode: string, nickname: string) {
       allPlayerHands: playerHands[roomCode],
       round: roundCount[roomCode],
     });
+    return true;
   }
+
+  return false;
 }
 
 // 지금 낼 수 있는 "단일 카드" 후보 (최소 구현: 손패 전체)
@@ -154,7 +200,6 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
     round: roundCount[roomCode],
   });
 
-  // 현재 플레이어가 봇이면 실행
   const bot = getBots(roomCode).find((b) => b.nickname === currentPlayer);
   if (!bot) return;
 
@@ -164,26 +209,22 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
   (async () => {
     await wait(think);
 
-    // 안전 가드
     if (!drawFlag[roomCode]) drawFlag[roomCode] = new Set();
 
-    // 1) 이번 턴에 아직 드로우 안했으면 먼저 드로우
+    // 1) 드로우 먼저
     const deck = decks[roomCode];
     if (deck && deck.length > 0 && !drawFlag[roomCode].has(bot.nickname)) {
-      serverDraw(roomCode, bot.nickname);
-      // 손패/덱 브로드캐스트 반영될 시간을 아주 조금 줌
+      const ended = serverDraw(roomCode, bot.nickname); // ⬅️ 여기서 끝났는지 확인
       await wait(150);
+      if (ended) return; // ✅ 족보/덱소진으로 라운드가 끝났으면 더 하지 않음
     }
 
-    // 2) 그 다음 낼 수 있으면 한 장 제출
+    // 2) 그 다음 낼 수 있으면 1장 제출
     const singles = getLegalSingles(roomCode, bot.nickname);
     if (singles.length > 0) {
       serverSubmitSingleCard(roomCode, bot.nickname, singles[0]);
-      return; // 제출 시 nextTurn 호출됨
+      return;
     }
-
-    // 싱글 후보가 전혀 없는 경우는 거의 없음(손패가 비었을 때 정도).
-    // 이 경우에는 별도 행동 없이 대기(덱 소진/라운드 종료 등의 다른 경로가 처리).
   })().catch(console.error);
 }
 
@@ -240,6 +281,46 @@ const shuffle = (array: string[]) => {
   }
   return copy;
 };
+
+// === [AI] 족보 판단 유틸 시작 ===
+function _cardToValueN(card: string): number {
+  const v = card.replace(/[^0-9JQKA]/g, "");
+  if (v === "A") return 1;
+  if (v === "J") return 11;
+  if (v === "Q") return 12;
+  if (v === "K") return 13;
+  return parseInt(v, 10);
+}
+
+function _isJokboHand(hand: string[]): boolean {
+  // GamePage의 족보 체크 로직과 동일하게 맞춤:
+  // 6장일 때 스트레이트, 2쌍+2쌍+2쌍, 트리플+트리플, 합 ≤14, 합 ≥65
+  if (!hand || hand.length !== 6) return false;
+
+  const values = hand.map(_cardToValueN);
+
+  const isStraight = (() => {
+    const sorted = [...values].sort((a, b) => a - b);
+    for (let i = 1; i < sorted.length; i++) {
+      const diff = sorted[i] - sorted[i - 1];
+      // 원 코드의 '원형' 스트레이트 허용 로직도 반영
+      if ((diff + 13) % 13 !== 1 && diff !== 1) return false;
+    }
+    return true;
+  })();
+
+  const counts: Record<number, number> = {};
+  for (const v of values) counts[v] = (counts[v] || 0) + 1;
+
+  const pairPairPair =
+    Object.values(counts).filter((c) => c === 2).length === 3;
+  const tripleTriple =
+    Object.values(counts).filter((c) => c === 3).length === 2;
+  const sum = values.reduce((a, b) => a + b, 0);
+
+  return isStraight || pairPairPair || tripleTriple || sum <= 14 || sum >= 65;
+}
+// === [AI] 족보 판단 유틸 끝 ===
 
 io.on("connection", (socket) => {
   console.log("새 클라이언트 연결:", socket.id);

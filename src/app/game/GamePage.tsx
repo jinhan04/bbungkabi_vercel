@@ -17,6 +17,12 @@ import {
   sum,
 } from "@/lib/gameUtils";
 
+type CombinedPlayer = {
+  nickname: string;
+  isBot?: boolean;
+  difficulty?: "easy" | "normal" | "hard";
+};
+
 import Card from "@/components/Card";
 //import PlayerList from "@/components/PlayerList";
 import ChatBox from "@/components/ChatBox";
@@ -33,7 +39,7 @@ export default function GamePage() {
   const roomCode = searchParams.get("code") || "";
   const nicknameRaw = searchParams.get("nickname") || "";
   const nickname = decodeURIComponent(nicknameRaw);
-  const [playerList, setPlayerList] = useState<string[]>([]);
+  // const [playerList, setPlayerList] = useState<string[]>([]);
 
   const [bagajiText, setBagajiText] = useState("");
   const [showBagaji, setShowBagaji] = useState(false);
@@ -79,6 +85,9 @@ export default function GamePage() {
   const [newCards, setNewCards] = useState<string[]>([]);
   const [soundOn, setSoundOn] = useState(true);
 
+  const [combinedPlayers, setCombinedPlayers] = useState<CombinedPlayer[]>([]);
+  const [emojiMap, setEmojiMap] = useState<Record<string, string>>({});
+
   const isMyTurn = currentPlayer === nickname;
 
   const checkAndEmitBagaji = (
@@ -119,16 +128,40 @@ export default function GamePage() {
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 
-    socket.emit("join-room", { roomCode, nickname, emoji: myEmoji });
+    // socket.emit("join-room", { roomCode, nickname, emoji: myEmoji });
 
     console.log("🙋 내 닉네임:", nickname);
 
-    socket.removeAllListeners();
+    // socket.removeAllListeners();
 
-    socket.on("update-players", ({ players, emojis }) => {
-      setPlayerList(players);
-      setEmojiMap(emojis); // ✅ 서버에서 전달된 emojiMap 사용
+    socket.on("update-players", ({ emojis }) => {
+      setEmojiMap(emojis || {});
     });
+
+    // ✅ 이모지 단독 업데이트도 반영
+    socket.off("update-emojis");
+    socket.on("update-emojis", (map: Record<string, string>) => {
+      setEmojiMap(map || {});
+    });
+
+    // ✅ 사람+봇 통합 목록 구독
+    socket.off("player-list");
+    socket.on("player-list", ({ players }: { players: CombinedPlayer[] }) => {
+      setCombinedPlayers(Array.isArray(players) ? players : []);
+    });
+
+    // ✅ 누가 들어오고/나가면 목록 새로고침
+    socket.off("player-joined");
+    socket.on("player-joined", () => {
+      socket.emit("request-player-list", { roomCode });
+    });
+    socket.off("player-left");
+    socket.on("player-left", () => {
+      socket.emit("request-player-list", { roomCode });
+    });
+
+    // ✅ 게임 화면 마운트 시 통합 목록 1회 요청
+    socket.emit("request-player-list", { roomCode });
 
     socket.emit(
       "get-player-emojis",
@@ -136,10 +169,6 @@ export default function GamePage() {
       (map: { [nickname: string]: string }) => {
         setEmojiMap(map);
       }
-    );
-
-    socket.emit("get-player-list", { roomCode }, (players: string[]) =>
-      setPlayerList(players)
     );
 
     socket.on("deck-update", ({ remaining }) => {
@@ -286,7 +315,21 @@ export default function GamePage() {
     return () => {
       socket.off("game-starting");
       socket.off("game-started");
-      // ... 기타 off 정리 ...
+
+      socket.off("update-players");
+      socket.off("update-emojis");
+      socket.off("player-list");
+      socket.off("player-joined");
+      socket.off("player-left");
+
+      socket.off("deck-update");
+      socket.off("deal-cards");
+      socket.off("turn-info");
+      socket.off("card-submitted");
+      socket.off("drawn-card");
+      socket.off("player-drawn");
+      socket.off("bagaji-declared");
+      socket.off("round-ended");
     };
   }, [roomCode, nickname, router]);
 
@@ -370,7 +413,7 @@ export default function GamePage() {
     }
   }, [nickname]);
 
-  const [emojiMap, setEmojiMap] = useState<{ [player: string]: string }>({});
+  // const [emojiMap, setEmojiMap] = useState<{ [player: string]: string }>({});
 
   const toggleBbungCard = (card: string) => {
     setBbungCards((prev) =>
@@ -592,18 +635,16 @@ export default function GamePage() {
 
       {/* 👤 플레이어 표시 줄 */}
       <div className="absolute top-[100px] left-2 sm:left-4 z-40 flex flex-col gap-1 max-w-[80vw]">
-        {playerList.map((player) => {
-          const isCurrent = player === currentPlayer;
+        {combinedPlayers.map((p) => {
+          const isCurrent = p.nickname === currentPlayer;
           const emoji =
-            player === nickname
+            p.nickname === nickname
               ? myEmoji
-              : emojiMap[player] !== undefined
-              ? emojiMap[player]
-              : "👤";
+              : emojiMap[p.nickname] ?? (p.isBot ? "🤖" : "👤");
 
           return (
             <div
-              key={player}
+              key={p.nickname}
               className={`flex items-center px-3 py-2 rounded-xl shadow-md text-xs sm:text-sm transition-all ${
                 isCurrent
                   ? "bg-yellow-300 text-black scale-105 ring-2 ring-yellow-500 animate-pulse"
@@ -611,7 +652,12 @@ export default function GamePage() {
               }`}
             >
               <span className="text-lg sm:text-xl mr-2">{emoji}</span>
-              <span>{player}</span>
+              <span className="mr-2">{p.nickname}</span>
+              {p.isBot && p.difficulty && (
+                <span className="text-[10px] sm:text-xs text-gray-200 bg-black/30 border border-white/20 px-1.5 py-0.5 rounded">
+                  {p.difficulty}
+                </span>
+              )}
             </div>
           );
         })}

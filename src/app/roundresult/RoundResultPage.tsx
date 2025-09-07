@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-
 import { getSocket } from "@/lib/socket";
 
 interface FinalScore {
@@ -28,59 +27,61 @@ export default function RoundResultPage() {
   const [isReady, setIsReady] = useState(false);
   const [round, setRound] = useState<number>(1);
 
-  // ✅ 새로 추가: 토글 & 점수 맵(이번 라운드) & 누적 점수 맵
+  // ⬇️ 추가: 다른 플레이어 보기 + 점수맵
   const [showOthers, setShowOthers] = useState(false);
   const [roundScores, setRoundScores] = useState<Record<string, number>>({});
   const [totalScoresMap, setTotalScoresMap] = useState<Record<string, number>>(
     {}
   );
 
-  // ---- Helpers inside component (reason/stopper 접근 위해) ----
-  const computeRoundScores = (all: Record<string, string[]>) => {
-    const scores: Record<string, number> = {};
-    if (!all || Object.keys(all).length === 0) return scores;
+  // 이번 라운드 전체 점수 계산 (서버 규칙과 동일)
+  const computeRoundScores = useCallback(
+    (all: Record<string, string[]>) => {
+      const scores: Record<string, number> = {};
+      if (!all || Object.keys(all).length === 0) return scores;
 
-    if (reason === "stop" && stopper) {
-      const stopperScore = calculateScore(all[stopper] || [], "stop");
-      const hasLowerOrEqual = Object.entries(all).some(([name, h]) => {
-        if (Array.isArray(h)) {
-          const comp = calculateScore(h, "stop");
-          return name !== stopper && comp <= stopperScore;
-        }
-        return false;
-      });
+      if (reason === "stop" && stopper) {
+        const stopperScore = calculateScore(all[stopper] || [], "stop");
+        const hasLowerOrEqual = Object.entries(all).some(([name, h]) => {
+          if (Array.isArray(h)) {
+            const comp = calculateScore(h, "stop");
+            return name !== stopper && comp <= stopperScore;
+          }
+          return false;
+        });
 
-      for (const [name, h] of Object.entries(all)) {
-        const s = calculateScore(h, "stop");
-        scores[name] =
-          name === stopper
-            ? s + (hasLowerOrEqual ? 50 : 0)
-            : hasLowerOrEqual
-            ? 0
-            : s;
-      }
-    } else {
-      const triggerer = sessionStorage.getItem("bbungTriggerer");
-      for (const [name, h] of Object.entries(all)) {
-        let s = calculateScore(h, reason);
-        if (reason === "bbung-end" && triggerer && name === triggerer) {
-          s += 30;
+        for (const [name, h] of Object.entries(all)) {
+          const s = calculateScore(h, "stop");
+          scores[name] =
+            name === stopper
+              ? s + (hasLowerOrEqual ? 50 : 0)
+              : hasLowerOrEqual
+              ? 0
+              : s;
         }
-        scores[name] = s;
+      } else {
+        const triggerer = sessionStorage.getItem("bbungTriggerer");
+        for (const [name, h] of Object.entries(all)) {
+          let s = calculateScore(h, reason);
+          if (reason === "bbung-end" && triggerer && name === triggerer) {
+            s += 30;
+          }
+          scores[name] = s;
+        }
       }
-    }
-    return scores;
-  };
+      return scores;
+    },
+    [reason, stopper]
+  );
 
   const sortedPlayers = useMemo(() => {
     return Object.keys(allHands).sort((a, b) => {
       const ta = totalScoresMap[a] ?? 0;
       const tb = totalScoresMap[b] ?? 0;
-      return tb - ta; // 누적 점수 내림차순
+      return tb - ta;
     });
   }, [allHands, totalScoresMap]);
 
-  // ---------------- Effects ----------------
   useEffect(() => {
     const savedHand = JSON.parse(sessionStorage.getItem("myHand") || "[]");
     let finalHand = savedHand;
@@ -105,7 +106,7 @@ export default function RoundResultPage() {
     const storedRound = sessionStorage.getItem("round");
     if (storedRound) setRound(Number(storedRound));
 
-    // 내 점수 계산
+    // 내 점수
     if (reason === "stop" && stopper) {
       const stopperScore = calculateScore(parsedAll[stopper] || [], "stop");
       const hasLowerOrEqual = Object.entries(parsedAll).some(([name, h]) => {
@@ -132,9 +133,9 @@ export default function RoundResultPage() {
       setScore(myScore);
     }
 
-    // ✅ 모든 플레이어의 이번 라운드 점수 계산
+    // 전체(이번 라운드) 점수
     setRoundScores(computeRoundScores(parsedAll));
-  }, [reason, stopper, nickname]);
+  }, [reason, stopper, nickname, computeRoundScores]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -149,7 +150,6 @@ export default function RoundResultPage() {
           const me = response.scores.find((s) => s.nickname === nickname);
           if (me) setTotalScore(me.total);
 
-          // ✅ 전체 점수 sessionStorage + state 동기화
           const scoreMap: Record<string, number> = {};
           response.scores.forEach((entry) => {
             scoreMap[entry.nickname] = entry.total;
@@ -237,7 +237,7 @@ export default function RoundResultPage() {
         </h2>
       </div>
 
-      {/* 🔽 다른 플레이어 보기 토글 */}
+      {/* 다른 플레이어 보기 */}
       {Object.keys(allHands).length > 0 && (
         <div className="mt-8 w-full max-w-3xl">
           <button
@@ -297,7 +297,7 @@ export default function RoundResultPage() {
       )}
 
       {/* 다음 라운드 / 최종 결과 */}
-      {!isLastRound && (
+      {!isLastRound ? (
         <>
           <button
             onClick={handleReadyNext}
@@ -310,8 +310,7 @@ export default function RoundResultPage() {
             준비한 사람: {readyPlayers.join(", ")}
           </div>
         </>
-      )}
-      {isLastRound && (
+      ) : (
         <button
           onClick={handleViewFinal}
           className="mt-10 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded"
@@ -323,7 +322,6 @@ export default function RoundResultPage() {
   );
 }
 
-// --- Small presentational chip for a card ---
 function CardChip({ card }: { card: string }) {
   const isRed = card.includes("♥") || card.includes("♦");
   return (
@@ -338,7 +336,7 @@ function CardChip({ card }: { card: string }) {
   );
 }
 
-// ----------------- Scoring helpers (클라이언트 계산) -----------------
+// -------- scoring helpers (client) ----------
 function cardToValue(card: string): number {
   const rank = card.replace(/[^0-9JQKA]/g, "");
   if (rank === "A") return 1;
@@ -409,7 +407,6 @@ function calculateScore(hand: string[], reason: string): number {
   return total;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateReasonDescription(
   reason: string,
   nickname: string,
@@ -432,15 +429,15 @@ function generateReasonDescription(
       if (lowerOrEqualPlayers.length > 0) {
         return `${stopper}님이 ${stopperScore}점으로 "스탑"을 외쳤습니다! 근데 더 낮거나 같은 점수인 ${lowerOrEqualPlayers.join(
           ", "
-        )}가 있어 +50점!ㅋㅋㅋ 나머지는 0점!`;
+        )}가 있어 +50점! 나머지는 0점!`;
       } else {
-        return `${stopper}님이 ${stopperScore}점으로 "스탑"을 외쳤습니다! 근데 더 낮은 점수의 플레이어가 없네요...ㅠ`;
+        return `${stopper}님이 ${stopperScore}점으로 "스탑"을 외쳤습니다! 더 낮은 점수의 플레이어가 없네요.`;
       }
     } else {
       if (lowerOrEqualPlayers.length > 0) {
-        return `${stopper}님이 ${stopperScore}점으로 "스탑", 그런데! 더 낮거나 같은 점수의 플레이어가 있어 ${stopper} +50점ㅋㅋㅋ 나머지는 0점!`;
+        return `${stopper}님이 ${stopperScore}점으로 "스탑"! 더 낮거나 같은 점수의 플레이어가 있어 ${stopper} +50점, 나머지는 0점!`;
       } else {
-        return `${stopper}님이 ${stopperScore}점으로 "스탑", 그런데 더 낮은 점수의 플레이어가 없네요...ㅠ`;
+        return `${stopper}님이 ${stopperScore}점으로 "스탑", 더 낮은 점수의 플레이어가 없네요.`;
       }
     }
   }
@@ -469,7 +466,6 @@ function generateReasonDescription(
     const bbungFinisher = Object.entries(allHands).find(
       ([, h]) => h.length === 0
     )?.[0];
-
     if (triggerer && bbungFinisher) {
       return `ㅋㅋ ${triggerer} 뻥이쥬~🤣 (${bbungFinisher} +30점)`;
     }

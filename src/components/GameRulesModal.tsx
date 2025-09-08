@@ -1,41 +1,68 @@
 // src/components/GameRulesModal.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 type TabKey = "rules" | "update" | "bugs" | "future";
 
-type ModalData = {
-  rules?: React.ReactNode; // 규칙(리치 텍스트 가능)
-  update?: string[]; // 업데이트 목록
-  bugs?: string[]; // 버그 목록
-  future?: string[]; // 앞으로 개선 목록
-};
+interface ModalData {
+  rules?: React.ReactNode; // 규칙은 리치 텍스트도 가능
+  update?: string[];
+  bugs?: string[];
+  future?: string[];
+}
+
+interface GameRulesModalProps {
+  open: boolean;
+  onClose: () => void;
+  initialTab?: TabKey;
+  title?: string;
+  data?: ModalData;
+}
 
 export default function GameRulesModal({
   open,
   onClose,
   initialTab = "rules",
-  data = {},
   title = "🎴 뻥카비 안내",
-}: {
-  open: boolean;
-  onClose: () => void;
-  initialTab?: TabKey;
-  data?: ModalData;
-  title?: string;
-}) {
+  data = {},
+}: GameRulesModalProps) {
   const [tab, setTab] = useState<TabKey>(initialTab);
+  const panelRef = useRef<HTMLDivElement>(null);
 
+  // 탭 초기화
+  useEffect(() => setTab(initialTab), [initialTab]);
+
+  // ESC로 닫기 + 바깥 클릭 닫기
   useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => (e.key === "Escape" ? onClose() : null);
+    const onClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClickOutside);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClickOutside);
+    };
+  }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-white text-black rounded-lg w-[92%] max-w-3xl max-h-[85vh] shadow-2xl overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+    >
+      <div
+        ref={panelRef}
+        className="bg-white text-black rounded-lg w-[92%] max-w-3xl max-h-[85vh] shadow-2xl overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-xl font-bold">{title}</h2>
@@ -66,7 +93,7 @@ export default function GameRulesModal({
         {/* Body */}
         <div className="p-5 overflow-y-auto max-h-[65vh] text-sm leading-6">
           {tab === "rules" && (
-            <div className="space-y-2 whitespace-pre-wrap">
+            <div className="space-y-2 whitespace-pre-wrap break-words text-left">
               {data.rules ?? "게임 규칙 설명이 여기에 표시됩니다."}
             </div>
           )}
@@ -115,7 +142,7 @@ function SectionList({ title, items }: { title: string; items?: string[] }) {
   return (
     <section className="space-y-2">
       <h3 className="text-lg font-semibold">{title}</h3>
-      {items && items.length > 0 ? (
+      {items && items.length ? (
         <ul className="list-disc pl-5 space-y-1">
           {items.map((t, i) => (
             <li key={i}>{t}</li>

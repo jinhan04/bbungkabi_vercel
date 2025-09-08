@@ -1,7 +1,7 @@
 // src/app/page.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import GameRulesModal from "@/components/GameRulesModal";
 import { useAuth } from "@/context/AuthContext";
@@ -13,9 +13,9 @@ export default function HomePage() {
   const [maxPlayers] = useState(6);
   const [showMaxInput, setShowMaxInput] = useState(false);
 
-  // ✅ 모달 상태
-  const [showPatchNote, setShowPatchNote] = useState(true); // 들어오면 업데이트 탭으로
-  const [showRules, setShowRules] = useState(false); // 규칙 탭으로
+  // 모달 상태
+  const [showPatchNote, setShowPatchNote] = useState(true); // 홈 진입 시 공지/업데이트 탭
+  const [showRules, setShowRules] = useState(false); // 게임 설명 탭
 
   const [doubleFinalRound, setDoubleFinalRound] = useState(false);
   const { emoji, setEmoji } = useAuth();
@@ -29,15 +29,15 @@ export default function HomePage() {
   const router = useRouter();
   const handleClosePatch = () => setShowPatchNote(false);
 
-  // ✅ 모달용 데이터(한 곳에서 관리 → 두 모달에서 공용으로 사용)
+  // ---- 공용 데이터(한 곳에서 관리) ----
   const UPDATE_LIST = [
-    "뻥카비에 숨겨진 이스터에그를 찾으면 기프티콘을 드립니다~!",
-    "이스터에그 1: 난이도 ★★★☆☆(찾은 사람: 1명)",
-    "이스터에그 2: 난이도 ★★★★★★★★★★(찾은 사람: 없음, 2027년 공개 예정)",
-    "AI 봇 추가 됨(난이도별 봇 학습중...)",
+    "턴 타이머에 진행바 추가",
+    "모바일 손패 3열 그리드 + 자동 리사이징",
+    "카드 호버/선택 효과 강화",
+    "“족보 완성!” 버튼 강조 애니메이션",
   ];
   const BUG_LIST = [
-    "5장 바가지에서 노바가지가 되면 알림 없음",
+    "5장 바가지에서 노바가지 알림 없음",
     "AI랑 플레이 시 가끔 뻥 안됨",
   ];
   const FUTURE_LIST = [
@@ -47,21 +47,93 @@ export default function HomePage() {
     "카카오 로그인 연동",
   ];
   const RULES_CONTENT = (
-    <div>
-      <p className="mb-2">
-        게임은 총 5라운드, 각 라운드에서 손패 점수 합산(특수 족보/예외 적용).
-      </p>
-      <ul className="list-disc pl-5 space-y-1">
-        <li>
-          뻥: 같은 숫자 2장 + 추가 1장 제출. 타이밍/조건은 게임 화면 설명 참고.
-        </li>
-        <li>바가지/노바가지: 2장/5장 상황에서 조건에 따라 자동 선언.</li>
-        <li>족보 완성: 6장 조합이 조건 충족 시 라운드 즉시 종료.</li>
-        <li>
-          스탑: 특정 점수 상황에서 선언, 상대 점수에 따라 +50/0점 규칙 적용.
-        </li>
-      </ul>
-    </div>
+    <>
+      {`📌 기본 정보
+게임명: 뻥카비
+
+사용 카드: 일반 트럼프 카드 52장 (조커 없음)
+플레이어 수: 1~6인
+라운드 수: 총 5라운드
+목표: 라운드마다 손패 점수가 작을수록 순위가 높고, 총 5라운드 누적 점수로 최종 승자 결정.
+
+🎮 게임 흐름 요약
+- 각 라운드 시작 시 5장씩 배분
+- 자신의 턴에 카드 1장 뽑기 (draw)
+- 필수 제출 또는 '뻥!' 외치며 2장 제출 후 1장 추가 제출
+- 손패가 족보일 경우 “족보 완성” 버튼 클릭하여 라운드 종료 가능
+- 언제든 스탑 선언 가능
+- 덱이 비거나 손패가 0장일 경우 라운드 종료
+- 5라운드 후 총점이 가장 낮은 사람이 승자
+
+🔁 턴 진행 방식
+- 첫 번째 라운드: 랜덤 플레이어가 시작
+- 2라운드부터: 직전 라운드 점수가 가장 낮은 플레이어부터 시작
+
+🎯 주요 규칙 설명
+
+1. 뻥 시스템
+[조건]
+- 자기 턴 중 제출된 카드의 숫자와 같은 숫자의 2장을 손패에서 선택
+- "뻥!"을 외치며 2장 제출 → 이후 1장 추가 제출
+
+[유효 조건]
+- 직전 카드의 숫자와 동일해야 하며
+- 2장의 숫자가 정확히 같아야 함
+- 이후 1장은 자유
+
+[추가 효과]
+- 뻥을 유도한 직전 제출자 +30점 (유효한 뻥 성공 시)
+- 뻥 중 손패가 0장이 되면 라운드 종료
+
+2. 바가지 시스템
+- 드로우한 직후 손패 내 동일한 카드가 2장일 경우
+- 자동으로 바가지 판단 서버로 전송 → 메시지 출력 ("바가지!", "노 바가지!")
+
+3. 족보 완성
+[조건]
+손패가 6장일 때 아래 중 하나에 해당되면 "족보 완성" 버튼 활성화:
+- 스트레이트: 연속 숫자 6장
+- 트리플트리플: 동일 숫자 3장 + 3장
+- 페어페어페어: 동일 숫자 2장 x 3쌍
+- 로우 족보: 숫자 총합 ≤ 14 → -100점
+- 하이 족보: 숫자 총합 ≥ 65 → -총합 점수
+
+[효과]
+- "족보 완성!" 클릭 시 라운드 즉시 종료
+- 족보 유형에 따라 감점 또는 0점 처리
+
+4. 스탑
+[조건]
+- 자신의 턴에 “스탑!” 버튼 클릭 가능
+
+[효과]
+- 본인보다 점수가 같거나 낮은 플레이어가 있으면:
+  본인 +30점, 그 플레이어들은 0점
+  나머지는 손패 기준 점수 유지
+
+5. 점수 계산
+[기본]
+- 카드 숫자 총합 (A=1, J=11, Q=12, K=13)
+
+[예외]
+- 같은 숫자 3장만 있을 경우 → 해당 3장은 0점
+- 트리플트리플 → 0점
+- 페어페어페어 → 0점
+- 스트레이트 → -총합
+- 로우 족보 → -100점
+- 하이 족보 → -총합
+- 스탑 성공 → +50점
+
+[최종 라운드 보너스]
+- 5라운드는 점수 2배 적용(설정 가능)
+
+📋 라운드 종료 조건
+- 손패가 0장일 때
+- 덱이 소진되었을 때
+- 족보 완성 버튼 클릭 시
+- 스탑 선언 시
+- 뻥 중 손패가 0장일 때`}
+    </>
   );
 
   function generateRoomCode() {
@@ -84,21 +156,17 @@ export default function HomePage() {
 
   const handleLogoClick = () => {
     if (logoClickCountRef.current === 0) {
-      // ⏱ 최초 클릭 시 타이머 시작
       logoClickTimeoutRef.current = setTimeout(() => {
-        logoClickCountRef.current = 0; // 3초 안에 10번 못 누르면 초기화
+        logoClickCountRef.current = 0;
       }, 3000);
     }
-
     logoClickCountRef.current += 1;
 
     if (logoClickCountRef.current >= 10) {
       setShowEasterEgg(true);
       logoClickCountRef.current = 0;
-      if (logoClickTimeoutRef.current) {
-        clearTimeout(logoClickTimeoutRef.current); // 타이머 정리
-      }
-      // 3초 후 이스터에그 닫기
+      if (logoClickTimeoutRef.current)
+        clearTimeout(logoClickTimeoutRef.current);
       setTimeout(() => setShowEasterEgg(false), 3000);
     }
   };
@@ -108,12 +176,10 @@ export default function HomePage() {
       router.push("/dev-easteregg");
       return;
     }
-
     if (maxPlayers < 1 || maxPlayers > 6) {
       alert("최대 인원은 1명 이상 6명 이하만 가능합니다.");
       return;
     }
-
     const newRoomCode = generateRoomCode();
     router.push(
       `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
@@ -147,7 +213,7 @@ export default function HomePage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      {/* 오류 제보 + Buy me a coffee 버튼 */}
+      {/* 우상단 버튼 */}
       <div className="absolute top-4 right-4 flex flex-col items-end space-y-2 z-50">
         <a
           href="https://open.kakao.com/o/sXveaSxh"
@@ -171,7 +237,7 @@ export default function HomePage() {
         </a>
       </div>
 
-      {/* ✅ 업데이트 모달: 들어오면 자동으로 뜸(업데이트 탭으로 시작) */}
+      {/* 업데이트/공지 모달 (업데이트 탭으로 시작) */}
       <GameRulesModal
         open={showPatchNote}
         onClose={handleClosePatch}
@@ -187,7 +253,6 @@ export default function HomePage() {
         >
           뻥카비
         </div>
-
         <p className="text-sm mt-1 text-gray-600 italic">
           이제 언제 어디든, 뻥카비
         </p>
@@ -224,7 +289,7 @@ export default function HomePage() {
       )}
 
       {showEasterEgg && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-200 border border-yellow-400 text-yellow-900 px-6 py-3 rounded-xl shadow-xl z-50 animate-bounce text-center text-lg font-bold">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-yellow-200 border border-yellow-400 text-yellow-900 px-6 py-3 rounded-xl shadow-xl z-50 animate-bounce text-center text-lg font-bold">
           🎉 진한이 숨겨둔 이스터에그, 당신이 찾았군..
           <br />
           &nbsp;&nbsp;&nbsp;&nbsp;화면 캡쳐해서 보내면 기프티콘 드립니다.
@@ -302,7 +367,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ✅ 규칙 모달: 버튼 눌렀을 때 열림(규칙 탭으로 시작) */}
+      {/* 규칙 모달 (규칙 탭으로 시작) */}
       <button
         onClick={() => setShowRules(true)}
         className="mt-6 text-sm underline text-blue-600 hover:text-blue-800"

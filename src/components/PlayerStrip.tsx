@@ -1,6 +1,9 @@
+// src/components/PlayerStrip.tsx
 "use client";
 
 import clsx from "clsx";
+
+const MAX = 10; // 기본 10초
 
 export type PlayerInfo = {
   name: string;
@@ -30,14 +33,19 @@ export default function PlayerStrip({
           {players.map((p) => {
             const isMe = p.name === me;
             const isTurn = p.name === currentPlayer;
+            const percent =
+              typeof timer === "number"
+                ? Math.max(0, Math.min(100, (timer / MAX) * 100))
+                : 0;
+
             return (
-              // 카드(플레이어 pill) 컨테이너에 overflow 방지
+              // 카드(플레이어 pill) 컨테이너에 overflow 방지 + 진행바 기준 배치
               <div
                 key={p.name}
                 className={clsx(
-                  "shrink-0 px-3 py-2 rounded-2xl border",
+                  "relative shrink-0 px-3 py-2 rounded-2xl border",
                   "flex items-center gap-2 bg-white/10 border-white/20 backdrop-blur-sm",
-                  "max-w-full", // ✅ 너비 제어
+                  "max-w-full",
                   isTurn && "ring-2 ring-pink-400 shadow-lg",
                   isMe && "border-yellow-300"
                 )}
@@ -49,7 +57,7 @@ export default function PlayerStrip({
                 <div className="flex-1 min-w-0">
                   <span
                     className={clsx(
-                      "text-xs font-semibold block truncate", // ✅ truncate
+                      "text-xs font-semibold block truncate",
                       isTurn ? "text-pink-300" : "text-white/90"
                     )}
                   >
@@ -75,6 +83,16 @@ export default function PlayerStrip({
                   <span className="ml-2 shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20">
                     {timer}s
                   </span>
+                )}
+
+                {/* 하단 진행바: 본인 차례일 때만 표시 */}
+                {isTurn && typeof timer === "number" && timer !== null && (
+                  <div className="absolute left-0 right-0 bottom-0 h-1 bg-white/15 rounded-b-2xl overflow-hidden">
+                    <div
+                      className="h-full bg-pink-400 transition-all duration-300 ease-linear"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
                 )}
               </div>
             );

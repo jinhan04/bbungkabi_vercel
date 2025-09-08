@@ -1,107 +1,129 @@
 // src/components/GameRulesModal.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
-export default function GameRulesModal({ onClose }: { onClose: () => void }) {
+type TabKey = "rules" | "update" | "bugs" | "future";
+
+type ModalData = {
+  rules?: React.ReactNode; // 규칙(리치 텍스트 가능)
+  update?: string[]; // 업데이트 목록
+  bugs?: string[]; // 버그 목록
+  future?: string[]; // 앞으로 개선 목록
+};
+
+export default function GameRulesModal({
+  open,
+  onClose,
+  initialTab = "rules",
+  data = {},
+  title = "🎴 뻥카비 안내",
+}: {
+  open: boolean;
+  onClose: () => void;
+  initialTab?: TabKey;
+  data?: ModalData;
+  title?: string;
+}) {
+  const [tab, setTab] = useState<TabKey>(initialTab);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+
+  if (!open) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div className="bg-white text-black rounded-lg p-6 max-w-xl max-h-[80vh] overflow-y-auto shadow-lg">
-        <h2 className="text-2xl font-bold mb-4">🎴 뻥카비 게임 규칙 설명서</h2>
-        <pre className="whitespace-pre-wrap text-sm text-left">
-          {`📌 기본 정보
-게임명: 뻥카비
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white text-black rounded-lg w-[92%] max-w-3xl max-h-[85vh] shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-xl font-bold">{title}</h2>
+          <button
+            onClick={onClose}
+            className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-sm"
+          >
+            닫기
+          </button>
+        </div>
 
-사용 카드: 일반 트럼프 카드 52장 (조커 없음)
-플레이어 수: 1~6인
-라운드 수: 총 5라운드
-목표: 라운드마다 손패 점수가 작을수록 순위가 높고, 총 5라운드 누적 점수로 최종 승자 결정.
+        {/* Tabs */}
+        <div className="flex items-center gap-2 px-4 pt-3 pb-2 bg-gray-50 border-b">
+          <TabButton active={tab === "rules"} onClick={() => setTab("rules")}>
+            📖 규칙
+          </TabButton>
+          <TabButton active={tab === "update"} onClick={() => setTab("update")}>
+            📝 업데이트
+          </TabButton>
+          <TabButton active={tab === "bugs"} onClick={() => setTab("bugs")}>
+            🐞 버그
+          </TabButton>
+          <TabButton active={tab === "future"} onClick={() => setTab("future")}>
+            🚀 앞으로 개선
+          </TabButton>
+        </div>
 
-🎮 게임 흐름 요약
-- 각 라운드 시작 시 5장씩 배분
-- 자신의 턴에 카드 1장 뽑기 (draw)
-- 필수 제출 또는 '뻥!' 외치며 2장 제출 후 1장 추가 제출
-- 손패가 족보일 경우 “족보 완성” 버튼 클릭하여 라운드 종료 가능
-- 언제든 스탑 선언 가능
-- 덱이 비거나 손패가 0장일 경우 라운드 종료
-- 5라운드 후 총점이 가장 낮은 사람이 승자
+        {/* Body */}
+        <div className="p-5 overflow-y-auto max-h-[65vh] text-sm leading-6">
+          {tab === "rules" && (
+            <div className="space-y-2 whitespace-pre-wrap">
+              {data.rules ?? "게임 규칙 설명이 여기에 표시됩니다."}
+            </div>
+          )}
 
-🔁 턴 진행 방식
-- 첫 번째 라운드: 랜덤 플레이어가 시작
-- 2라운드부터: 직전 라운드 점수가 가장 낮은 플레이어부터 시작
+          {tab === "update" && (
+            <SectionList title="업데이트 내역" items={data.update} />
+          )}
 
-🎯 주요 규칙 설명
+          {tab === "bugs" && (
+            <SectionList title="현재 버그" items={data.bugs} />
+          )}
 
-1. 뻥 시스템
-[조건]
-- 자기 턴 중 제출된 카드의 숫자와 같은 숫자의 2장을 손패에서 선택
-- "뻥!"을 외치며 2장 제출 → 이후 1장 추가 제출
-
-[유효 조건]
-- 직전 카드의 숫자와 동일해야 하며
-- 2장의 숫자가 정확히 같아야 함
-- 이후 1장은 자유
-
-[추가 효과]
-- 뻥을 유도한 직전 제출자 +30점 (유효한 뻥 성공 시)
-- 뻥 중 손패가 0장이 되면 라운드 종료
-
-2. 바가지 시스템
-- 드로우한 직후 손패 내 동일한 카드가 2장일 경우
-- 자동으로 바가지 판단 서버로 전송 → 메시지 출력 ("바가지!", "노 바가지!")
-
-3. 족보 완성
-[조건]
-손패가 6장일 때 아래 중 하나에 해당되면 "족보 완성" 버튼 활성화:
-- 스트레이트: 연속 숫자 6장
-- 트리플트리플: 동일 숫자 3장 + 3장
-- 페어페어페어: 동일 숫자 2장 x 3쌍
-- 로우 족보: 숫자 총합 ≤ 14 → -100점
-- 하이 족보: 숫자 총합 ≥ 65 → -총합 점수
-
-[효과]
-- "족보 완성!" 클릭 시 라운드 즉시 종료
-- 족보 유형에 따라 감점 또는 0점 처리
-
-4. 스탑
-[조건]
-- 자신의 턴에 “스탑!” 버튼 클릭 가능
-
-[효과]
-- 본인보다 점수가 같거나 낮은 플레이어가 있으면:
-  본인 +30점, 그 플레이어들은 0점
-  나머지는 손패 기준 점수 유지
-
-5. 점수 계산
-[기본]
-- 카드 숫자 총합 (A=1, J=11, Q=12, K=13)
-
-[예외]
-- 같은 숫자 3장만 있을 경우 → 해당 3장은 0점
-- 트리플트리플 → 0점
-- 페어페어페어 → 0점
-- 스트레이트 → -총합
-- 로우 족보 → -100점
-- 하이 족보 → -총합
-- 스탑 성공 → +50점
-
-[최종 라운드 보너스]
-- 5라운드는 점수 2배 적용(설정 가능)
-
-📋 라운드 종료 조건
-- 손패가 0장일 때
-- 덱이 소진되었을 때
-- 족보 완성 버튼 클릭 시
-- 스탑 선언 시
-- 뻥 중 손패가 0장일 때`}
-        </pre>
-        <button
-          onClick={onClose}
-          className="mt-6 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
-        >
-          닫기
-        </button>
+          {tab === "future" && (
+            <SectionList title="앞으로 개선" items={data.future} />
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-md text-sm border ${
+        active
+          ? "bg-black text-white border-black"
+          : "bg-white hover:bg-gray-100 border-gray-300"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SectionList({ title, items }: { title: string; items?: string[] }) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-lg font-semibold">{title}</h3>
+      {items && items.length > 0 ? (
+        <ul className="list-disc pl-5 space-y-1">
+          {items.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ul>
+      ) : (
+        <div className="text-gray-500">내용이 없습니다.</div>
+      )}
+    </section>
   );
 }

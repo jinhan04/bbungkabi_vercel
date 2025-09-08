@@ -1,3 +1,4 @@
+// src/app/page.tsx
 "use client";
 
 import { useState, useRef } from "react";
@@ -11,17 +12,57 @@ export default function HomePage() {
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [maxPlayers] = useState(6);
   const [showMaxInput, setShowMaxInput] = useState(false);
-  const [showPatchNote, setShowPatchNote] = useState(true);
-  const [showRules, setShowRules] = useState(false);
+
+  // ✅ 모달 상태
+  const [showPatchNote, setShowPatchNote] = useState(true); // 들어오면 업데이트 탭으로
+  const [showRules, setShowRules] = useState(false); // 규칙 탭으로
+
   const [doubleFinalRound, setDoubleFinalRound] = useState(false);
   const { emoji, setEmoji } = useAuth();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [uhbbungEnabled, setUhbbungEnabled] = useState(false);
+
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   const logoClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const logoClickCountRef = useRef(0);
 
   const router = useRouter();
-  const handleClose = () => setShowPatchNote(false);
+  const handleClosePatch = () => setShowPatchNote(false);
+
+  // ✅ 모달용 데이터(한 곳에서 관리 → 두 모달에서 공용으로 사용)
+  const UPDATE_LIST = [
+    "뻥카비에 숨겨진 이스터에그를 찾으면 기프티콘을 드립니다~!",
+    "이스터에그 1: 난이도 ★★★☆☆(찾은 사람: 1명)",
+    "이스터에그 2: 난이도 ★★★★★★★★★★(찾은 사람: 없음, 2027년 공개 예정)",
+    "AI 봇 추가 됨(난이도별 봇 학습중...)",
+  ];
+  const BUG_LIST = [
+    "5장 바가지에서 노바가지가 되면 알림 없음",
+    "AI랑 플레이 시 가끔 뻥 안됨",
+  ];
+  const FUTURE_LIST = [
+    "타이머 어벙 추가 로직 개발중...",
+    "최종 결과 시 효과음 추가",
+    "개인 프로필 생성 및 DB 연동 (승률, 코인 등)",
+    "카카오 로그인 연동",
+  ];
+  const RULES_CONTENT = (
+    <div>
+      <p className="mb-2">
+        게임은 총 5라운드, 각 라운드에서 손패 점수 합산(특수 족보/예외 적용).
+      </p>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>
+          뻥: 같은 숫자 2장 + 추가 1장 제출. 타이밍/조건은 게임 화면 설명 참고.
+        </li>
+        <li>바가지/노바가지: 2장/5장 상황에서 조건에 따라 자동 선언.</li>
+        <li>족보 완성: 6장 조합이 조건 충족 시 라운드 즉시 종료.</li>
+        <li>
+          스탑: 특정 점수 상황에서 선언, 상대 점수에 따라 +50/0점 규칙 적용.
+        </li>
+      </ul>
+    </div>
+  );
 
   function generateRoomCode() {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -41,8 +82,6 @@ export default function HomePage() {
     setIsJoiningRoom(false);
   };
 
-  const logoClickCountRef = useRef(0);
-
   const handleLogoClick = () => {
     if (logoClickCountRef.current === 0) {
       // ⏱ 최초 클릭 시 타이머 시작
@@ -59,7 +98,6 @@ export default function HomePage() {
       if (logoClickTimeoutRef.current) {
         clearTimeout(logoClickTimeoutRef.current); // 타이머 정리
       }
-
       // 3초 후 이스터에그 닫기
       setTimeout(() => setShowEasterEgg(false), 3000);
     }
@@ -133,43 +171,14 @@ export default function HomePage() {
         </a>
       </div>
 
-      {showPatchNote && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white text-black p-6 rounded-xl shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto">
-          <h2 className="text-xl font-bold mb-2">📌 업데이트 사항 ver 5.0</h2>
-          <ul className="list-disc list-inside text-sm mb-4">
-            <li>
-              <strong>
-                뻥카비에 숨겨진 이스터에그를 찾으면 기프티콘을 드립니다~!
-              </strong>
-            </li>
-            <li>이스터에그 1: 난이도 ★★★☆☆(찾은 사람: 1명)</li>
-            <li>
-              이스터에그 2: 난이도 ★★★★★★★★★★(찾은 사람: 없음, 2027년 공개 예정)
-            </li>
-            <li>
-              <strong>AI 봇 추가 됨(난이도별 봇 학습중...)</strong>
-            </li>
-          </ul>
-          <h2 className="text-xl font-bold mb-2 mt-4">⚠️ 현재 버그 사항</h2>
-          <ul className="list-disc list-inside text-sm mb-4">
-            <li>5장 바가지에서 노바가지가 되면 알림 없음</li>
-            <li>AI랑 플레이 시 가끔 뻥 안됨</li>
-          </ul>
-          <h2 className="text-xl font-bold mb-2 mt-4">🚧 앞으로 개선될 기능</h2>
-          <ul className="list-disc list-inside text-sm mb-4">
-            <li>타이머 어벙 추가 로직 개발중...</li>
-            <li>최종 결과 시 효과음 추가</li>
-            <li>개인 프로필 생성 및 DB 연동 (승률, 코인 등)</li>
-            <li>카카오 로그인 연동</li>
-          </ul>
-          <button
-            onClick={handleClose}
-            className="mt-2 px-4 py-1 bg-green-700 text-white rounded hover:bg-green-800"
-          >
-            닫기
-          </button>
-        </div>
-      )}
+      {/* ✅ 업데이트 모달: 들어오면 자동으로 뜸(업데이트 탭으로 시작) */}
+      <GameRulesModal
+        open={showPatchNote}
+        onClose={handleClosePatch}
+        initialTab="update"
+        title="📌 업데이트 / 공지"
+        data={{ update: UPDATE_LIST, bugs: BUG_LIST, future: FUTURE_LIST }}
+      />
 
       <div className="text-center mb-8">
         <div
@@ -179,7 +188,7 @@ export default function HomePage() {
           뻥카비
         </div>
 
-        <p className="text-sm mt-1 text-gray-600 it alic">
+        <p className="text-sm mt-1 text-gray-600 italic">
           이제 언제 어디든, 뻥카비
         </p>
       </div>
@@ -213,6 +222,7 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
       {showEasterEgg && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-200 border border-yellow-400 text-yellow-900 px-6 py-3 rounded-xl shadow-xl z-50 animate-bounce text-center text-lg font-bold">
           🎉 진한이 숨겨둔 이스터에그, 당신이 찾았군..
@@ -292,13 +302,24 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* ✅ 규칙 모달: 버튼 눌렀을 때 열림(규칙 탭으로 시작) */}
       <button
         onClick={() => setShowRules(true)}
         className="mt-6 text-sm underline text-blue-600 hover:text-blue-800"
       >
         게임 설명 보기
       </button>
-      {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
+      <GameRulesModal
+        open={showRules}
+        onClose={() => setShowRules(false)}
+        initialTab="rules"
+        data={{
+          rules: RULES_CONTENT,
+          update: UPDATE_LIST,
+          bugs: BUG_LIST,
+          future: FUTURE_LIST,
+        }}
+      />
 
       <div className="mt-2 text-sm text-gray-500 text-center">
         © 임진한 (국민대 정보보안암호수학과 23) ver.5.6.19

@@ -735,7 +735,8 @@ export default function GamePage() {
 
       {/* 손패 및 버튼 */}
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
-        <div className="flex flex-wrap justify-center gap-2 mt-2 px-2">
+        {/* ⬇︎ 모바일: grid 3열 / sm 이상: 기존 flex-wrap */}
+        <div className="grid grid-cols-3 gap-2 mt-2 px-2 sm:flex sm:flex-wrap sm:justify-center">
           {hand.map((card) => (
             <Card
               key={card}
@@ -744,7 +745,7 @@ export default function GamePage() {
               isRecent={card === recentDrawnCard}
               isNew={newCards.includes(card)}
               onClick={() => toggleBbungCard(card)}
-              className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
+              className="w-full aspect-[2/3] text-xl sm:w-20 sm:h-28 lg:w-24 lg:h-32"
             />
           ))}
         </div>
@@ -791,17 +792,35 @@ export default function GamePage() {
             </button>
           )}
           {isMyTurn && hand.length === 6 && jokboAvailable && (
-            <button
+            <motion.button
               onClick={() =>
                 getSocket().emit("round-ended", {
                   roomCode,
                   reason: "족보 완성",
                 })
               }
-              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm"
+              className="relative w-full px-4 py-2 text-white rounded text-sm
+               bg-gradient-to-r from-purple-600 to-pink-600
+               shadow-lg overflow-hidden"
+              animate={{
+                scale: [1, 1.04, 1],
+                boxShadow: [
+                  "0 0 0 rgba(0,0,0,0)",
+                  "0 0 20px rgba(236,72,153,0.5)",
+                  "0 0 0 rgba(0,0,0,0)",
+                ],
+              }}
+              transition={{ duration: 1.2, repeat: Infinity }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
             >
-              족보 완성!
-            </button>
+              {/* 번쩍 라인(옵션) */}
+              <span
+                className="pointer-events-none absolute inset-0 -translate-x-full bg-white/20"
+                style={{ clipPath: "polygon(0 0, 100% 0, 85% 100%, 0 100%)" }}
+              />
+              <span className="relative z-10">족보 완성!</span>
+            </motion.button>
           )}
         </div>
 

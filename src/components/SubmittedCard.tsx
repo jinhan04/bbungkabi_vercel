@@ -1,4 +1,3 @@
-// src\components\SubmittedCard.tsx
 import { motion } from "framer-motion";
 
 type SubmittedCardProps = {

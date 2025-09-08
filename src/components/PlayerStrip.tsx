@@ -1,4 +1,3 @@
-// src\components\PlayerStrip.tsx
 "use client";
 
 import clsx from "clsx";

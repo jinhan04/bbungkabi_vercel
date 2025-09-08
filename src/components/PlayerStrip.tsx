@@ -98,7 +98,7 @@ export default function PlayerStrip({
 
                 {/* 타이머 텍스트 */}
                 {isTurn && typeof timer === "number" && timer !== null && (
-                  <span className="ml-2 shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20">
+                  <span className="ml-1 shrink-0 text-[9px] font-bold px-1 py-0.5 rounded bg-white/20">
                     {timer}s
                   </span>
                 )}

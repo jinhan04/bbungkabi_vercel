@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { getSocket } from "@/lib/socket";
+import BbungFX from "@/components/BbungFX";
+import { playLayeredBbung } from "@/lib/sound";
 import { playSound } from "@/lib/sound";
 import { isSoundEnabled, toggleSound } from "@/lib/sound";
 import PlayerStrip, { PlayerInfo } from "@/components/PlayerStrip";
@@ -395,12 +397,14 @@ export default function GamePage() {
     const socket = getSocket();
 
     socket.on("bbung-effect", ({ nickname: bbunger }) => {
-      console.log(`${bbunger} used BBUNG!`);
+      // 묵직한 레이어드 사운드
+      playLayeredBbung();
 
-      //playSound("bbung.mp3");
-      playSound("bbung.wav");
+      // 화면 이펙트 On → 1.1초 후 Off
       setShowBbungEffect(true);
-      setTimeout(() => setShowBbungEffect(false), 800);
+      setTimeout(() => setShowBbungEffect(false), 1100);
+
+      // 기존 로그는 유지
       addLog(`${bbunger} 님이 뻥을 했습니다`);
     });
 
@@ -562,18 +566,6 @@ export default function GamePage() {
     );
   }
 
-  function BbungTextEffect() {
-    return (
-      <motion.div
-        initial={{ scale: 2, opacity: 1 }}
-        animate={{ scale: 1, opacity: 0 }}
-        transition={{ duration: 0.8 }}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-extrabold text-red-600 z-50"
-      >
-        BBUNG!
-      </motion.div>
-    );
-  }
   const [showChat, setShowChat] = useState(true); // 또는 false로 시작해도 됨
 
   return (
@@ -806,7 +798,6 @@ export default function GamePage() {
         </div>
 
         {isDrawing && <DrawAnimationCard keyVal={drawAnimationKey} />}
-        {showBbungEffect && <BbungTextEffect />}
 
         {showChat && (
           <ChatBox
@@ -821,6 +812,7 @@ export default function GamePage() {
       </div>
 
       <BagajiOverlay show={showBagaji} text={bagajiText} />
+      <BbungFX show={showBbungEffect} />
     </div>
   );
 }

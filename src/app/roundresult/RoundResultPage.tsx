@@ -27,7 +27,7 @@ export default function RoundResultPage() {
   const [isReady, setIsReady] = useState(false);
   const [round, setRound] = useState<number>(1);
 
-  // ⬇️ 추가: 다른 플레이어 보기 + 점수맵
+  // ⬇️ 다른 플레이어 보기 + 점수맵
   const [showOthers, setShowOthers] = useState(false);
   const [roundScores, setRoundScores] = useState<Record<string, number>>({});
   const [totalScoresMap, setTotalScoresMap] = useState<Record<string, number>>(
@@ -78,7 +78,7 @@ export default function RoundResultPage() {
     return Object.keys(allHands).sort((a, b) => {
       const ta = totalScoresMap[a] ?? 0;
       const tb = totalScoresMap[b] ?? 0;
-      return tb - ta;
+      return tb - ta; // 누적 높은 순
     });
   }, [allHands, totalScoresMap]);
 
@@ -213,16 +213,22 @@ export default function RoundResultPage() {
       </div>
 
       {/* 내 손패 */}
-      <div className="mt-4">
-        <h2 className="text-2xl font-bold mb-2">내 손패</h2>
+      <div className="mt-4 w-full max-w-3xl">
+        <h2 className="text-2xl font-bold mb-2 text-center">내 손패</h2>
         {hand.length > 0 ? (
-          <div className="flex flex-wrap gap-2 justify-center">
+          // ⬇️ 모바일: 6열 / sm 이상: 기존 flex-wrap
+          <div className="grid grid-cols-6 gap-1 mt-2 px-2 sm:flex sm:flex-wrap sm:justify-center">
             {hand.map((card, idx) => (
-              <CardChip key={idx} card={card} />
+              <CardChip
+                key={idx}
+                card={card}
+                // ⬇️ 셀 가득 + 2:3 비율 + 작은 폰트 / 큰 화면은 기존 크기
+                className="w-full aspect-[2/3] text-xs sm:text-base sm:w-16 sm:h-24 lg:w-20 lg:h-28"
+              />
             ))}
           </div>
         ) : (
-          <div className="text-gray-400">남은 카드 없음</div>
+          <div className="text-gray-400 text-center">남은 카드 없음</div>
         )}
       </div>
 
@@ -277,10 +283,15 @@ export default function RoundResultPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    {/* ⬇️ 모바일 6열 / sm 이상 기존 flex */}
+                    <div className="mt-3 grid grid-cols-6 gap-1 px-2 sm:flex sm:flex-wrap sm:justify-start">
                       {cards.length > 0 ? (
                         cards.map((card, idx) => (
-                          <CardChip key={idx} card={card} />
+                          <CardChip
+                            key={idx}
+                            card={card}
+                            className="w-full aspect-[2/3] text-xs sm:text-base sm:w-16 sm:h-24 lg:w-20 lg:h-28"
+                          />
                         ))
                       ) : (
                         <span className="text-gray-400 text-sm">
@@ -322,13 +333,19 @@ export default function RoundResultPage() {
   );
 }
 
-function CardChip({ card }: { card: string }) {
+/** ---------------- UI: 카드 ---------------- */
+function CardChip({
+  card,
+  className = "",
+}: {
+  card: string;
+  className?: string;
+}) {
   const isRed = card.includes("♥") || card.includes("♦");
   return (
     <div
-      className={`w-16 h-24 border-2 border-white rounded-lg flex items-center justify-center text-xl font-bold shadow bg-white ${
-        isRed ? "text-red-500" : "text-black"
-      }`}
+      className={`border-2 border-white rounded-lg flex items-center justify-center font-bold shadow bg-white
+        ${isRed ? "text-red-500" : "text-black"} ${className}`}
       title={card}
     >
       {card}
@@ -336,7 +353,7 @@ function CardChip({ card }: { card: string }) {
   );
 }
 
-// -------- scoring helpers (client) ----------
+/** -------- scoring helpers (client) ---------- */
 function cardToValue(card: string): number {
   const rank = card.replace(/[^0-9JQKA]/g, "");
   if (rank === "A") return 1;

@@ -29,6 +29,9 @@ const readyForNextRound: { [roomCode: string]: Set<string> } = {};
 const bbungEndTriggeredBy: { [roomCode: string]: string | null } = {}; // 유도자 저장
 const emojiMap: { [roomCode: string]: { [nickname: string]: string } } = {};
 
+// 최근 라운드에 뻥 발생 여부
+const lastBbungHappened: { [roomCode: string]: boolean } = {};
+
 // ✅ 어벙 옵션과 임시점수/쿨다운 저장소
 const uhbbungEnabledMap: { [roomCode: string]: boolean } = {};
 const uhbbungTempScores: {
@@ -262,13 +265,18 @@ function shouldBotStop(roomCode: string, bot: BotInfo): boolean {
   const score = _handScoreForDecision(hand);
   const deckLeft = decks[roomCode]?.length ?? 0;
 
-  // 난이도별 기본 임계치 (점수가 낮을수록 유리한 게임 규칙)
-  let threshold = 16; // normal
-  if (bot.difficulty === "easy") threshold = 20;
-  if (bot.difficulty === "hard") threshold = 12;
+  // 난이도별 기본 임계치 (점수가 낮을수록 스탑 안함)
+  let threshold = 10; // normal
+  if (bot.difficulty === "easy") threshold = 14;
+  if (bot.difficulty === "hard") threshold = 6;
+
+  // ✅ 누군가 뻥을 했으면 threshold -4
+  if (lastBbungHappened[roomCode]) {
+    threshold -= 4;
+  }
 
   // 막판일수록 조금 더 공격적으로 스탑
-  if (deckLeft <= 10) threshold += 2;
+  if (deckLeft <= 5) threshold += 2;
 
   // 약간의 랜덤성(사람스러움)
   const jitter = Math.floor(Math.random() * 5) - 2; // -2..+2
@@ -490,6 +498,8 @@ function serverSubmitBbung(
 
   // 이펙트 브로드캐스트
   io.to(roomCode).emit("bbung-effect", { nickname });
+
+  lastBbungHappened[roomCode] = true;
 
   // 손이 비면 라운드 종료 (사람 로직과 동일)
   if (playerHands[roomCode][nickname].length === 0) {
@@ -973,6 +983,8 @@ io.on("connection", (socket) => {
       // ✅ 어벙 옵션 반영
       uhbbungEnabledMap[roomCode] = !!uhbbungEnabled;
 
+      lastBbungHappened[roomCode] = false;
+
       // ✅ 라운드 임시 가산/쿨다운 초기화
       uhbbungTempScores[roomCode] = {};
       uhbbungLastTickAt[roomCode] = {};
@@ -1035,6 +1047,8 @@ io.on("connection", (socket) => {
     readyForNextRound[roomCode].add(nickname);
     drawFlag[roomCode] = new Set();
 
+    lastBbungHappened[roomCode] = false;
+
     console.log(
       `[${new Date().toISOString()}][DEBUG] ${nickname} is ready for next round in ${roomCode}`
     );
@@ -1049,10 +1063,12 @@ io.on("connection", (socket) => {
       }`
     );
 
-    io.to(roomCode).emit(
-      "update-ready",
-      Array.from(readyForNextRound[roomCode])
+    // ✅ 사람은 readyForNextRound 기준, 봇은 항상 '준비'로 포함
+    const botsReady = getBots(roomCode).map((b) => b.nickname);
+    const combinedReady = Array.from(
+      new Set([...Array.from(readyForNextRound[roomCode]), ...botsReady])
     );
+    io.to(roomCode).emit("update-ready", combinedReady);
 
     // ✅ 중복 라운드 시작 방지 (사람들 기준)
     if (
@@ -1205,6 +1221,8 @@ io.on("connection", (socket) => {
     decks[roomCode] = shuffle(createDeck());
     submittedHistory[roomCode] = [];
     drawFlag[roomCode] = new Set();
+
+    lastBbungHappened[roomCode] = false;
 
     uhbbungTempScores[roomCode] = {}; // ✅ 라운드마다 비움
     uhbbungLastTickAt[roomCode] = {}; // ✅ 라운드마다 비움

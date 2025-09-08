@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getSocket } from "@/lib/socket";
 import { playSound } from "@/lib/sound";
 import { isSoundEnabled, toggleSound } from "@/lib/sound";
+import PlayerStrip, { PlayerInfo } from "@/components/PlayerStrip";
 
 import {
   cardToValue,
@@ -123,6 +124,17 @@ export default function GamePage() {
       }
     }
   };
+
+  // combinedPlayers, emojiMap, totalScores, nickname, myEmoji, currentPlayer, timer는 이미 존재
+  const playersForStrip: PlayerInfo[] = combinedPlayers.map((p) => ({
+    name: p.nickname,
+    emoji:
+      p.nickname === nickname
+        ? myEmoji
+        : emojiMap[p.nickname] ?? (p.isBot ? "🤖" : "👤"),
+    botLevel: p.isBot ? p.difficulty : undefined,
+    score: totalScores?.[p.nickname],
+  }));
 
   useEffect(() => {
     const socket = getSocket();
@@ -609,7 +621,7 @@ export default function GamePage() {
       </div>
 
       {timer !== null && (
-        <div className="absolute top-[60px] left-4 text-white text-2xl sm:text-3xl font-bold z-50">
+        <div className="absolute top-[100px] left-4 text-white text-2xl sm:text-3xl font-bold z-50">
           {timer}
         </div>
       )}
@@ -633,35 +645,15 @@ export default function GamePage() {
         </AnimatePresence>
       </div>
 
-      {/* 👤 플레이어 표시 줄 */}
-      <div className="absolute top-[100px] left-2 sm:left-4 z-40 flex flex-col gap-1 max-w-[80vw]">
-        {combinedPlayers.map((p) => {
-          const isCurrent = p.nickname === currentPlayer;
-          const emoji =
-            p.nickname === nickname
-              ? myEmoji
-              : emojiMap[p.nickname] ?? (p.isBot ? "🤖" : "👤");
-
-          return (
-            <div
-              key={p.nickname}
-              className={`flex items-center px-3 py-2 rounded-xl shadow-md text-xs sm:text-sm transition-all ${
-                isCurrent
-                  ? "bg-yellow-300 text-black scale-105 ring-2 ring-yellow-500 animate-pulse"
-                  : "bg-black/40 text-white"
-              }`}
-            >
-              <span className="text-lg sm:text-xl mr-2">{emoji}</span>
-              <span className="mr-2">{p.nickname}</span>
-              {p.isBot && p.difficulty && (
-                <span className="text-[10px] sm:text-xs text-gray-200 bg-black/30 border border-white/20 px-1.5 py-0.5 rounded">
-                  {p.difficulty}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {/* 상단 바 끝난 직후 */}
+      <PlayerStrip
+        players={playersForStrip}
+        currentPlayer={currentPlayer}
+        me={nickname}
+        timer={timer}
+        // 상단바 높이가 약 56~64px이므로 sticky offset 맞춤
+        className="sticky top-[56px] z-40 bg-transparent"
+      />
 
       <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
 

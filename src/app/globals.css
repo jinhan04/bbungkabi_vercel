@@ -5,3 +5,11 @@
 body {
   @apply bg-gray-900 text-white;
 }
+
+/* 가로 스트립 스크롤바 숨김 */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}

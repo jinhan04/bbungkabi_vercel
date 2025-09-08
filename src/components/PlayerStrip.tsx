@@ -13,7 +13,7 @@ export default function PlayerStrip({
   players,
   currentPlayer,
   me,
-  timer, // 선택: 현재 턴 타이머
+  timer,
   className,
 }: {
   players: PlayerInfo[];
@@ -85,7 +85,7 @@ export default function PlayerStrip({
             return (
               <div
                 key={p.name}
-                className={cx(
+                className={clsx(
                   "px-3 py-2 rounded-xl border flex items-center gap-2",
                   "bg-white/5 border-white/15",
                   isTurn && "ring-2 ring-pink-400 shadow-lg",
@@ -96,7 +96,7 @@ export default function PlayerStrip({
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span
-                      className={cx(
+                      className={clsx(
                         "text-sm font-semibold",
                         isTurn ? "text-pink-300" : "text-white"
                       )}

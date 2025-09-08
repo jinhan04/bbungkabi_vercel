@@ -88,6 +88,7 @@ export default function PlayerStrip({
                 className={clsx(
                   "px-3 py-2 rounded-xl border flex items-center gap-2",
                   "bg-white/5 border-white/15",
+                  "max-w-md w-full", // ✅ 추가
                   isTurn && "ring-2 ring-pink-400 shadow-lg",
                   isMe && "border-yellow-300"
                 )}

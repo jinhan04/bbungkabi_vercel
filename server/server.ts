@@ -252,6 +252,7 @@ function serverStop(roomCode: string, stopper: string) {
     allPlayerHands: playerHands[roomCode],
     round: roundCount[roomCode],
   });
+  broadcastReadyStatus(roomCode);
 }
 
 // === [STOP AI] 스탑 여부 판단 ===
@@ -335,6 +336,7 @@ function serverDraw(roomCode: string, nickname: string): boolean {
         allPlayerHands: playerHands[roomCode],
         round: roundCount[roomCode],
       });
+      broadcastReadyStatus(roomCode);
 
       return true; // ✅ 이 드로우로 라운드가 끝났음을 상위에 알림
     }
@@ -531,6 +533,7 @@ function serverSubmitBbung(
       round: roundCount[roomCode],
       triggerer: bbungEndTriggeredBy[roomCode],
     });
+    broadcastReadyStatus(roomCode);
   }
 }
 
@@ -569,6 +572,7 @@ function serverSubmitBbungExtra(
       round: roundCount[roomCode],
       triggerer: bbungEndTriggeredBy[roomCode],
     });
+    broadcastReadyStatus(roomCode);
   } else {
     // 다음 턴으로
     const players = getAllPlayers(roomCode);
@@ -811,6 +815,13 @@ function nextTurn(roomCode: string) {
   console.log(
     `[${new Date().toISOString()}][DEBUG nextTurn] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
   );
+}
+
+function broadcastReadyStatus(roomCode: string) {
+  const botsReady = getBots(roomCode).map((b) => b.nickname);
+  const ready = Array.from(readyForNextRound[roomCode] || new Set<string>());
+  const combined = Array.from(new Set([...ready, ...botsReady]));
+  io.to(roomCode).emit("update-ready", combined);
 }
 
 const createDeck = () => {
@@ -1193,6 +1204,7 @@ io.on("connection", (socket) => {
       allPlayerHands: playerHands[roomCode],
       round: roundCount[roomCode],
     });
+    broadcastReadyStatus(roomCode);
   });
 
   socket.on("get-round-result", ({ roomCode }, callback) => {
@@ -1321,6 +1333,7 @@ io.on("connection", (socket) => {
         allPlayerHands: playerHands[roomCode],
         round: roundCount[roomCode],
       });
+      broadcastReadyStatus(roomCode);
 
       return;
     }
@@ -1381,6 +1394,8 @@ io.on("connection", (socket) => {
       }
     }
 
+    lastBbungHappened[roomCode] = true;
+
     if (playerHands[roomCode][nickname].length === 0) {
       // 유도자 기억
       const last = submittedHistory[roomCode].at(-3);
@@ -1422,6 +1437,7 @@ io.on("connection", (socket) => {
         round: roundCount[roomCode],
         triggerer: bbungEndTriggeredBy[roomCode], // ✅ 이 줄 추가!
       });
+      broadcastReadyStatus(roomCode);
     }
     io.to(roomCode).emit("bbung-effect", {
       nickname: socketIdToNickname[socket.id],
@@ -1472,6 +1488,7 @@ io.on("connection", (socket) => {
         round: roundCount[roomCode],
         triggerer: bbungEndTriggeredBy[roomCode],
       });
+      broadcastReadyStatus(roomCode);
     } else {
       // [AI-STEP3] 다음 플레이어 계산도 전체 기준
       const players = getAllPlayers(roomCode);
@@ -1496,6 +1513,7 @@ io.on("connection", (socket) => {
       allPlayerHands: playerHands[roomCode],
       round: roundCount[roomCode],
     });
+    broadcastReadyStatus(roomCode);
   });
 
   socket.on("declare-bagaji", ({ roomCode, isBagaji }) => {
@@ -1541,6 +1559,7 @@ io.on("connection", (socket) => {
       allPlayerHands: playerHands[roomCode],
       round: roundCount[roomCode],
     });
+    broadcastReadyStatus(roomCode);
   });
 
   socket.on("get-player-emojis", ({ roomCode }, callback) => {

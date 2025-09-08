@@ -98,14 +98,14 @@ export default function PlayerStrip({
 
                 {/* 타이머 텍스트 */}
                 {isTurn && typeof timer === "number" && timer !== null && (
-                  <span className="ml-1 shrink-0 text-[9px] font-bold px-0.8 py-0.5 rounded bg-white/20">
+                  <span className="ml-1 shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/20">
                     {timer}s
                   </span>
                 )}
 
                 {/* 하단 진행바 */}
                 {isTurn && typeof timer === "number" && timer !== null && (
-                  <div className="absolute left-0 right-0 bottom-0 h-1 bg-white/15 rounded-b-2xl overflow-hidden">
+                  <div className="absolute left-1/6 right-1/6 bottom-0 h-1 bg-white/15 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-pink-400 transition-all duration-300 ease-linear"
                       style={{ width: `${percent}%` }}

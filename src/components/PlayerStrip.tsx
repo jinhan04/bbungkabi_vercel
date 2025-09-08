@@ -26,7 +26,7 @@ export default function PlayerStrip({
     <div className={clsx("w-full", className)}>
       {/* 모바일 + PC 모두 같은 UI: 가로 스크롤 스트립 */}
       <div>
-        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-2 px-2">
+        <div className="flex justify-center items-center gap-2 overflow-x-auto hide-scrollbar py-2 px-2">
           {players.map((p) => {
             const isMe = p.name === me;
             const isTurn = p.name === currentPlayer;

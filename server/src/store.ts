@@ -19,6 +19,9 @@ export class Store {
   bbungTimer: Record<string, NodeJS.Timeout | null> = {};
   bbungBy: Record<string, string | null> = {};
 
+  // 방별로 "이 시각까지는 봇 행동 금지"를 기록
+  bbungGraceUntil: Record<string, number> = {};
+
   bbungEndTriggeredBy: Record<RoomCode, Nickname | null> = {};
   emojiMap: Record<RoomCode, Record<Nickname, string>> = {};
   lastBbungHappened: Record<RoomCode, boolean> = {};

@@ -24,6 +24,8 @@ export const BOT_CHAT_LINES = {
   bbung_extra: ["덤 하나 얹어줄게.", "서비스 한 장 ^^", "보너스~"],
 };
 
+const BBUNG_GRACE_MS = 1500;
+
 const nextBotChatAt: Record<string, Record<string, number>> = {};
 const now = () => Date.now();
 function canChat(room: string, nick: string) {
@@ -142,6 +144,8 @@ export function serverSubmitSingleCard(
     openBbungWindow(io, room, nick, 1500); // 1.5초 예시
     return; // 여기서 종료: 타임아웃 후 openBbungWindow가 nextTurn 호출함
   }
+
+  store.bbungGraceUntil[room] = Date.now() + BBUNG_GRACE_MS;
 
   nextTurn(io, room);
 }
@@ -415,6 +419,10 @@ async function runBotTurn(
   nick: string,
   difficulty: Difficulty
 ) {
+  // 🔽 추가: 최근 제출로부터 남은 그레이스 타임만큼 대기
+  const waitMs = Math.max(0, (store.bbungGraceUntil[room] ?? 0) - Date.now());
+  if (waitMs > 0) await sleep(waitMs);
+
   const [min, max] =
     difficulty === "hard"
       ? [800, 1500]

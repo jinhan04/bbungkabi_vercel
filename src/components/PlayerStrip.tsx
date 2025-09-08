@@ -78,14 +78,14 @@ export default function PlayerStrip({
 
       {/* 데스크톱: 세로 리스트 */}
       <div className="hidden md:block">
-        <div className="grid grid-cols-1 gap-2 p-2">
+        <div className="flex flex-col gap-2 p-2">
           {players.map((p) => {
             const isMe = p.name === me;
             const isTurn = p.name === currentPlayer;
             return (
               <div
                 key={p.name}
-                className={clsx(
+                className={cx(
                   "px-3 py-2 rounded-xl border flex items-center gap-2",
                   "bg-white/5 border-white/15",
                   isTurn && "ring-2 ring-pink-400 shadow-lg",
@@ -96,7 +96,7 @@ export default function PlayerStrip({
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span
-                      className={clsx(
+                      className={cx(
                         "text-sm font-semibold",
                         isTurn ? "text-pink-300" : "text-white"
                       )}

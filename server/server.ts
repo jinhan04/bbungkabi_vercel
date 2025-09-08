@@ -29,6 +29,15 @@ const readyForNextRound: { [roomCode: string]: Set<string> } = {};
 const bbungEndTriggeredBy: { [roomCode: string]: string | null } = {}; // 유도자 저장
 const emojiMap: { [roomCode: string]: { [nickname: string]: string } } = {};
 
+// ✅ 어벙 옵션과 임시점수/쿨다운 저장소
+const uhbbungEnabledMap: { [roomCode: string]: boolean } = {};
+const uhbbungTempScores: {
+  [roomCode: string]: { [nickname: string]: number };
+} = {};
+const uhbbungLastTickAt: {
+  [roomCode: string]: { [nickname: string]: number };
+} = {};
+
 const submittedHistory: {
   [key: string]: { nickname: string; card: string }[];
 } = {};
@@ -908,68 +917,115 @@ io.on("connection", (socket) => {
     broadcastPlayerList(roomCode);
   });
 
-  socket.on("start-game", ({ roomCode, nickname, maxPlayers, doubleFinal }) => {
-    // [AI-STEP3] 사람+봇 전체 기준으로 변경
-    const humans = rooms[roomCode];
-    const bots = getBots(roomCode).map((b) => b.nickname);
-    const allPlayers = [...(humans || []), ...bots];
+  socket.on(
+    "uhbbung",
+    ({ roomCode, nickname }: { roomCode: string; nickname: string }) => {
+      // 옵션 꺼져 있으면 무시
+      if (!uhbbungEnabledMap[roomCode]) return;
 
-    doubleFinalRoundMap[roomCode] = !!doubleFinal;
-    drawFlag[roomCode] = new Set();
+      // (권장) 현재 턴인 사람만 허용하고 싶으면, 네 서버 로직 기준으로 현재 플레이어명 구해서 가드
+      // 예: turnIndex / currentPlayer 를 이미 쓰고 있을 가능성이 큼
+      const current = rooms[roomCode][turnIndex[roomCode]]; // 또는 네 코드에 맞게
+      if (current !== nickname) return;
 
-    console.log("doubleFinal 설정:", doubleFinal);
-    console.log("doubleFinalRoundMap:", doubleFinalRoundMap[roomCode]);
+      // 8초 쿨다운(클라 타이머가 10초라면 중복 방지에 충분)
+      const now = Date.now();
+      const last = uhbbungLastTickAt[roomCode]?.[nickname] ?? 0;
+      if (now - last < 8000) return;
 
-    if (!allPlayers || allPlayers.length < 1 || allPlayers.length > 6) {
-      socket.emit("join-error", `최대 6명 이하일 때만 시작할 수 있습니다.`);
-      return;
+      // 기록 + 가산
+      if (!uhbbungLastTickAt[roomCode]) uhbbungLastTickAt[roomCode] = {};
+      if (!uhbbungTempScores[roomCode]) uhbbungTempScores[roomCode] = {};
+      uhbbungLastTickAt[roomCode][nickname] = now;
+      uhbbungTempScores[roomCode][nickname] =
+        (uhbbungTempScores[roomCode][nickname] ?? 0) + 10;
+
+      // (선택) UI 즉시 반영
+      io.to(roomCode).emit("score-tick", {
+        nickname,
+        delta: 10,
+        reason: "uhbbung",
+      });
+      io.to(roomCode).emit("log", `${nickname} 님 어벙 +10`);
     }
+  );
 
-    // ✅ 라운드 카운터 초기화
-    roundCount[roomCode] = 1;
-    console.log(
-      `[${new Date().toISOString()}][DEBUG] Game starting in room ${roomCode} with round ${
-        roundCount[roomCode]
-      }`
-    );
-
-    // ✅ 점수 배열 초기화 — 사람+봇 모두
-    scores[roomCode] = {};
-    for (const n of allPlayers) {
-      scores[roomCode][n] = [];
-    }
-
-    turnIndex[roomCode] = 0;
-    decks[roomCode] = shuffle(createDeck());
-    submittedHistory[roomCode] = [];
-    drawFlag[roomCode] = new Set();
-
-    // 사람+봇 모두 분배
-    for (const n of allPlayers) {
-      if (!playerHands[roomCode]) playerHands[roomCode] = {};
-      playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
-    }
-
-    // ✅ 남은 카드 수 전송
-    io.to(roomCode).emit("deck-update", { remaining: decks[roomCode].length });
-
-    // ✅ 게임 시작 이벤트 발송
-    io.to(roomCode).emit("game-started", {
+  socket.on(
+    "start-game",
+    ({
       roomCode,
-      round: roundCount[roomCode],
-    });
+      nickname,
+      maxPlayers,
+      doubleFinal,
+      uhbbungEnabled = false, // ✅ 추가
+      rounds = 5, // (선택) 라운드 수 옵션도 함께 받으려면
+    }: {
+      roomCode: string;
+      nickname: string;
+      maxPlayers?: number;
+      doubleFinal?: boolean;
+      uhbbungEnabled?: boolean; // ✅
+      rounds?: number; // (선택)
+    }) => {
+      // …
+      doubleFinalRoundMap[roomCode] = !!doubleFinal;
 
-    const randomPlayer =
-      allPlayers[Math.floor(Math.random() * allPlayers.length)];
-    turnIndex[roomCode] = allPlayers.indexOf(randomPlayer);
-    const currentPlayer = allPlayers[turnIndex[roomCode]];
-    console.log(
-      `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
-    );
+      // ✅ 어벙 옵션 반영
+      uhbbungEnabledMap[roomCode] = !!uhbbungEnabled;
 
-    // [AI-STEP3] 단일화된 브로드캐스트
-    broadcastTurn(roomCode, currentPlayer);
-  });
+      // ✅ 라운드 임시 가산/쿨다운 초기화
+      uhbbungTempScores[roomCode] = {};
+      uhbbungLastTickAt[roomCode] = {};
+
+      // ✅ 라운드 카운터 초기화 (rounds 옵션까지 쓰고 싶으면 별도 맵에 저장)
+      roundCount[roomCode] = 1;
+      console.log(
+        `[${new Date().toISOString()}][DEBUG] Game starting in room ${roomCode} with round ${
+          roundCount[roomCode]
+        }`
+      );
+      const allPlayers = getAllPlayers(roomCode);
+
+      // ✅ 점수 배열 초기화 — 사람+봇 모두
+      scores[roomCode] = {};
+      for (const n of allPlayers) {
+        scores[roomCode][n] = [];
+      }
+
+      turnIndex[roomCode] = 0;
+      decks[roomCode] = shuffle(createDeck());
+      submittedHistory[roomCode] = [];
+      drawFlag[roomCode] = new Set();
+
+      // 사람+봇 모두 분배
+      for (const n of allPlayers) {
+        if (!playerHands[roomCode]) playerHands[roomCode] = {};
+        playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
+      }
+
+      // ✅ 남은 카드 수 전송
+      io.to(roomCode).emit("deck-update", {
+        remaining: decks[roomCode].length,
+      });
+
+      // ✅ 게임 시작 이벤트 발송
+      io.to(roomCode).emit("game-started", {
+        roomCode,
+        round: roundCount[roomCode],
+      });
+
+      const randomPlayer =
+        allPlayers[Math.floor(Math.random() * allPlayers.length)];
+      turnIndex[roomCode] = allPlayers.indexOf(randomPlayer);
+      const currentPlayer = allPlayers[turnIndex[roomCode]];
+      console.log(
+        `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
+      );
+
+      // [AI-STEP3] 단일화된 브로드캐스트
+      broadcastTurn(roomCode, currentPlayer);
+    }
+  );
 
   socket.on("ready-next-round", ({ roomCode, nickname }) => {
     if (!readyForNextRound[roomCode]) {
@@ -1017,6 +1073,9 @@ io.on("connection", (socket) => {
       decks[roomCode] = shuffle(createDeck());
       submittedHistory[roomCode] = [];
       drawFlag[roomCode] = new Set();
+
+      uhbbungTempScores[roomCode] = {}; // ✅ 라운드마다 비움
+      uhbbungLastTickAt[roomCode] = {}; // ✅ 라운드마다 비움
 
       // [AI-STEP3] 사람+봇 전체 목록
       const humans = rooms[roomCode] || [];
@@ -1146,6 +1205,9 @@ io.on("connection", (socket) => {
     decks[roomCode] = shuffle(createDeck());
     submittedHistory[roomCode] = [];
     drawFlag[roomCode] = new Set();
+
+    uhbbungTempScores[roomCode] = {}; // ✅ 라운드마다 비움
+    uhbbungLastTickAt[roomCode] = {}; // ✅ 라운드마다 비움
 
     // [AI-STEP3] 사람+봇 전체
     const humans = rooms[roomCode] || [];
@@ -1714,6 +1776,20 @@ function calculateScores(
   console.log(
     `[DEBUG] doubleFinalRoundMap[${roomCode}] = ${doubleFinalRoundMap[roomCode]}`
   );
+
+  // ✅ 어벙(+10) 라운드 가산 합치기
+  if (roomCode) {
+    const temp = uhbbungTempScores[roomCode] || {};
+    for (const p of Object.keys(scores)) {
+      const bonus = temp[p] ?? 0;
+      if (bonus) {
+        scores[p] = (scores[p] ?? 0) + bonus;
+      }
+    }
+    // ✅ 이 라운드에서 사용했으니 비워줌 (carry-over 방지)
+    uhbbungTempScores[roomCode] = {};
+    uhbbungLastTickAt[roomCode] = {};
+  }
 
   // ✅ 마지막 라운드 점수 2배 처리
   if (roomCode && roundCount[roomCode] === 5 && doubleFinalRoundMap[roomCode]) {

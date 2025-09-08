@@ -1,6 +1,7 @@
 // src/components/PlayerStrip.tsx
 "use client";
 
+import { useEffect, useRef } from "react";
 import clsx from "clsx";
 
 const MAX = 10; // 기본 10초
@@ -25,11 +26,28 @@ export default function PlayerStrip({
   timer?: number | null;
   className?: string;
 }) {
+  const stripRef = useRef<HTMLDivElement>(null);
+  const meRef = useRef<HTMLDivElement>(null);
+
+  // 내가 보이도록 자동 스크롤 (가운데 근처)
+  useEffect(() => {
+    if (meRef.current) {
+      meRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [players, me]);
+
   return (
     <div className={clsx("w-full", className)}>
-      {/* 모바일 + PC 모두 같은 UI: 가로 스크롤 스트립 */}
+      {/* 좌측 정렬 + 가로 스크롤 */}
       <div>
-        <div className="flex justify-center items-center gap-2 overflow-x-auto hide-scrollbar py-2 px-2">
+        <div
+          ref={stripRef}
+          className="flex justify-start items-center gap-2 overflow-x-auto hide-scrollbar py-2 px-2 snap-x"
+        >
           {players.map((p) => {
             const isMe = p.name === me;
             const isTurn = p.name === currentPlayer;
@@ -39,11 +57,11 @@ export default function PlayerStrip({
                 : 0;
 
             return (
-              // 카드(플레이어 pill) 컨테이너에 overflow 방지 + 진행바 기준 배치
               <div
                 key={p.name}
+                ref={isMe ? meRef : undefined}
                 className={clsx(
-                  "relative shrink-0 px-3 py-2 rounded-2xl border",
+                  "relative shrink-0 px-3 py-2 rounded-2xl border snap-start",
                   "flex items-center gap-2 bg-white/10 border-white/20 backdrop-blur-sm",
                   "max-w-full",
                   isTurn && "ring-2 ring-pink-400 shadow-lg",
@@ -53,7 +71,7 @@ export default function PlayerStrip({
               >
                 <span className="text-xl leading-none">{p.emoji || "👤"}</span>
 
-                {/* 텍스트 영역: 줄바꿈 없이 말줄임 처리 */}
+                {/* 이름/점수 */}
                 <div className="flex-1 min-w-0">
                   <span
                     className={clsx(
@@ -78,14 +96,14 @@ export default function PlayerStrip({
                   </div>
                 </div>
 
-                {/* 타이머 뱃지: 항상 우측 끝, 겹치지 않게 shrink-0 */}
+                {/* 타이머 텍스트 */}
                 {isTurn && typeof timer === "number" && timer !== null && (
                   <span className="ml-2 shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20">
                     {timer}s
                   </span>
                 )}
 
-                {/* 하단 진행바: 본인 차례일 때만 표시 */}
+                {/* 하단 진행바 */}
                 {isTurn && typeof timer === "number" && timer !== null && (
                   <div className="absolute left-0 right-0 bottom-0 h-1 bg-white/15 rounded-b-2xl overflow-hidden">
                     <div

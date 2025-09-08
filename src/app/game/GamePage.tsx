@@ -735,8 +735,8 @@ export default function GamePage() {
 
       {/* 손패 및 버튼 */}
       <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
-        {/* ⬇︎ 모바일: grid 3열 / sm 이상: 기존 flex-wrap */}
-        <div className="grid grid-cols-3 gap-2 mt-2 px-2 sm:flex sm:flex-wrap sm:justify-center">
+        {/* 모바일: 6열 그리드 / sm 이상: 기존 flex-wrap */}
+        <div className="grid grid-cols-6 gap-1 mt-2 px-2 sm:flex sm:flex-wrap sm:justify-center">
           {hand.map((card) => (
             <Card
               key={card}
@@ -745,7 +745,8 @@ export default function GamePage() {
               isRecent={card === recentDrawnCard}
               isNew={newCards.includes(card)}
               onClick={() => toggleBbungCard(card)}
-              className="w-full aspect-[2/3] text-xl sm:w-20 sm:h-28 lg:w-24 lg:h-32"
+              // ⬇ 모바일: 셀 가득 + 비율 2:3 / 큰 화면: 기존 사이즈
+              className="w-full aspect-[2/3] text-xs sm:text-base sm:w-20 sm:h-28 lg:w-24 lg:h-32"
             />
           ))}
         </div>

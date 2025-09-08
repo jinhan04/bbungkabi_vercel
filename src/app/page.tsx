@@ -239,11 +239,15 @@ export default function HomePage() {
 
       {/* 업데이트/공지 모달 (업데이트 탭으로 시작) */}
       <GameRulesModal
-        open={showPatchNote}
-        onClose={handleClosePatch}
-        initialTab="update"
-        title="📌 업데이트 / 공지"
-        data={{ update: UPDATE_LIST, bugs: BUG_LIST, future: FUTURE_LIST }}
+        open={showRules}
+        onClose={() => setShowRules(false)}
+        initialTab="rules"
+        data={{
+          rules: RULES_CONTENT, // ← 여기에 넘기면 커스텀 규칙 표시
+          update: UPDATE_LIST,
+          bugs: BUG_LIST,
+          future: FUTURE_LIST,
+        }}
       />
 
       <div className="text-center mb-8">

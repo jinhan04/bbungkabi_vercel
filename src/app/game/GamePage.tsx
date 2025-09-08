@@ -210,7 +210,7 @@ export default function GamePage() {
       console.log("🌀 서버에서 받은 currentPlayer:", currentPlayer);
       console.log("🎯 서버에서 받은 round:", round);
       setCurrentPlayer(currentPlayer);
-      if (round !== undefined) setRound(round); // ✅ 라운드 업데이트
+      if (round !== undefined) setRound(round);
 
       setMustSubmit(false);
       setBbungPhase("idle");
@@ -218,32 +218,26 @@ export default function GamePage() {
       setAnyoneDrewThisTurn(false);
       setBbungCards([]);
 
-      // ✅ 타이머 초기화 및 시작
-      if (currentPlayer === nickname) {
-        setTimer(10);
-        if (timerRef.current) clearInterval(timerRef.current);
+      // ✅ 모든 클라이언트에서 타이머 시작 (누구 차례든)
+      if (timerRef.current) clearInterval(timerRef.current);
+      const isMyTurnNow = currentPlayer === nickname;
 
-        timerRef.current = setInterval(() => {
-          setTimer((prev) => {
-            if (prev === null || prev <= 1) {
-              clearInterval(timerRef.current!);
-              return null;
-            }
+      setTimer(10);
+      timerRef.current = setInterval(() => {
+        setTimer((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(timerRef.current!);
+            return null;
+          }
+          const next = prev - 1;
 
-            const next = prev - 1;
-
-            // ✅ 5초 이하일 때만 사운드 재생
-            if (next <= 5) {
-              playSound("tick.mp3");
-            }
-
-            return next;
-          });
-        }, 1000);
-      } else {
-        setTimer(null);
-        if (timerRef.current) clearInterval(timerRef.current);
-      }
+          // ✅ 틱 사운드는 "내 차례"에서만
+          if (next <= 5 && isMyTurnNow) {
+            playSound("tick.mp3");
+          }
+          return next;
+        });
+      }, 1000);
     });
 
     socket.on("card-submitted", ({ nickname, card }) => {
@@ -619,12 +613,6 @@ export default function GamePage() {
           </button>
         </div>
       </div>
-
-      {timer !== null && (
-        <div className="absolute top-[100px] left-4 text-white text-2xl sm:text-3xl font-bold z-50">
-          {timer}
-        </div>
-      )}
 
       <div className="absolute top-[60px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
         <AnimatePresence>

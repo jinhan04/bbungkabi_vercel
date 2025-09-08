@@ -31,21 +31,25 @@ export default function PlayerStrip({
             const isMe = p.name === me;
             const isTurn = p.name === currentPlayer;
             return (
+              // 카드(플레이어 pill) 컨테이너에 overflow 방지
               <div
                 key={p.name}
                 className={clsx(
-                  "shrink-0 px-3 py-2 rounded-2xl border flex items-center gap-2",
-                  "bg-white/10 border-white/20 backdrop-blur-sm",
+                  "shrink-0 px-3 py-2 rounded-2xl border",
+                  "flex items-center gap-2 bg-white/10 border-white/20 backdrop-blur-sm",
+                  "max-w-full", // ✅ 너비 제어
                   isTurn && "ring-2 ring-pink-400 shadow-lg",
                   isMe && "border-yellow-300"
                 )}
                 title={`${p.name}${isMe ? " (나)" : ""}`}
               >
                 <span className="text-xl leading-none">{p.emoji || "👤"}</span>
-                <div className="flex flex-col items-start">
+
+                {/* 텍스트 영역: 줄바꿈 없이 말줄임 처리 */}
+                <div className="flex-1 min-w-0">
                   <span
                     className={clsx(
-                      "text-xs font-semibold",
+                      "text-xs font-semibold block truncate", // ✅ truncate
                       isTurn ? "text-pink-300" : "text-white/90"
                     )}
                   >
@@ -59,14 +63,16 @@ export default function PlayerStrip({
                       </span>
                     )}
                     {typeof p.score === "number" && (
-                      <span className="text-[10px] text-white/60">
+                      <span className="text-[10px] text-white/60 whitespace-nowrap">
                         {p.score}점
                       </span>
                     )}
                   </div>
                 </div>
+
+                {/* 타이머 뱃지: 항상 우측 끝, 겹치지 않게 shrink-0 */}
                 {isTurn && typeof timer === "number" && timer !== null && (
-                  <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20">
+                  <span className="ml-2 shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20">
                     {timer}s
                   </span>
                 )}

@@ -27,31 +27,6 @@ export function playBackgroundMusic() {
   }
 }
 
-// --- 뻥 레이어드 사운드 (bbung + impact + BGM 덕킹) ---
-export function playLayeredBbung() {
-  if (!soundEnabled) return;
-  try {
-    const bb = new Audio("/sounds/bbung.wav");
-    bb.volume = 0.75;
-    void bb.play();
-
-    // const impact = new Audio("/sounds/impact.wav"); // 100~200ms 저역 '쿵' 파일 준비
-    // impact.volume = 0.6;
-    // void impact.play();
-
-    // BGM 볼륨 잠깐 낮췄다가 복원
-    if (bgAudio) {
-      const prev = bgAudio.volume;
-      bgAudio.volume = Math.max(0, prev - 0.25);
-      setTimeout(() => {
-        if (bgAudio) bgAudio.volume = prev;
-      }, 1000);
-    }
-  } catch (e) {
-    console.warn("뻥 사운드 레이어 재생 실패:", e);
-  }
-}
-
 export function stopBackgroundMusic() {
   if (bgAudio) {
     bgAudio.pause();

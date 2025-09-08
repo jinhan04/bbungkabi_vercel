@@ -5,13 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { getSocket } from "@/lib/socket";
-import BbungFX from "@/components/BbungFX";
-import { playLayeredBbung } from "@/lib/sound";
 import { playSound } from "@/lib/sound";
 import { isSoundEnabled, toggleSound } from "@/lib/sound";
 import PlayerStrip, { PlayerInfo } from "@/components/PlayerStrip";
-import AppShell from "@/components/AppShell";
-import GameTopRight from "@/components/GameTopRight";
 
 import {
   cardToValue,
@@ -399,14 +395,12 @@ export default function GamePage() {
     const socket = getSocket();
 
     socket.on("bbung-effect", ({ nickname: bbunger }) => {
-      // 묵직한 레이어드 사운드
-      playLayeredBbung();
+      console.log(`${bbunger} used BBUNG!`);
 
-      // 화면 이펙트 On → 1.1초 후 Off
+      //playSound("bbung.mp3");
+      playSound("bbung.wav");
       setShowBbungEffect(true);
-      setTimeout(() => setShowBbungEffect(false), 1100);
-
-      // 기존 로그는 유지
+      setTimeout(() => setShowBbungEffect(false), 800);
       addLog(`${bbunger} 님이 뻥을 했습니다`);
     });
 
@@ -568,257 +562,265 @@ export default function GamePage() {
     );
   }
 
+  function BbungTextEffect() {
+    return (
+      <motion.div
+        initial={{ scale: 2, opacity: 1 }}
+        animate={{ scale: 1, opacity: 0 }}
+        transition={{ duration: 0.8 }}
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-extrabold text-red-600 z-50"
+      >
+        BBUNG!
+      </motion.div>
+    );
+  }
   const [showChat, setShowChat] = useState(true); // 또는 false로 시작해도 됨
 
   return (
-    <AppShell title="게임" right={<GameTopRight />}>
-      <GamePage />
-      <div className="min-h-screen flex flex-col items-center bg-gradient-radial from-green-800 via-green-900 to-black text-white px-2 sm:px-4 pt-24">
-        {/* ✅ 티츄비 스타일 상단 바 */}
-        <div className="w-full bg-white text-black flex flex-wrap sm:flex-nowrap justify-between items-center px-4 py-2 fixed top-0 left-0 z-50 shadow-md gap-y-2">
-          {/* 왼쪽: 라운드, 닉네임, 점수 */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center space-x-2 text-xs sm:text-sm md:text-base font-semibold">
-            <span className="text-blue-800">라운드: {round} / 5</span>
-            <span>{nickname}님</span>
-            <span className="text-pink-700">내 점수: {myScore}</span>
-            <button
-              onClick={() => setShowScoreModal(true)}
-              className="px-2 py-1 bg-gray-200 text-gray-800 text-xs sm:text-sm rounded hover:bg-gray-300"
-            >
-              점수 보기
-            </button>
-          </div>
-
-          {/* 오른쪽: 채팅, 음소거, 나가기 */}
-          <div className="flex items-center space-x-2 text-lg sm:text-xl">
-            <button onClick={() => setShowChat((prev) => !prev)}>💬</button>
-            <button
-              onClick={() => {
-                toggleSound();
-                setSoundOn(isSoundEnabled());
-              }}
-            >
-              {soundOn ? "🔊" : "🔇"}
-            </button>
-            <button
-              onClick={() => {
-                if (confirm("게임을 나가시겠습니까?")) router.push("/");
-              }}
-            >
-              ↩️
-            </button>
-          </div>
+    <div className="min-h-screen flex flex-col items-center bg-gradient-radial from-green-800 via-green-900 to-black text-white px-2 sm:px-4 pt-24">
+      {/* ✅ 티츄비 스타일 상단 바 */}
+      <div className="w-full bg-white text-black flex flex-wrap sm:flex-nowrap justify-between items-center px-4 py-2 fixed top-0 left-0 z-50 shadow-md gap-y-2">
+        {/* 왼쪽: 라운드, 닉네임, 점수 */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center space-x-2 text-xs sm:text-sm md:text-base font-semibold">
+          <span className="text-blue-800">라운드: {round} / 5</span>
+          <span>{nickname}님</span>
+          <span className="text-pink-700">내 점수: {myScore}</span>
+          <button
+            onClick={() => setShowScoreModal(true)}
+            className="px-2 py-1 bg-gray-200 text-gray-800 text-xs sm:text-sm rounded hover:bg-gray-300"
+          >
+            점수 보기
+          </button>
         </div>
 
-        <div className="absolute top-[60px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
-          <AnimatePresence>
-            {logs.map((log) => {
-              const [id, msg] = log.split("::");
-              return (
-                <motion.div
-                  key={id}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-black/70 text-white text-xs sm:text-sm px-3 py-1 rounded shadow"
-                >
-                  {msg}
-                </motion.div>
-              );
-            })}
+        {/* 오른쪽: 채팅, 음소거, 나가기 */}
+        <div className="flex items-center space-x-2 text-lg sm:text-xl">
+          <button onClick={() => setShowChat((prev) => !prev)}>💬</button>
+          <button
+            onClick={() => {
+              toggleSound();
+              setSoundOn(isSoundEnabled());
+            }}
+          >
+            {soundOn ? "🔊" : "🔇"}
+          </button>
+          <button
+            onClick={() => {
+              if (confirm("게임을 나가시겠습니까?")) router.push("/");
+            }}
+          >
+            ↩️
+          </button>
+        </div>
+      </div>
+
+      <div className="absolute top-[60px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
+        <AnimatePresence>
+          {logs.map((log) => {
+            const [id, msg] = log.split("::");
+            return (
+              <motion.div
+                key={id}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-black/70 text-white text-xs sm:text-sm px-3 py-1 rounded shadow"
+              >
+                {msg}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
+      {/* 상단 바 끝난 직후 */}
+      <PlayerStrip
+        players={playersForStrip}
+        currentPlayer={currentPlayer}
+        me={nickname}
+        timer={timer}
+        // 상단바 높이가 약 56~64px이므로 sticky offset 맞춤
+        className="sticky top-[56px] z-40 bg-transparent"
+      />
+
+      <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
+
+      {/* 제출된 카드 및 덱 */}
+      <div className="mb-6 w-full max-w-2xl">
+        <div className="flex justify-center items-center gap-4 sm:gap-8">
+          <AnimatePresence mode="wait">
+            {submittedCards.length > 0 ? (
+              <motion.div
+                key={
+                  submittedCards.at(-1)!.card + submittedCards.at(-1)!.nickname
+                }
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                <SubmittedCard
+                  card={submittedCards.at(-1)!.card}
+                  nickname={submittedCards.at(-1)!.nickname}
+                  className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-gray-400 text-sm"
+              >
+                제출된 카드 없음
+              </motion.div>
+            )}
           </AnimatePresence>
+
+          <motion.img
+            src="/cards/back.png"
+            alt="덱"
+            className={`w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32 rounded shadow-lg cursor-pointer ${
+              !isMyTurn || mustSubmit || bbungPhase !== "idle"
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:scale-105 transition-transform"
+            }`}
+            onClick={() => {
+              if (isMyTurn && !mustSubmit && bbungPhase === "idle") {
+                getSocket().emit("draw-card", { roomCode });
+              }
+            }}
+            whileHover={
+              isMyTurn && !mustSubmit && bbungPhase === "idle"
+                ? { scale: 1.1, rotate: 5 }
+                : {}
+            }
+            whileTap={
+              isMyTurn && !mustSubmit && bbungPhase === "idle"
+                ? { scale: 0.95 }
+                : {}
+            }
+          />
         </div>
+        <div className="text-center text-xs sm:text-sm text-yellow-300 mt-1">
+          남은 카드: {remainingCards}
+        </div>
+      </div>
 
-        {/* 상단 바 끝난 직후 */}
-        <PlayerStrip
-          players={playersForStrip}
-          currentPlayer={currentPlayer}
-          me={nickname}
-          timer={timer}
-          // 상단바 높이가 약 56~64px이므로 sticky offset 맞춤
-          className="sticky top-[56px] z-40 bg-transparent"
-        />
-
-        <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
-
-        {/* 제출된 카드 및 덱 */}
-        <div className="mb-6 w-full max-w-2xl">
-          <div className="flex justify-center items-center gap-4 sm:gap-8">
-            <AnimatePresence mode="wait">
-              {submittedCards.length > 0 ? (
-                <motion.div
-                  key={
-                    submittedCards.at(-1)!.card +
-                    submittedCards.at(-1)!.nickname
-                  }
-                  initial={{ y: -30, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                >
-                  <SubmittedCard
-                    card={submittedCards.at(-1)!.card}
-                    nickname={submittedCards.at(-1)!.nickname}
-                    className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-gray-400 text-sm"
-                >
-                  제출된 카드 없음
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <motion.img
-              src="/cards/back.png"
-              alt="덱"
-              className={`w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32 rounded shadow-lg cursor-pointer ${
-                !isMyTurn || mustSubmit || bbungPhase !== "idle"
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:scale-105 transition-transform"
-              }`}
-              onClick={() => {
-                if (isMyTurn && !mustSubmit && bbungPhase === "idle") {
-                  getSocket().emit("draw-card", { roomCode });
-                }
-              }}
-              whileHover={
-                isMyTurn && !mustSubmit && bbungPhase === "idle"
-                  ? { scale: 1.1, rotate: 5 }
-                  : {}
-              }
-              whileTap={
-                isMyTurn && !mustSubmit && bbungPhase === "idle"
-                  ? { scale: 0.95 }
-                  : {}
-              }
-            />
-          </div>
-          <div className="text-center text-xs sm:text-sm text-yellow-300 mt-1">
-            남은 카드: {remainingCards}
+      {showScoreModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-white text-black p-6 rounded-lg shadow-lg w-72 sm:w-80">
+            <h2 className="text-lg sm:text-xl font-bold mb-4 text-center">
+              현재 점수
+            </h2>
+            <ul className="space-y-1 text-xs sm:text-sm">
+              {Object.entries(totalScores)
+                .sort(([, a], [, b]) => b - a)
+                .map(([player, score]) => (
+                  <li key={player} className="flex justify-between">
+                    <span>{player}</span>
+                    <span className="font-semibold">{score}점</span>
+                  </li>
+                ))}
+            </ul>
+            <button
+              onClick={() => setShowScoreModal(false)}
+              className="mt-4 w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
+            >
+              닫기
+            </button>
           </div>
         </div>
+      )}
 
-        {showScoreModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-            <div className="bg-white text-black p-6 rounded-lg shadow-lg w-72 sm:w-80">
-              <h2 className="text-lg sm:text-xl font-bold mb-4 text-center">
-                현재 점수
-              </h2>
-              <ul className="space-y-1 text-xs sm:text-sm">
-                {Object.entries(totalScores)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([player, score]) => (
-                    <li key={player} className="flex justify-between">
-                      <span>{player}</span>
-                      <span className="font-semibold">{score}점</span>
-                    </li>
-                  ))}
-              </ul>
-              <button
-                onClick={() => setShowScoreModal(false)}
-                className="mt-4 w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 손패 및 버튼 */}
-        <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
-          <div className="flex flex-wrap justify-center gap-2 mt-2 px-2">
-            {hand.map((card) => (
-              <Card
-                key={card}
-                card={card}
-                selected={bbungCards.includes(card)}
-                isRecent={card === recentDrawnCard}
-                isNew={newCards.includes(card)}
-                onClick={() => toggleBbungCard(card)}
-                className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
-              />
-            ))}
-          </div>
-
-          <div className="mt-6 flex flex-col items-center gap-2 w-full max-w-sm mx-auto">
-            {canShowBbungButton() && (
-              <button
-                onClick={handleInitialBbung}
-                className="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm"
-              >
-                뻥! (같은 카드 2장 제출)
-              </button>
-            )}
-            {isMyTurn && !mustSubmit && bbungPhase === "idle" && (
-              <button
-                onClick={handleStop}
-                className="w-full px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded text-sm"
-              >
-                스탑!
-              </button>
-            )}
-            {bbungPhase === "selectingExtra" && (
-              <button
-                onClick={handleExtraBbung}
-                className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded text-sm"
-              >
-                추가 카드 1장 제출
-              </button>
-            )}
-            {isMyTurn && mustSubmit && bbungPhase === "idle" && (
-              <button
-                onClick={handleSubmitCard}
-                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
-              >
-                카드 제출
-              </button>
-            )}
-            {isMyTurn && canDrawCard() && (
-              <button
-                onClick={() => getSocket().emit("draw-card", { roomCode })}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-              >
-                카드 뽑기
-              </button>
-            )}
-            {isMyTurn && hand.length === 6 && jokboAvailable && (
-              <button
-                onClick={() =>
-                  getSocket().emit("round-ended", {
-                    roomCode,
-                    reason: "족보 완성",
-                  })
-                }
-                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm"
-              >
-                족보 완성!
-              </button>
-            )}
-          </div>
-
-          {isDrawing && <DrawAnimationCard keyVal={drawAnimationKey} />}
-
-          {showChat && (
-            <ChatBox
-              chatMessages={chatMessages}
-              chatInput={chatInput}
-              setChatInput={setChatInput}
-              canSend={canSend}
-              sendChat={sendChat}
-              className="w-full mt-4"
+      {/* 손패 및 버튼 */}
+      <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
+        <div className="flex flex-wrap justify-center gap-2 mt-2 px-2">
+          {hand.map((card) => (
+            <Card
+              key={card}
+              card={card}
+              selected={bbungCards.includes(card)}
+              isRecent={card === recentDrawnCard}
+              isNew={newCards.includes(card)}
+              onClick={() => toggleBbungCard(card)}
+              className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
             />
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-col items-center gap-2 w-full max-w-sm mx-auto">
+          {canShowBbungButton() && (
+            <button
+              onClick={handleInitialBbung}
+              className="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm"
+            >
+              뻥! (같은 카드 2장 제출)
+            </button>
+          )}
+          {isMyTurn && !mustSubmit && bbungPhase === "idle" && (
+            <button
+              onClick={handleStop}
+              className="w-full px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded text-sm"
+            >
+              스탑!
+            </button>
+          )}
+          {bbungPhase === "selectingExtra" && (
+            <button
+              onClick={handleExtraBbung}
+              className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded text-sm"
+            >
+              추가 카드 1장 제출
+            </button>
+          )}
+          {isMyTurn && mustSubmit && bbungPhase === "idle" && (
+            <button
+              onClick={handleSubmitCard}
+              className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+            >
+              카드 제출
+            </button>
+          )}
+          {isMyTurn && canDrawCard() && (
+            <button
+              onClick={() => getSocket().emit("draw-card", { roomCode })}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+            >
+              카드 뽑기
+            </button>
+          )}
+          {isMyTurn && hand.length === 6 && jokboAvailable && (
+            <button
+              onClick={() =>
+                getSocket().emit("round-ended", {
+                  roomCode,
+                  reason: "족보 완성",
+                })
+              }
+              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm"
+            >
+              족보 완성!
+            </button>
           )}
         </div>
 
-        <BagajiOverlay show={showBagaji} text={bagajiText} />
-        <BbungFX show={showBbungEffect} />
+        {isDrawing && <DrawAnimationCard keyVal={drawAnimationKey} />}
+        {showBbungEffect && <BbungTextEffect />}
+
+        {showChat && (
+          <ChatBox
+            chatMessages={chatMessages}
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+            canSend={canSend}
+            sendChat={sendChat}
+            className="w-full mt-4"
+          />
+        )}
       </div>
-    </AppShell>
+
+      <BagajiOverlay show={showBagaji} text={bagajiText} />
+    </div>
   );
 }

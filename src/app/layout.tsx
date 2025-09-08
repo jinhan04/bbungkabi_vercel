@@ -1,4 +1,4 @@
-// src\app\layout.tsx
+// layout.tsx
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 

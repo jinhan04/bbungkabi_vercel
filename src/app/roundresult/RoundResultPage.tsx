@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
-import AppShell from "@/components/AppShell";
 
 interface FinalScore {
   nickname: string;
@@ -202,126 +201,124 @@ export default function RoundResultPage() {
   };
 
   return (
-    <AppShell title="라운드 결과">
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
-        <h1 className="text-3xl font-bold mb-4">🎉 라운드 결과 🎉</h1>
-        <div className="text-lg mb-2">방 코드: {roomCode}</div>
-        <div className="text-lg mb-2">닉네임: {nickname}</div>
-        <div className="text-lg mb-2">
-          다음 라운드: {round < 5 ? `${round + 1} / 5` : "없음"}
-        </div>
-        <div className="text-lg mb-6 text-yellow-300 max-w-xl text-center">
-          {generateReasonDescription(reason, nickname, stopper, allHands)}
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
+      <h1 className="text-3xl font-bold mb-4">🎉 라운드 결과 🎉</h1>
+      <div className="text-lg mb-2">방 코드: {roomCode}</div>
+      <div className="text-lg mb-2">닉네임: {nickname}</div>
+      <div className="text-lg mb-2">
+        다음 라운드: {round < 5 ? `${round + 1} / 5` : "없음"}
+      </div>
+      <div className="text-lg mb-6 text-yellow-300 max-w-xl text-center">
+        {generateReasonDescription(reason, nickname, stopper, allHands)}
+      </div>
 
-        {/* 내 손패 */}
-        <div className="mt-4">
-          <h2 className="text-2xl font-bold mb-2">내 손패</h2>
-          {hand.length > 0 ? (
-            <div className="flex flex-wrap gap-2 justify-center">
-              {hand.map((card, idx) => (
-                <CardChip key={idx} card={card} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-gray-400">남은 카드 없음</div>
-          )}
-        </div>
+      {/* 내 손패 */}
+      <div className="mt-4">
+        <h2 className="text-2xl font-bold mb-2">내 손패</h2>
+        {hand.length > 0 ? (
+          <div className="flex flex-wrap gap-2 justify-center">
+            {hand.map((card, idx) => (
+              <CardChip key={idx} card={card} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-gray-400">남은 카드 없음</div>
+        )}
+      </div>
 
-        {/* 내 점수 */}
-        <div className="mt-6">
-          <h2 className="text-2xl font-bold">
-            {score !== null
-              ? `내 점수: ${score}점${
-                  totalScore !== null ? ` (누적: ${totalScore}점)` : ""
-                }`
-              : "점수 계산 중..."}
-          </h2>
-        </div>
+      {/* 내 점수 */}
+      <div className="mt-6">
+        <h2 className="text-2xl font-bold">
+          {score !== null
+            ? `내 점수: ${score}점${
+                totalScore !== null ? ` (누적: ${totalScore}점)` : ""
+              }`
+            : "점수 계산 중..."}
+        </h2>
+      </div>
 
-        {/* 다른 플레이어 보기 */}
-        {Object.keys(allHands).length > 0 && (
-          <div className="mt-8 w-full max-w-3xl">
-            <button
-              onClick={() => setShowOthers((v) => !v)}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded"
-            >
-              {showOthers ? "닫기" : "다른 플레이어 보기"}
-            </button>
+      {/* 다른 플레이어 보기 */}
+      {Object.keys(allHands).length > 0 && (
+        <div className="mt-8 w-full max-w-3xl">
+          <button
+            onClick={() => setShowOthers((v) => !v)}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded"
+          >
+            {showOthers ? "닫기" : "다른 플레이어 보기"}
+          </button>
 
-            {showOthers && (
-              <div className="mt-4 space-y-4">
-                {sortedPlayers.map((player) => {
-                  const cards = allHands[player] || [];
-                  const thisRound = roundScores[player] ?? 0;
-                  const total = totalScoresMap[player] ?? 0;
+          {showOthers && (
+            <div className="mt-4 space-y-4">
+              {sortedPlayers.map((player) => {
+                const cards = allHands[player] || [];
+                const thisRound = roundScores[player] ?? 0;
+                const total = totalScoresMap[player] ?? 0;
 
-                  return (
-                    <div
-                      key={player}
-                      className={`border border-white/20 rounded-lg p-4 ${
-                        player === nickname ? "bg-white/10" : "bg-white/5"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="text-lg font-bold">
-                          {player}
-                          {player === nickname && (
-                            <span className="ml-2 text-xs text-yellow-300">
-                              (나)
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-200">
-                          이번 라운드:{" "}
-                          <span className="font-semibold">{thisRound}점</span> ·
-                          누적: <span className="font-semibold">{total}점</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {cards.length > 0 ? (
-                          cards.map((card, idx) => (
-                            <CardChip key={idx} card={card} />
-                          ))
-                        ) : (
-                          <span className="text-gray-400 text-sm">
-                            손패 정보 없음
+                return (
+                  <div
+                    key={player}
+                    className={`border border-white/20 rounded-lg p-4 ${
+                      player === nickname ? "bg-white/10" : "bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-lg font-bold">
+                        {player}
+                        {player === nickname && (
+                          <span className="ml-2 text-xs text-yellow-300">
+                            (나)
                           </span>
                         )}
                       </div>
+                      <div className="text-sm text-gray-200">
+                        이번 라운드:{" "}
+                        <span className="font-semibold">{thisRound}점</span> ·
+                        누적: <span className="font-semibold">{total}점</span>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* 다음 라운드 / 최종 결과 */}
-        {!isLastRound ? (
-          <>
-            <button
-              onClick={handleReadyNext}
-              disabled={isReady}
-              className="mt-10 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 text-white font-bold py-2 px-6 rounded"
-            >
-              {isReady ? "준비 완료" : "다음 라운드 준비"}
-            </button>
-            <div className="mt-4 text-sm text-gray-300">
-              준비한 사람: {readyPlayers.join(", ")}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {cards.length > 0 ? (
+                        cards.map((card, idx) => (
+                          <CardChip key={idx} card={card} />
+                        ))
+                      ) : (
+                        <span className="text-gray-400 text-sm">
+                          손패 정보 없음
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </>
-        ) : (
+          )}
+        </div>
+      )}
+
+      {/* 다음 라운드 / 최종 결과 */}
+      {!isLastRound ? (
+        <>
           <button
-            onClick={handleViewFinal}
-            className="mt-10 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded"
+            onClick={handleReadyNext}
+            disabled={isReady}
+            className="mt-10 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 text-white font-bold py-2 px-6 rounded"
           >
-            최종 결과 보기
+            {isReady ? "준비 완료" : "다음 라운드 준비"}
           </button>
-        )}
-      </div>
-    </AppShell>
+          <div className="mt-4 text-sm text-gray-300">
+            준비한 사람: {readyPlayers.join(", ")}
+          </div>
+        </>
+      ) : (
+        <button
+          onClick={handleViewFinal}
+          className="mt-10 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded"
+        >
+          최종 결과 보기
+        </button>
+      )}
+    </div>
   );
 }
 

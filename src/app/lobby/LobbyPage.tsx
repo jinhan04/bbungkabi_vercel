@@ -6,7 +6,6 @@ import { getSocket } from "@/lib/socket";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
 import { playSound } from "@/lib/sound";
-import AppShell from "@/components/AppShell";
 
 type CombinedPlayer = {
   nickname: string;
@@ -189,202 +188,198 @@ export default function LobbyPage() {
   const totalCount = combinedPlayers.length;
 
   return (
-    <AppShell title="로비">
-      <div className="flex flex-col items-center justify-center min-h-screen bg-white px-4">
-        <h1 className="text-3xl font-bold mb-6 text-black">
-          🂡 뻥카비 대기방 🂡
-        </h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white px-4">
+      <h1 className="text-3xl font-bold mb-6 text-black">🂡 뻥카비 대기방 🂡</h1>
 
-        {roomCode && (
-          <div className="mb-4 text-xl text-black">
-            방 코드: <span className="font-mono">{roomCode}</span>
-          </div>
-        )}
+      {roomCode && (
+        <div className="mb-4 text-xl text-black">
+          방 코드: <span className="font-mono">{roomCode}</span>
+        </div>
+      )}
 
-        {/* 방장 전용: AI 관리 */}
-        {isHost && (
-          <div className="w-full max-w-xl mb-6">
-            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-              <h3 className="text-lg font-semibold text-black mb-3">AI 관리</h3>
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-gray-700">난이도</label>
-                <select
-                  value={botDifficulty}
-                  onChange={handleDifficultyChange}
-                  className="text-black px-2 py-1 border rounded"
-                >
-                  <option value="easy">easy</option>
-                  <option value="normal">normal</option>
-                  <option value="hard">hard</option>
-                </select>
-                <button
-                  onClick={addAI}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-                >
-                  AI 추가
-                </button>
-              </div>
-
-              {/* 추가된 AI 목록 + 제거 */}
-              <div className="mt-3">
-                <div className="text-sm text-gray-600 mb-1">추가된 AI</div>
-                <div className="flex flex-wrap gap-2">
-                  {combinedPlayers.filter((p) => p.isBot).length === 0 && (
-                    <span className="text-sm text-gray-500">없음</span>
-                  )}
-                  {combinedPlayers
-                    .filter((p) => p.isBot)
-                    .map((p) => (
-                      <span
-                        key={p.nickname}
-                        className="inline-flex items-center gap-2 bg-gray-100 text-black px-2 py-1 rounded"
-                      >
-                        🤖 {p.nickname}
-                        {p.difficulty && (
-                          <span className="text-xs text-gray-600 border border-gray-300 px-1 rounded">
-                            {p.difficulty}
-                          </span>
-                        )}
-                        <button
-                          onClick={() => removeAI(p.nickname)}
-                          className="text-red-600 hover:text-red-700"
-                          title="AI 제거"
-                        >
-                          🗑️
-                        </button>
-                      </span>
-                    ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <h2 className="text-2xl font-semibold mt-2 mb-3 text-black">
-          입장한 플레이어들
-        </h2>
-
-        {/* 통합(사람+봇) 목록 표시 — 이모지 포함 */}
-        <ul className="text-black w-full max-w-xl">
-          {combinedPlayers.map((p, index) => (
-            <li
-              key={p.nickname}
-              className="text-lg flex items-center justify-between bg-gray-100 rounded px-3 py-2 mb-2"
-            >
-              <span>
-                {index + 1}. {emojiMap[p.nickname] || (p.isBot ? "🤖" : "👤")}{" "}
-                {p.nickname}
-                {p.isBot && p.difficulty && (
-                  <span className="ml-2 text-xs text-gray-600 border border-gray-300 px-1 rounded align-middle">
-                    {p.difficulty}
-                  </span>
-                )}
-              </span>
-
-              {/* 방장일 때만, 봇 제거 버튼(항목별) */}
-              {isHost && p.isBot && (
-                <button
-                  onClick={() => removeAI(p.nickname)}
-                  className="text-red-600 hover:text-red-700"
-                  title="AI 제거"
-                >
-                  🗑️
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-
-        {isHost && (
-          <button
-            onClick={startGame}
-            disabled={totalCount < 1 || totalCount > 6}
-            className={`mt-6 px-6 py-2 font-semibold rounded-lg ${
-              totalCount < 1 || totalCount > 6
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-            }`}
-          >
-            게임 시작하기
-          </button>
-        )}
-
-        <button
-          onClick={() => setShowQR(true)}
-          className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg"
-        >
-          QR로 친구 초대
-        </button>
-
-        <button
-          onClick={() => {
-            const socket = getSocket();
-            socket.disconnect();
-            router.push("/");
-          }}
-          className="mt-4 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg"
-        >
-          대기방 나가기
-        </button>
-
-        <div className="mt-8 w-full max-w-xl">
-          <div className="bg-white text-black p-4 rounded shadow-md">
-            <h2 className="text-lg font-bold mb-2">채팅</h2>
-            <div className="h-40 overflow-y-auto mb-2 bg-gray-100 p-2 rounded text-sm">
-              {chatMessages.map((msg, i) => (
-                <div key={i}>
-                  <strong>{msg.nickname}:</strong> {msg.message}
-                </div>
-              ))}
-            </div>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                className="flex-grow px-2 py-1 border rounded"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendChat()}
-                placeholder={
-                  canSend ? "메시지를 입력하세요" : "10초 후 입력 가능"
-                }
-                disabled={!canSend}
-              />
-              <button
-                onClick={sendChat}
-                disabled={!canSend}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded disabled:bg-gray-400"
+      {/* 방장 전용: AI 관리 */}
+      {isHost && (
+        <div className="w-full max-w-xl mb-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <h3 className="text-lg font-semibold text-black mb-3">AI 관리</h3>
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-gray-700">난이도</label>
+              <select
+                value={botDifficulty}
+                onChange={handleDifficultyChange}
+                className="text-black px-2 py-1 border rounded"
               >
-                전송
+                <option value="easy">easy</option>
+                <option value="normal">normal</option>
+                <option value="hard">hard</option>
+              </select>
+              <button
+                onClick={addAI}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+              >
+                AI 추가
               </button>
+            </div>
+
+            {/* 추가된 AI 목록 + 제거 */}
+            <div className="mt-3">
+              <div className="text-sm text-gray-600 mb-1">추가된 AI</div>
+              <div className="flex flex-wrap gap-2">
+                {combinedPlayers.filter((p) => p.isBot).length === 0 && (
+                  <span className="text-sm text-gray-500">없음</span>
+                )}
+                {combinedPlayers
+                  .filter((p) => p.isBot)
+                  .map((p) => (
+                    <span
+                      key={p.nickname}
+                      className="inline-flex items-center gap-2 bg-gray-100 text-black px-2 py-1 rounded"
+                    >
+                      🤖 {p.nickname}
+                      {p.difficulty && (
+                        <span className="text-xs text-gray-600 border border-gray-300 px-1 rounded">
+                          {p.difficulty}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => removeAI(p.nickname)}
+                        className="text-red-600 hover:text-red-700"
+                        title="AI 제거"
+                      >
+                        🗑️
+                      </button>
+                    </span>
+                  ))}
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        {showQR && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg text-center max-w-sm w-full">
-              <h2 className="text-xl font-bold mb-4 text-black">
-                QR 코드로 초대하기
-              </h2>
-              <div className="flex justify-center">
-                <QRCodeCanvas
-                  value={`https://bbungkabe.com/join?code=${roomCode}`}
-                  size={200}
-                />
-              </div>
-              <p className="text-sm text-gray-600 mt-2 break-all">
-                https://bbungkabe.com/join?code={roomCode}
-              </p>
+      <h2 className="text-2xl font-semibold mt-2 mb-3 text-black">
+        입장한 플레이어들
+      </h2>
+
+      {/* 통합(사람+봇) 목록 표시 — 이모지 포함 */}
+      <ul className="text-black w-full max-w-xl">
+        {combinedPlayers.map((p, index) => (
+          <li
+            key={p.nickname}
+            className="text-lg flex items-center justify-between bg-gray-100 rounded px-3 py-2 mb-2"
+          >
+            <span>
+              {index + 1}. {emojiMap[p.nickname] || (p.isBot ? "🤖" : "👤")}{" "}
+              {p.nickname}
+              {p.isBot && p.difficulty && (
+                <span className="ml-2 text-xs text-gray-600 border border-gray-300 px-1 rounded align-middle">
+                  {p.difficulty}
+                </span>
+              )}
+            </span>
+
+            {/* 방장일 때만, 봇 제거 버튼(항목별) */}
+            {isHost && p.isBot && (
               <button
-                className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                onClick={() => setShowQR(false)}
+                onClick={() => removeAI(p.nickname)}
+                className="text-red-600 hover:text-red-700"
+                title="AI 제거"
               >
-                닫기
+                🗑️
               </button>
-            </div>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      {isHost && (
+        <button
+          onClick={startGame}
+          disabled={totalCount < 1 || totalCount > 6}
+          className={`mt-6 px-6 py-2 font-semibold rounded-lg ${
+            totalCount < 1 || totalCount > 6
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}
+        >
+          게임 시작하기
+        </button>
+      )}
+
+      <button
+        onClick={() => setShowQR(true)}
+        className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg"
+      >
+        QR로 친구 초대
+      </button>
+
+      <button
+        onClick={() => {
+          const socket = getSocket();
+          socket.disconnect();
+          router.push("/");
+        }}
+        className="mt-4 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg"
+      >
+        대기방 나가기
+      </button>
+
+      <div className="mt-8 w-full max-w-xl">
+        <div className="bg-white text-black p-4 rounded shadow-md">
+          <h2 className="text-lg font-bold mb-2">채팅</h2>
+          <div className="h-40 overflow-y-auto mb-2 bg-gray-100 p-2 rounded text-sm">
+            {chatMessages.map((msg, i) => (
+              <div key={i}>
+                <strong>{msg.nickname}:</strong> {msg.message}
+              </div>
+            ))}
           </div>
-        )}
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              className="flex-grow px-2 py-1 border rounded"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendChat()}
+              placeholder={
+                canSend ? "메시지를 입력하세요" : "10초 후 입력 가능"
+              }
+              disabled={!canSend}
+            />
+            <button
+              onClick={sendChat}
+              disabled={!canSend}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded disabled:bg-gray-400"
+            >
+              전송
+            </button>
+          </div>
+        </div>
       </div>
-    </AppShell>
+
+      {showQR && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4 text-black">
+              QR 코드로 초대하기
+            </h2>
+            <div className="flex justify-center">
+              <QRCodeCanvas
+                value={`https://bbungkabe.com/join?code=${roomCode}`}
+                size={200}
+              />
+            </div>
+            <p className="text-sm text-gray-600 mt-2 break-all">
+              https://bbungkabe.com/join?code={roomCode}
+            </p>
+            <button
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              onClick={() => setShowQR(false)}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

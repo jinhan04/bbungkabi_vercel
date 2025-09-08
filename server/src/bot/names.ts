@@ -1,3 +1,4 @@
+// server\src\bot\names.ts
 export const BOT_NAME_POOL = [
   "블러프킹",
   "포커여우",

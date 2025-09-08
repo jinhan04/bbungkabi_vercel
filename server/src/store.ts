@@ -14,6 +14,11 @@ export class Store {
   doubleFinalRoundMap: Record<RoomCode, boolean> = {};
   scores: Record<RoomCode, Record<Nickname, number[]>> = {};
   readyForNextRound: Record<RoomCode, Set<Nickname>> = {};
+
+  bbungOpen: Record<string, boolean> = {};
+  bbungTimer: Record<string, NodeJS.Timeout | null> = {};
+  bbungBy: Record<string, string | null> = {};
+
   bbungEndTriggeredBy: Record<RoomCode, Nickname | null> = {};
   emojiMap: Record<RoomCode, Record<Nickname, string>> = {};
   lastBbungHappened: Record<RoomCode, boolean> = {};

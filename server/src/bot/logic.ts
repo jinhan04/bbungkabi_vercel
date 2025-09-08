@@ -1,3 +1,4 @@
+// server\src\bot\logic.ts
 import { Server } from "socket.io";
 import { store, Difficulty } from "../store";
 import { cardToValueN } from "../utils/cards";
@@ -129,10 +130,71 @@ export function serverSubmitSingleCard(
   if (!hand) return;
   const i = hand.indexOf(card);
   if (i === -1) return;
+
   hand.splice(i, 1);
   store.submittedHistory[room].push({ nickname: nick, card });
   io.to(room).emit("card-submitted", { nickname: nick, card });
+
+  // 🔽 변경: 봇이면 뻥 창을 열고, 사람은 기존처럼 턴 넘김
+  const isBot = store.getBots(room).some((b) => b.nickname === nick);
+  if (isBot) {
+    // 사람에게 봇 카드에 대한 뻥 기회 제공
+    openBbungWindow(io, room, nick, 1500); // 1.5초 예시
+    return; // 여기서 종료: 타임아웃 후 openBbungWindow가 nextTurn 호출함
+  }
+
   nextTurn(io, room);
+}
+
+function ensureBbungState(room: string) {
+  if (!store.bbungOpen) store.bbungOpen = {};
+  if (!store.bbungBy) store.bbungBy = {};
+  if (!store.bbungTimer) store.bbungTimer = {};
+  if (store.bbungOpen[room] === undefined) store.bbungOpen[room] = false;
+  if (store.bbungBy[room] === undefined) store.bbungBy[room] = null;
+  if (store.bbungTimer[room] === undefined) store.bbungTimer[room] = null;
+}
+
+function openBbungWindow(
+  io: Server,
+  room: string,
+  byNickname: string,
+  ms = 1500
+) {
+  ensureBbungState(room);
+
+  // 기존 타이머 있으면 정리
+  if (store.bbungTimer[room]) {
+    clearTimeout(store.bbungTimer[room]!);
+    store.bbungTimer[room] = null;
+  }
+
+  store.bbungOpen[room] = true;
+  store.bbungBy[room] = byNickname;
+
+  io.to(room).emit("bbung-open", { byNickname, timeoutMs: ms });
+
+  // ms 뒤 자동 닫고, 그때 턴 넘김
+  store.bbungTimer[room] = setTimeout(() => {
+    store.bbungOpen[room] = false;
+    store.bbungBy[room] = null;
+    store.bbungTimer[room] = null;
+    io.to(room).emit("bbung-close");
+    nextTurn(io, room);
+  }, ms);
+}
+
+function closeBbungWindow(io: Server, room: string) {
+  ensureBbungState(room);
+  if (store.bbungTimer[room]) {
+    clearTimeout(store.bbungTimer[room]!);
+    store.bbungTimer[room] = null;
+  }
+  if (store.bbungOpen[room]) {
+    store.bbungOpen[room] = false;
+    store.bbungBy[room] = null;
+    io.to(room).emit("bbung-close");
+  }
 }
 
 export function serverSubmitBbung(
@@ -141,6 +203,9 @@ export function serverSubmitBbung(
   nick: string,
   cards: string[]
 ) {
+  // 🔽 선택 가드: 뻥 창이 열려있을 때만 허용 (안전)
+  if (store.bbungOpen?.[room] === false) return;
+
   if (!cards || cards.length !== 2) return;
   if (store.drawFlag[room]?.has(nick)) return; // 드로우 후 뻥 금지
   const nums = cards.map(_numStr);
@@ -150,6 +215,9 @@ export function serverSubmitBbung(
   const lastNum = last?.card ? _numStr(last.card) : null;
   if (!lastNum || lastNum !== nums[0]) return;
   if (last?.nickname === nick) return;
+
+  // 🔽 타이머/창 정리: 중복 nextTurn 방지
+  closeBbungWindow(io, room);
 
   for (const c of cards) {
     const idx = store.playerHands[room][nick].indexOf(c);
@@ -162,6 +230,7 @@ export function serverSubmitBbung(
   io.to(room).emit("bbung-effect", { nickname: nick });
   store.lastBbungHappened[room] = true;
 
+  // 이하 기존 로직 그대로…
   if (store.playerHands[room][nick].length === 0) {
     const back3 = store.submittedHistory[room].at(-3);
     const bbNum = _numStr(cards[0]);
@@ -203,7 +272,9 @@ export function serverSubmitBbungExtra(
     store.submittedHistory[room].push({ nickname: nick, card });
     io.to(room).emit("card-submitted", { nickname: nick, card });
   }
+
   if (store.playerHands[room][nick].length === 0) {
+    // (기존 라운드 종료 로직 그대로)
     const last = store.submittedHistory[room].at(-1);
     if (last) store.bbungEndTriggeredBy[room] = last.nickname;
 
@@ -228,6 +299,9 @@ export function serverSubmitBbungExtra(
       triggerer: store.bbungEndTriggeredBy[room],
     });
   } else {
+    // 🔽 안전: 혹시 창이 열려있다면 닫고 진행
+    closeBbungWindow(io, room);
+
     const players = getAllPlayers(room);
     const i = players.indexOf(nick);
     store.turnIndex[room] = (i + 1) % players.length;

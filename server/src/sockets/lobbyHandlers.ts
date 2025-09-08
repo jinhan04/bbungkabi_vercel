@@ -1,3 +1,4 @@
+// server\src\sockets\lobbyHandlers.ts
 import { Server, Socket } from "socket.io";
 import { store } from "../store";
 import { createDeck, shuffle } from "../utils/cards";
@@ -37,13 +38,11 @@ export function registerLobbyHandlers(io: Server, socket: Socket) {
     io.to(roomCode).emit("player-list", {
       players: [
         ...store.rooms[roomCode].map((n) => ({ nickname: n, isBot: false })),
-        ...store
-          .getBots(roomCode)
-          .map((b) => ({
-            nickname: b.nickname,
-            isBot: true,
-            difficulty: b.difficulty,
-          })),
+        ...store.getBots(roomCode).map((b) => ({
+          nickname: b.nickname,
+          isBot: true,
+          difficulty: b.difficulty,
+        })),
       ],
     });
   });
@@ -55,13 +54,11 @@ export function registerLobbyHandlers(io: Server, socket: Socket) {
           nickname: n,
           isBot: false,
         })) ?? []),
-        ...store
-          .getBots(roomCode)
-          .map((b) => ({
-            nickname: b.nickname,
-            isBot: true,
-            difficulty: b.difficulty,
-          })),
+        ...store.getBots(roomCode).map((b) => ({
+          nickname: b.nickname,
+          isBot: true,
+          difficulty: b.difficulty,
+        })),
       ],
     });
   });
@@ -108,13 +105,11 @@ export function registerLobbyHandlers(io: Server, socket: Socket) {
       io.to(roomCode).emit("player-list", {
         players: [
           ...store.rooms[roomCode].map((n) => ({ nickname: n, isBot: false })),
-          ...store
-            .getBots(roomCode)
-            .map((b) => ({
-              nickname: b.nickname,
-              isBot: true,
-              difficulty: b.difficulty,
-            })),
+          ...store.getBots(roomCode).map((b) => ({
+            nickname: b.nickname,
+            isBot: true,
+            difficulty: b.difficulty,
+          })),
         ],
       });
     }
@@ -140,13 +135,11 @@ export function registerLobbyHandlers(io: Server, socket: Socket) {
       io.to(roomCode).emit("player-list", {
         players: [
           ...store.rooms[roomCode].map((n) => ({ nickname: n, isBot: false })),
-          ...store
-            .getBots(roomCode)
-            .map((b) => ({
-              nickname: b.nickname,
-              isBot: true,
-              difficulty: b.difficulty,
-            })),
+          ...store.getBots(roomCode).map((b) => ({
+            nickname: b.nickname,
+            isBot: true,
+            difficulty: b.difficulty,
+          })),
         ],
       });
     }
@@ -280,13 +273,11 @@ export function registerLobbyHandlers(io: Server, socket: Socket) {
             nickname: n,
             isBot: false,
           })),
-          ...store
-            .getBots(roomCode)
-            .map((b) => ({
-              nickname: b.nickname,
-              isBot: true,
-              difficulty: b.difficulty,
-            })),
+          ...store.getBots(roomCode).map((b) => ({
+            nickname: b.nickname,
+            isBot: true,
+            difficulty: b.difficulty,
+          })),
         ],
       });
     });

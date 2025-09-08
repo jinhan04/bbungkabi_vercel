@@ -1,3 +1,4 @@
+// server\src\sockets\registerHandlers.ts
 import { Server, Socket } from "socket.io";
 import { registerLobbyHandlers } from "./lobbyHandlers";
 import { registerGameHandlers } from "./gameHandlers";

@@ -105,7 +105,7 @@ export default function PlayerStrip({
 
                 {/* 하단 진행바 */}
                 {isTurn && typeof timer === "number" && timer !== null && (
-                  <div className="absolute left-1/6 right-1/6 bottom-0 h-1 bg-white/15 rounded-full overflow-hidden">
+                  <div className="absolute left-1 right-1 bottom-0 h-1 bg-white/15 rounded-b-xl overflow-hidden">
                     <div
                       className="h-full bg-pink-400 transition-all duration-300 ease-linear"
                       style={{ width: `${percent}%` }}

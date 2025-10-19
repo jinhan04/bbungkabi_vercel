@@ -1,7 +1,7 @@
 "use client";
 
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 const EMOJIS = [
@@ -22,7 +22,8 @@ const EMOJIS = [
   "🐻",
 ];
 
-export default function LoginPage() {
+// ✅ useSearchParams()를 사용하는 부분을 분리
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -86,5 +87,18 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+// ✅ Suspense 경계로 감싸기 (필수)
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen grid place-items-center">로딩중…</div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

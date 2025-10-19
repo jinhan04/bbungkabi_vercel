@@ -37,7 +37,9 @@ export async function POST(req: Request) {
     const res = NextResponse.json({ user });
     res.cookies.set(sessionCookie.name, token, sessionCookie.options);
     return res;
-  } catch (e) {
+  } catch {
+    // 필요하면 서버 로그로 남겨도 됩니다:
+    // console.error("signup error:", e);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

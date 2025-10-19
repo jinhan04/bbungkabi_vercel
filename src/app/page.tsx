@@ -1,33 +1,38 @@
 // src/app/page.tsx
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import GameRulesModal from "@/components/GameRulesModal";
 import { useAuth } from "@/context/AuthContext";
 
 export default function HomePage() {
-  const [nickname, setNickname] = useState("");
+  const router = useRouter();
+  const { user, emoji, setEmoji, login, logout } = useAuth();
+
+  // UI 상태
+  const [nicknameInput, setNicknameInput] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [maxPlayers] = useState(6);
   const [showMaxInput, setShowMaxInput] = useState(false);
 
-  // 모달 상태
-  const [showPatchNote, setShowPatchNote] = useState(true); // 홈 진입 시 공지/업데이트 탭
-  const [showRules, setShowRules] = useState(false); // 게임 설명 탭
-
+  const [showPatchNote, setShowPatchNote] = useState(true);
+  const [showRules, setShowRules] = useState(false);
   const [doubleFinalRound, setDoubleFinalRound] = useState(false);
-  const { emoji, setEmoji } = useAuth();
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [uhbbungEnabled, setUhbbungEnabled] = useState(false);
 
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   const logoClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const logoClickCountRef = useRef(0);
 
-  const router = useRouter();
   const handleClosePatch = () => setShowPatchNote(false);
+
+  // 로그인된 유저가 있으면 입력칸을 자동 채움
+  useEffect(() => {
+    if (user?.nickname) setNicknameInput(user.nickname);
+  }, [user?.nickname]);
 
   // ---- 공용 데이터(한 곳에서 관리) ----
   const UPDATE_LIST = [
@@ -145,15 +150,24 @@ export default function HomePage() {
     return code;
   }
 
+  // 유효 닉네임 확보 (user 우선, 없으면 입력값)
+  const getEffectiveNickname = () =>
+    (user?.nickname || "").trim() || nicknameInput.trim();
+
+  // 방 만들기 시작
   const handleCreateRoom = () => {
-    if (!nickname.trim()) {
+    const name = getEffectiveNickname();
+    if (!name) {
       alert("닉네임을 입력해 주세요.");
       return;
     }
+    // 로그인 안 돼 있으면 즉시 로그인 처리
+    if (!user) login(name, emoji);
     setShowMaxInput(true);
     setIsJoiningRoom(false);
   };
 
+  // 이스터에그 클릭
   const handleLogoClick = () => {
     if (logoClickCountRef.current === 0) {
       logoClickTimeoutRef.current = setTimeout(() => {
@@ -171,8 +185,10 @@ export default function HomePage() {
     }
   };
 
+  // 방 생성 확정
   const confirmCreateRoom = () => {
-    if (nickname.trim() === "임진한") {
+    const name = getEffectiveNickname();
+    if (name === "임진한") {
       router.push("/dev-easteregg");
       return;
     }
@@ -180,41 +196,74 @@ export default function HomePage() {
       alert("최대 인원은 1명 이상 6명 이하만 가능합니다.");
       return;
     }
+    // 로그인 보증
+    if (!user) login(name, emoji);
+
     const newRoomCode = generateRoomCode();
     router.push(
       `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
-        nickname
+        name
       )}&doubleFinal=${doubleFinalRound}&uhbbung=${uhbbungEnabled}&emoji=${encodeURIComponent(
         emoji
       )}`
     );
   };
 
+  // 방 입장 시작
   const handleStartJoinRoom = () => {
-    if (!nickname.trim()) {
+    const name = getEffectiveNickname();
+    if (!name) {
       alert("닉네임을 입력해 주세요.");
       return;
     }
+    if (!user) login(name, emoji);
     setIsJoiningRoom(true);
     setShowMaxInput(false);
   };
 
+  // 방 입장 확정
   const handleJoinRoom = () => {
+    const name = getEffectiveNickname();
     if (!roomCode.trim()) {
       alert("방 코드를 입력해 주세요.");
       return;
     }
+    if (!user) login(name, emoji);
     router.push(
       `/lobby?code=${roomCode.toUpperCase()}&nickname=${encodeURIComponent(
-        nickname
-      )}`
+        name
+      )}&emoji=${encodeURIComponent(emoji)}`
     );
   };
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      {/* 우상단 버튼 */}
+      {/* 우상단: 계정/링크 */}
       <div className="absolute top-4 right-4 flex flex-col items-end space-y-2 z-50">
+        {/* 계정 상태 뱃지 */}
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-1 rounded-lg bg-black/10 text-black">
+            {emoji} {user?.nickname || "게스트"}
+          </span>
+          {user ? (
+            <button
+              onClick={logout}
+              className="bg-gray-700 text-white px-3 py-1 rounded-lg hover:bg-gray-800"
+              title="로그아웃"
+            >
+              로그아웃
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push("/login?next=/")}
+              className="bg-black text-white px-3 py-1 rounded-lg hover:bg-black/80"
+              title="로그인 페이지로 이동"
+            >
+              로그인
+            </button>
+          )}
+        </div>
+
         <a
           href="https://open.kakao.com/o/sXveaSxh"
           target="_blank"
@@ -229,6 +278,7 @@ export default function HomePage() {
           target="_blank"
           rel="noopener noreferrer"
         >
+          {/* next/image 경고는 빌드 성공에 영향 없으므로 유지 */}
           <img
             src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
             alt="Buy Me A Coffee"
@@ -247,7 +297,6 @@ export default function HomePage() {
           update: UPDATE_LIST,
           bugs: BUG_LIST,
           future: FUTURE_LIST,
-          // 규칙 탭에 내용도 함께 넘겨두면 "게임 설명 보기" 안 눌러도 규칙 확인 가능
           rules: RULES_CONTENT,
         }}
       />
@@ -302,12 +351,14 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* 닉네임 입력 — 로그인되어 있으면 고정 표시 */}
       <input
         type="text"
         placeholder="닉네임을 입력하세요"
-        className="mt-2 mb-6 px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
+        className="mt-2 mb-6 px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black disabled:bg-gray-100"
+        value={user?.nickname || nicknameInput}
+        onChange={(e) => setNicknameInput(e.target.value)}
+        disabled={!!user?.nickname}
       />
 
       {!isJoiningRoom && !showMaxInput && (

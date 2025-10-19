@@ -1,17 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// 로그인 필요 페이지들(앞으로 필요하면 여기만 추가)
-const PROTECTED = ["/lobby", "/room", "/game", "/roundresult", "/finalresult"];
+const PROTECTED = [
+  "/",
+  "/lobby",
+  "/room",
+  "/game",
+  "/roundresult",
+  "/finalresult",
+];
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
-  const needAuth = PROTECTED.some((p) => pathname.startsWith(p));
 
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/cards") ||
+    pathname.startsWith("/sounds") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname.startsWith("/api/auth") || // 인증 API는 열어둠
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup")
+  ) {
+    return NextResponse.next();
+  }
+
+  const needAuth = PROTECTED.some(
+    (p) => pathname === p || pathname.startsWith(p)
+  );
   if (!needAuth) return NextResponse.next();
 
-  // AuthContext가 설정하는 쿠키(bbungkabi_auth=1)로 판별
-  const hasAuth = req.cookies.get("bbungkabi_auth")?.value === "1";
-  if (hasAuth) return NextResponse.next();
+  const hasSession = !!req.cookies.get("bbungkabi_session")?.value;
+  if (hasSession) return NextResponse.next();
 
   const url = req.nextUrl.clone();
   url.pathname = "/login";
@@ -19,9 +40,6 @@ export function middleware(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-// _next, 정적 파일 등은 제외
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|cards|sounds).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

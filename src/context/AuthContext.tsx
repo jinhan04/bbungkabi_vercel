@@ -75,21 +75,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     nickname: string,
     e?: string
   ) => {
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, nickname, emoji: e }),
-    });
-    if (!res.ok) return false;
-    const { user: u } = await res.json();
-    setUser({
-      uid: u.id,
-      username: u.username,
-      nickname: u.nickname,
-      emoji: u.emoji,
-    });
-    if (u.emoji) setEmoji(u.emoji);
-    return true;
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, nickname, emoji: e }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // 서버에서 내려준 구체 메시지 우선
+        alert(data?.error || "회원가입 실패");
+        return false;
+      }
+      const u = data.user;
+      setUser({
+        uid: u.id,
+        username: u.username,
+        nickname: u.nickname,
+        emoji: u.emoji,
+      });
+      if (u.emoji) setEmoji(u.emoji);
+      return true;
+    } catch (err) {
+      alert("네트워크 오류/서버 오류");
+      return false;
+    }
   };
 
   const logout = async () => {

@@ -1,24 +1,12 @@
 // src/lib/auth.ts
-
-export function setToken(token: string) {
-  localStorage.setItem("token", token);
-}
-
-export function getToken(): string | null {
-  return localStorage.getItem("token");
-}
-
-export function removeToken() {
-  localStorage.removeItem("token");
-}
-
-export function isLoggedIn(): boolean {
-  return !!getToken();
-}
-
 import { SignJWT, jwtVerify } from "jose";
 
-const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
+const key = process.env.AUTH_SECRET;
+if (!key) {
+  // 환경변수 없으면 명확히 실패시켜 원인 보이게
+  throw new Error("AUTH_SECRET env var is not set");
+}
+const secret = new TextEncoder().encode(key);
 
 export type JWTPayload = {
   uid: string;

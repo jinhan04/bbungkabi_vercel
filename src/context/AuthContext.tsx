@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       if (u.emoji) setEmoji(u.emoji);
       return true;
-    } catch (err) {
+    } catch {
       alert("네트워크 오류/서버 오류");
       return false;
     }

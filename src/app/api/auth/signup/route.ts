@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     const nickname = rawNickname.trim();
 
     // 4) 밸리데이션 (예시: 영문/숫자/._- 3~24자)
-    const usernameOk = /^[a-z0-9._-]{3,24}$/.test(username);
+    const usernameOk = /^[\p{L}\p{N}._-]{3,24}$/u.test(username);
     const passwordOk = password.length >= 8; // 최소 8자 권장
     const nicknameOk = nickname.length >= 1 && nickname.length <= 24;
     if (!usernameOk || !passwordOk || !nicknameOk) {

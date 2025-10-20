@@ -12,11 +12,8 @@ generator client {
 model User {
   id           String   @id @default(cuid())
   username     String   @unique
-  passwordHash String
   nickname     String
-  emoji        String?
-  profileImage String?
-  kakaoId      String?
+  passwordHash String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

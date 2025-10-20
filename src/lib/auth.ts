@@ -1,51 +1,59 @@
-// src/lib/auth.ts
-import { SignJWT, jwtVerify } from "jose";
+// server/src/routes/auth.ts
+import { Router } from "express";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
 
-let cachedSecret: Uint8Array | null = null;
+const router = Router();
+const prisma = new PrismaClient();
+const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET!;
+if (!JWT_SECRET) throw new Error("JWT_SECRET(or AUTH_SECRET) missing!");
 
-function getSecret(): Uint8Array {
-  if (cachedSecret) return cachedSecret;
-  const key = process.env.AUTH_SECRET;
-  if (!key) {
-    // 실제 요청 처리 시점에만 에러가 나도록
-    throw new Error("AUTH_SECRET env var is not set");
-  }
-  cachedSecret = new TextEncoder().encode(key);
-  return cachedSecret;
-}
+router.post("/signup", async (req, res) => {
+  const { username, nickname, password } = req.body || {};
+  if (!username || !nickname || !password)
+    return res.status(400).json({ error: "필수값 누락" });
 
-export type JWTPayload = {
-  uid: string;
-  username: string;
-  nickname: string;
-  emoji?: string;
-};
+  const exists = await prisma.user.findUnique({ where: { username } });
+  if (exists) return res.status(409).json({ error: "이미 존재하는 username" });
 
-export async function signSession(payload: JWTPayload) {
-  const secret = getSecret();
-  return await new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(secret);
-}
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user = await prisma.user.create({
+    data: { username, nickname, passwordHash },
+  });
 
-export async function verifySession(token: string) {
-  const secret = getSecret();
-  const { payload } = await jwtVerify(token, secret);
-  return payload as JWTPayload;
-}
+  const token = jwt.sign(
+    { uid: user.id, username: user.username, nickname: user.nickname },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
-// 🔸 개발에서는 http 쿠키도 저장되도록 secure 옵션 분기 (중요!)
-const isProd = process.env.NODE_ENV === "production";
+  res.json({
+    ok: true,
+    token,
+    user: { id: user.id, username: user.username, nickname: user.nickname },
+  });
+});
 
-export const sessionCookie = {
-  name: "bbungkabi_session",
-  options: {
-    httpOnly: true,
-    secure: isProd, // prod만 true, 로컬은 false
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  },
-};
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body || {};
+  const user = await prisma.user.findUnique({ where: { username } });
+  if (!user) return res.status(401).json({ error: "아이디/비번 오류" });
+
+  const ok = await bcrypt.compare(password, user.passwordHash);
+  if (!ok) return res.status(401).json({ error: "아이디/비번 오류" });
+
+  const token = jwt.sign(
+    { uid: user.id, username: user.username, nickname: user.nickname },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.json({
+    ok: true,
+    token,
+    user: { id: user.id, username: user.username, nickname: user.nickname },
+  });
+});
+
+export default router;

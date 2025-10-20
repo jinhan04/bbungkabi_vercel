@@ -1,3 +1,4 @@
+// server\src\store.ts
 export type RoomCode = string;
 export type Nickname = string;
 export type Difficulty = "easy" | "normal" | "hard";

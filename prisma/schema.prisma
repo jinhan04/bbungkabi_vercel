@@ -11,12 +11,13 @@ datasource db {
 
 model User {
   id           String   @id @default(cuid())
-  username     String   @unique          // 로그인 아이디
+  username     String   @unique
   passwordHash String
   nickname     String
-  emoji        String?  // 선택 이모지
+  emoji        String?
   profileImage String?
-  kakaoId      String?  // 나중 대비
+  kakaoId      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+

@@ -8,7 +8,17 @@ import {
   ReactNode,
 } from "react";
 
-type User = { uid: string; username: string; nickname: string; emoji?: string };
+type User = { id: string; username: string; nickname: string; emoji?: string };
+
+type ApiUser = {
+  id: string;
+  username: string;
+  nickname: string;
+  emoji?: string;
+};
+
+type ApiOk<T> = { user: T };
+type ApiErr = { error?: string };
 
 type Ctx = {
   user: User | null;
@@ -26,47 +36,82 @@ type Ctx = {
 
 const AuthContext = createContext<Ctx | undefined>(undefined);
 
+async function safeJson<T = unknown>(res: Response): Promise<T | null> {
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [emoji, setEmoji] = useState("🐶");
 
   // 부팅 시 서버 세션 확인
   useEffect(() => {
+    const ac = new AbortController();
     (async () => {
       try {
-        const res = await fetch("/api/auth/me", { cache: "no-store" });
-        const data = await res.json();
-        if (data.user) {
+        const res = await fetch("/api/auth/me", {
+          cache: "no-store",
+          credentials: "include",
+          signal: ac.signal,
+        });
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const data = await safeJson<ApiOk<ApiUser> | ApiErr>(res);
+        const u = (data as ApiOk<ApiUser>)?.user;
+        if (u) {
           setUser({
-            uid: data.user.uid,
-            username: data.user.username,
-            nickname: data.user.nickname,
-            emoji: data.user.emoji,
+            id: u.id,
+            username: u.username,
+            nickname: u.nickname,
+            emoji: u.emoji,
           });
-          if (data.user.emoji) setEmoji(data.user.emoji);
+          if (u.emoji) setEmoji(u.emoji);
         } else {
           setUser(null);
         }
-      } catch {}
+      } catch (e) {
+        console.error("[/api/auth/me] failed:", e);
+        setUser(null);
+      }
     })();
+    return () => ac.abort();
   }, []);
 
   const login = async (username: string, password: string) => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    if (!res.ok) return false;
-    const { user: u } = await res.json();
-    setUser({
-      uid: u.id,
-      username: u.username,
-      nickname: u.nickname,
-      emoji: u.emoji,
-    });
-    if (u.emoji) setEmoji(u.emoji);
-    return true;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          // "X-CSRF-Token": csrfToken, // 서버에서 사용 시
+        },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await safeJson<ApiOk<ApiUser> | ApiErr>(res);
+      if (!res.ok) {
+        console.error("[login] failed:", data);
+        return false;
+      }
+      const u = (data as ApiOk<ApiUser>).user;
+      setUser({
+        id: u.id,
+        username: u.username,
+        nickname: u.nickname,
+        emoji: u.emoji,
+      });
+      if (u.emoji) setEmoji(u.emoji);
+      return true;
+    } catch (e) {
+      console.error("[login] error:", e);
+      return false;
+    }
   };
 
   const signup = async (
@@ -78,34 +123,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          // "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({ username, password, nickname, emoji: e }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await safeJson<ApiOk<ApiUser> | ApiErr>(res);
       if (!res.ok) {
-        // 서버에서 내려준 구체 메시지 우선
-        alert(data?.error || "회원가입 실패");
+        const msg = (data as ApiErr)?.error || "회원가입 실패";
+        // TODO: replace with toast
+        alert(msg);
         return false;
       }
-      const u = data.user;
+      const u = (data as ApiOk<ApiUser>).user;
       setUser({
-        uid: u.id,
+        id: u.id,
         username: u.username,
         nickname: u.nickname,
         emoji: u.emoji,
       });
       if (u.emoji) setEmoji(u.emoji);
       return true;
-    } catch {
-      alert("네트워크 오류/서버 오류");
+    } catch (e) {
+      console.error("[signup] error:", e);
+      alert("네트워크/서버 오류");
       return false;
     }
   };
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
-    setEmoji("🐶");
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (e) {
+      console.error("[logout] error:", e);
+    } finally {
+      setUser(null);
+      setEmoji("🐶");
+    }
   };
 
   return (

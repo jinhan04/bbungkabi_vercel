@@ -1,59 +1,41 @@
-// server/src/routes/auth.ts
-import { Router } from "express";
-import bcrypt from "bcrypt";
+// src/lib/auth.ts
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
 
-const router = Router();
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET!;
-if (!JWT_SECRET) throw new Error("JWT_SECRET(or AUTH_SECRET) missing!");
+// --- 환경변수에서 시크릿 로딩 ---
+const _secret = process.env.JWT_SECRET ?? process.env.AUTH_SECRET;
+if (!_secret) {
+  throw new Error("JWT_SECRET(or AUTH_SECRET) missing!");
+}
+const JWT_SECRET: string = _secret;
 
-router.post("/signup", async (req, res) => {
-  const { username, nickname, password } = req.body || {};
-  if (!username || !nickname || !password)
-    return res.status(400).json({ error: "필수값 누락" });
+// --- 세션 페이로드 타입 (필요하면 확장) ---
+export type SessionPayload = {
+  uid: string;
+  username: string;
+  nickname: string;
+  emoji?: string;
+};
 
-  const exists = await prisma.user.findUnique({ where: { username } });
-  if (exists) return res.status(409).json({ error: "이미 존재하는 username" });
+// --- 쿠키 설정 (Next API에서 사용) ---
+export const sessionCookie = {
+  name: "bbungkabi_session",
+  options: {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 7d
+  },
+};
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  const user = await prisma.user.create({
-    data: { username, nickname, passwordHash },
-  });
+// --- 서명/검증 유틸 ---
+export async function signSession(payload: SessionPayload): Promise<string> {
+  // 동기 sign을 Promise 래핑 (호출부 일관성)
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
 
-  const token = jwt.sign(
-    { uid: user.id, username: user.username, nickname: user.nickname },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  res.json({
-    ok: true,
-    token,
-    user: { id: user.id, username: user.username, nickname: user.nickname },
-  });
-});
-
-router.post("/login", async (req, res) => {
-  const { username, password } = req.body || {};
-  const user = await prisma.user.findUnique({ where: { username } });
-  if (!user) return res.status(401).json({ error: "아이디/비번 오류" });
-
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return res.status(401).json({ error: "아이디/비번 오류" });
-
-  const token = jwt.sign(
-    { uid: user.id, username: user.username, nickname: user.nickname },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  res.json({
-    ok: true,
-    token,
-    user: { id: user.id, username: user.username, nickname: user.nickname },
-  });
-});
-
-export default router;
+export async function verifySession(token: string): Promise<SessionPayload> {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  // 타입 단언: 우리가 넣은 페이로드 구조에 맞게 반환
+  return decoded as SessionPayload;
+}

@@ -10,10 +10,11 @@ generator client {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String   @id @default(uuid())
   username     String   @unique
   nickname     String
   passwordHash String
+  emoji        String?  // ← 추가
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

@@ -47,6 +47,46 @@ const roundResults: {
 // [AI] === 봇 타입/상태/유틸 추가 시작 ===
 type Difficulty = "easy" | "normal" | "hard";
 
+// 플레이어 정보 (사람/봇 구분이 이미 있다면 그대로 활용)
+type PlayerInfo = { name: string; isBot: boolean };
+
+// 방 옵션에 uhbbungEnabled(어벙 사용 여부) 추가
+type RoomOptions = {
+  rounds: number; // 총 라운드 수 (이미 있다면 그대로)
+  doubleFinal: boolean; // 더블 파이널 라운드 옵션 (이미 있다면 그대로)
+  uhbbungEnabled: boolean; // ✅ 어벙 사용 여부
+};
+
+// 라운드 중간 가산점(어벙 등)을 담을 저장소 + 최근 어벙 처리 시각(스팸 방지)
+type RoundRuntime = {
+  tempScores: Record<string, number>; // ✅ { nickname: 누적 +10, ... }
+  lastUhbbungAt: Record<string, number>; // ✅ { nickname: lastTickTimestamp }
+};
+
+// 방 전체 상태를 하나로 묶어 관리 (이미 RoomState 유사 구조가 있으면 여기에만 필드 추가)
+type RoomState = {
+  players: PlayerInfo[]; // 또는 string[] 사용 중이면 맞춰서 변경
+  deck: string[];
+  hands: Record<string, string[]>;
+  turnIndex: number; // 현재 턴 인덱스 (또는 currentPlayer 존재)
+  ready: Set<string>;
+  drawFlag: Set<string>;
+  roundCount: number;
+  options: RoomOptions;
+  scores: Record<string, number>; // 누적 점수
+  runtime: RoundRuntime; // ✅ 라운드 중간 가산/최근시각
+  lastRoundResult?: {
+    reason: string;
+    stopper?: string | null;
+    perRound: Record<string, number>;
+    totalScores: Record<string, number>;
+    round: number;
+  };
+};
+
+// 모든 방 상태 저장
+const roomStates: Record<string, RoomState> = {};
+
 // === [BOT NAME] 숫자 대신 테마 이름 생성 ===
 const BOT_NAME_POOL = [
   "블러프킹",

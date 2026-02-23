@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { QRCodeCanvas } from "qrcode.react";
@@ -14,7 +14,7 @@ type CombinedPlayer = {
 
 type BotDifficulty = "easy" | "normal" | "hard";
 
-export default function RoomPage() {
+function RoomContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -67,7 +67,6 @@ export default function RoomPage() {
       }
     };
 
-    // 💡 핵심 수정: 이미 연결되어 있으면 바로 입장, 아니면 연결될 때까지 대기
     if (socket.connected) {
       handleConnect();
     } else {
@@ -127,7 +126,7 @@ export default function RoomPage() {
       ({ roomCode: rc }: { roomCode: string; round: number }) => {
         playSound("game-start.mp3");
 
-        // 💡 새 게임이 시작될 때, 브라우저에 남아있던 이전 게임의 묵은 때(데이터)를 싹 청소합니다!
+        // 브라우저에 남아있던 이전 게임의 데이터 청소
         sessionStorage.removeItem("totalScores");
         sessionStorage.removeItem("myHand");
         sessionStorage.removeItem("allPlayerHands");
@@ -141,8 +140,8 @@ export default function RoomPage() {
     );
 
     socket.off("chat-message");
-    socket.on("chat-message", ({ nickname, message }) => {
-      setChatMessages((prev) => [...prev, { nickname, message }]);
+    socket.on("chat-message", ({ nickname: chatNick, message }) => {
+      setChatMessages((prev) => [...prev, { nickname: chatNick, message }]);
     });
 
     // 만약을 대비해 목록 한 번 더 갱신 요청
@@ -321,7 +320,6 @@ export default function RoomPage() {
                   <select
                     value={maxRounds}
                     onChange={(e) => setMaxRounds(Number(e.target.value))}
-                    // 💡 글자색(text-gray-800)과 배경색을 명시해서 하얗게 안 보이도록 수정
                     className="bg-white text-gray-800 border-2 border-gray-200 rounded-lg px-3 py-1.5 font-black outline-none focus:border-orange-400"
                   >
                     <option value={1}>1 라운드</option>
@@ -373,7 +371,7 @@ export default function RoomPage() {
             </div>
           )}
 
-          {/* 2. 대기방 채팅 (사라졌던 채팅창 복구!) */}
+          {/* 2. 대기방 채팅 */}
           <div className="bg-white rounded-[2rem] p-6 shadow-sm border-2 border-gray-100 flex-grow flex flex-col min-h-[250px]">
             <h3 className="text-md font-black text-gray-700 mb-3">
               💬 대기방 채팅
@@ -415,7 +413,6 @@ export default function RoomPage() {
             </div>
           </div>
         </div>
-        {/* 👆 여기까지 교체 👆 */}
       </div>
 
       {/* 게임 시작 버튼 */}
@@ -438,36 +435,57 @@ export default function RoomPage() {
       )}
 
       {/* QR 초대 모달 */}
-      {showQR && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-8 rounded-[2rem] shadow-2xl text-center max-w-sm w-full border-4 border-orange-100">
-            <h2 className="text-2xl font-black mb-2 text-gray-800">
-              친구 초대하기
-            </h2>
-            <p className="text-gray-500 mb-6 font-bold text-sm">
-              아래 QR 코드를 스캔하세요!
-            </p>
+      {showQR &&
+        (() => {
+          // 로컬/운영 환경 주소 자동 인식
+          const currentDomain =
+            typeof window !== "undefined"
+              ? window.location.origin
+              : "https://bbungkabe.com";
+          const inviteUrl = `${currentDomain}/?code=${roomCode}`;
 
-            <div className="flex justify-center mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <QRCodeCanvas
-                value={`https://bbungkabe.com/?code=${roomCode}`}
-                size={200}
-              />
+          return (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white p-8 rounded-[2rem] shadow-2xl text-center max-w-sm w-full border-4 border-orange-100">
+                <h2 className="text-2xl font-black mb-2 text-gray-800">
+                  친구 초대하기
+                </h2>
+                <p className="text-gray-500 mb-6 font-bold text-sm">
+                  아래 QR 코드를 스캔하세요!
+                </p>
+
+                <div className="flex justify-center mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <QRCodeCanvas value={inviteUrl} size={200} />
+                </div>
+
+                <p className="text-[11px] font-mono text-gray-400 mb-6 bg-gray-50 py-2 rounded-lg break-all px-2 border border-gray-100">
+                  {inviteUrl}
+                </p>
+
+                <button
+                  className="w-full py-4 bg-orange-100 text-orange-700 font-black rounded-xl hover:bg-orange-200 transition-colors"
+                  onClick={() => setShowQR(false)}
+                >
+                  닫기
+                </button>
+              </div>
             </div>
-
-            <p className="text-[11px] font-mono text-gray-400 mb-6 bg-gray-50 py-2 rounded-lg break-all px-2 border border-gray-100">
-              https://bbungkabe.com/?code={roomCode}
-            </p>
-
-            <button
-              className="w-full py-4 bg-orange-100 text-orange-700 font-black rounded-xl hover:bg-orange-200 transition-colors"
-              onClick={() => setShowQR(false)}
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
+          );
+        })()}
     </div>
+  );
+}
+
+export default function RoomPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-orange-50 font-bold text-orange-500">
+          방 정보를 불러오는 중...
+        </div>
+      }
+    >
+      <RoomContent />
+    </Suspense>
   );
 }

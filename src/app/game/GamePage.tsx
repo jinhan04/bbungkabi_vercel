@@ -50,6 +50,7 @@ export default function GamePage() {
 
   const [hand, setHand] = useState<string[]>([]);
   const [round, setRound] = useState<number>(1);
+  const [maxRounds, setMaxRounds] = useState(5);
 
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [totalScores, setTotalScores] = useState<{
@@ -175,7 +176,8 @@ export default function GamePage() {
       setRemainingCards(remaining);
     });
 
-    socket.on("game-started", ({ round }) => {
+    socket.on("game-started", ({ round, maxRounds }) => {
+      if (maxRounds) setMaxRounds(maxRounds);
       if (round) {
         setRound(round);
         setShowRoundBanner(true);
@@ -188,10 +190,10 @@ export default function GamePage() {
 
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));
 
-    // 👇 이렇게 통째로 교체하세요!
-    socket.on("turn-info", ({ currentPlayer, round, turnTime }) => {
+    socket.on("turn-info", ({ currentPlayer, round, turnTime, maxRounds }) => {
       setCurrentPlayer(currentPlayer);
       if (round !== undefined) setRound(round);
+      if (maxRounds !== undefined) setMaxRounds(maxRounds);
 
       setMustSubmit(false);
       setBbungPhase("idle");
@@ -199,12 +201,10 @@ export default function GamePage() {
       setAnyoneDrewThisTurn(false);
       setBbungCards([]);
 
-      // 💡 핵심: 여기서 타이머를 직접 돌리지 않고 셋팅만 해줍니다.
       setTurnTimeState(turnTime || 10);
       setTimerKey((prev) => prev + 1);
     });
 
-    // 💡 버그 수정: 카드 제출 시 모두에게 소리 들리도록 추가
     socket.on("card-submitted", ({ nickname: submitterName, card }) => {
       playSound("submit-card.mp3");
       setSubmittedCards((prev) => [...prev, { nickname: submitterName, card }]);
@@ -378,7 +378,8 @@ export default function GamePage() {
 
   useEffect(() => {
     const socket = getSocket();
-    socket.on("next-round", ({ round }) => {
+    socket.on("next-round", ({ round, maxRounds }) => {
+      if (maxRounds) setMaxRounds(maxRounds);
       setRound(round);
       setShowRoundBanner(true);
       const roundSound = round === 5 ? "final-round.wav" : `round-${round}.wav`;
@@ -553,7 +554,7 @@ export default function GamePage() {
       <div className="w-full bg-white text-gray-800 flex flex-wrap sm:flex-nowrap justify-between items-center px-4 py-3 fixed top-0 left-0 z-50 shadow-sm border-b-[3px] border-orange-100 gap-y-2">
         <div className="flex flex-wrap sm:flex-nowrap items-center space-x-3 text-xs sm:text-sm md:text-base font-bold">
           <span className="bg-orange-100 text-orange-600 px-3 py-1.5 rounded-full shadow-sm border border-orange-200">
-            🚩 라운드: {round} / 5
+            🚩 라운드: {round} / {maxRounds}
           </span>
           <span className="text-gray-600 flex items-center gap-1">
             <span className="text-lg">{myEmoji}</span> {nickname}님
@@ -623,7 +624,7 @@ export default function GamePage() {
         className="sticky top-[64px] z-40 bg-transparent w-full max-w-4xl mb-4"
       />
 
-      <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
+      <RoundBanner show={showRoundBanner} round={round} maxRound={maxRounds} />
 
       <div className="mb-6 w-full max-w-3xl bg-orange-100/50 border-4 border-dashed border-orange-200 rounded-[3rem] py-10 flex flex-col items-center relative shadow-inner">
         <div className="flex justify-center items-center gap-6 sm:gap-12">

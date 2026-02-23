@@ -77,6 +77,7 @@ export default function RoomPage() {
     }
 
     socket.off("update-players");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     socket.on("update-players", (payload: any) => {
       if (!payload) return;
       if (Array.isArray(payload)) {
@@ -93,6 +94,7 @@ export default function RoomPage() {
     );
 
     socket.off("player-list");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     socket.on("player-list", (payload: any) => {
       if (!payload) return;
       if (Array.isArray(payload)) {
@@ -122,7 +124,7 @@ export default function RoomPage() {
     socket.off("game-started");
     socket.on(
       "game-started",
-      ({ roomCode: rc, round: r }: { roomCode: string; round: number }) => {
+      ({ roomCode: rc }: { roomCode: string; round: number }) => {
         playSound("game-start.mp3");
 
         // 💡 새 게임이 시작될 때, 브라우저에 남아있던 이전 게임의 묵은 때(데이터)를 싹 청소합니다!
@@ -234,7 +236,7 @@ export default function RoomPage() {
             참가자 ({totalCount}/6)
           </h2>
           <div className="space-y-3">
-            {combinedPlayers.map((p, index) => (
+            {combinedPlayers.map((p) => (
               <div
                 key={p.nickname}
                 className={`flex items-center justify-between p-3 rounded-2xl border-2 ${

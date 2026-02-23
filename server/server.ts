@@ -17,10 +17,16 @@ const log = {
 const app = express();
 const httpServer = createServer(app);
 
+// 💡 기존에 있던 이름(보통 httpServer)으로 다시 바꿔주세요!
 const io = new Server(httpServer, {
   cors: {
-    origin: "*",
+    origin: [
+      "http://localhost:3000",
+      "https://bbungkabe.vercel.app",
+      "https://bbungkabe.com",
+    ],
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 

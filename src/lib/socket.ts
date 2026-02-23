@@ -1,37 +1,10 @@
-import { io, Socket } from "socket.io-client";
+import { io } from "socket.io-client";
 
-let socket: Socket | null = null;
+// 💡 Vercel 환경변수가 있으면 그걸 쓰고, 없으면 로컬(localhost)을 씁니다.
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-// LOCAL (이 부분의 주석을 해제하여 사용합니다!)
-export const getSocket = () => {
-  if (!socket) {
-    socket = io("http://localhost:4000", {
-      autoConnect: false, // 수동 연결
-      transports: ["websocket"],
-    });
-  }
-  return socket;
-};
+const socket = io(SOCKET_URL, {
+  transports: ["websocket"], // 웹소켓 전용으로 설정하여 속도 향상
+});
 
-// EC2
-// export const getSocket = () => {
-//   if (!socket) {
-//     // socket = io("http://52.78.228.135:4000", {
-//     socket = io("http://localhost:4000", {
-//       autoConnect: false, // 수동 연결
-//       transports: ["websocket"],
-//     });
-//   }
-//   return socket;
-// };
-
-// VERCEL (이제 사용하지 않으므로 이 부분을 주석 처리합니다!)
-// export const getSocket = () => {
-//   if (!socket) {
-//     socket = io("https://api.bbungkabe.com", {
-//       autoConnect: false,
-//       transports: ["websocket"],
-//     });
-//   }
-//   return socket;
-// };
+export const getSocket = () => socket;

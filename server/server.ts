@@ -694,6 +694,7 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
     currentPlayer,
     round: roundCount[roomCode],
     turnTime: turnTimeMap[roomCode] || 10,
+    maxRounds: maxRoundMap[roomCode] || 5,
   });
 
   const bot = getBots(roomCode).find((b) => b.nickname === currentPlayer);
@@ -960,9 +961,11 @@ io.on("connection", (socket) => {
       io.to(roomCode).emit("deck-update", {
         remaining: decks[roomCode].length,
       });
+
       io.to(roomCode).emit("game-started", {
         roomCode,
         round: roundCount[roomCode],
+        maxRounds: maxRoundMap[roomCode] || 5,
       });
 
       // 💡 수정됨: 첫 라운드는 완전 랜덤 플레이어 시작
@@ -1038,7 +1041,10 @@ io.on("connection", (socket) => {
         firstPlayer = players[0];
       }
 
-      io.to(roomCode).emit("next-round", { round: roundCount[roomCode] });
+      io.to(roomCode).emit("next-round", {
+        round: roundCount[roomCode],
+        maxRounds: maxRoundMap[roomCode] || 5, // 💡 추가!
+      });
       broadcastTurn(roomCode, firstPlayer);
     }
   });
@@ -1171,6 +1177,7 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("game-started", {
       roomCode,
       round: roundCount[roomCode],
+      maxRounds: maxRoundMap[roomCode] || 5,
     });
 
     setTimeout(() => {

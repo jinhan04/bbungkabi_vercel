@@ -1,54 +1,37 @@
-// src/app/page.tsx
 "use client";
 
-import { useRef, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import GameRulesModal from "@/components/GameRulesModal";
-import { useAuth } from "@/context/AuthContext";
 
-export default function HomePage() {
-  const [nickname, setNickname] = useState("");
-  const [roomCode, setRoomCode] = useState("");
-  const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-  const [maxPlayers] = useState(6);
-  const [showMaxInput, setShowMaxInput] = useState(false);
+// 선택 가능한 이모지 목록
+const EMOJI_LIST = ["🐶", "🐱", "🦊", "🐰", "🐻", "🐼", "🐯", "🦁", "🐸", "🐷"];
 
-  // 모달 상태
-  const [showPatchNote, setShowPatchNote] = useState(true); // 홈 진입 시 공지/업데이트 탭
-  const [showRules, setShowRules] = useState(false); // 게임 설명 탭
+const ANNOUNCEMENTS = [
+  { date: "2026.02.23", text: "🎉 화사한 보드게임 카페 테마로 새단장 완료!" },
+  { date: "2026.02.23", text: "🪙 코인 보상 및 티어 시스템 업데이트" },
+  { date: "2026.02.20", text: "🤖 혼자서도 즐길 수 있는 AI 로봇 친구 추가" },
+];
 
-  const [doubleFinalRound, setDoubleFinalRound] = useState(false);
-  const { emoji, setEmoji } = useAuth();
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [uhbbungEnabled, setUhbbungEnabled] = useState(false);
-
-  const [showEasterEgg, setShowEasterEgg] = useState(false);
-  const logoClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const logoClickCountRef = useRef(0);
-
-  const router = useRouter();
-  const handleClosePatch = () => setShowPatchNote(false);
-
-  // ---- 공용 데이터(한 곳에서 관리) ----
-  const UPDATE_LIST = [
-    "턴 타이머에 진행바 추가",
-    "모바일 손패 3열 그리드 + 자동 리사이징",
-    "카드 호버/선택 효과 강화",
-    "“족보 완성!” 버튼 강조 애니메이션",
-  ];
-  const BUG_LIST = [
-    "5장 바가지에서 노바가지 알림 없음",
-    "AI랑 플레이 시 가끔 뻥 안됨",
-  ];
-  const FUTURE_LIST = [
-    "타이머 어벙 추가 로직 개발중...",
-    "최종 결과 시 효과음 추가",
-    "개인 프로필 생성 및 DB 연동 (승률, 코인 등)",
-    "카카오 로그인 연동",
-  ];
-  const RULES_CONTENT = (
-    <>
-      {`📌 기본 정보
+const UPDATE_LIST = [
+  "턴 타이머에 진행바 추가",
+  "모바일 손패 3열 그리드 + 자동 리사이징",
+  "카드 호버/선택 효과 강화",
+  "“족보 완성!” 버튼 강조 애니메이션",
+];
+const BUG_LIST = [
+  "5장 바가지에서 노바가지 알림 없음",
+  "AI랑 플레이 시 가끔 뻥 안됨",
+];
+const FUTURE_LIST = [
+  "타이머 어벙 추가 로직 개발중...",
+  "최종 결과 시 효과음 추가",
+  "개인 프로필 생성 및 DB 연동 (승률, 코인 등)",
+  "카카오 로그인 연동",
+];
+const RULES_CONTENT = (
+  <>
+    {`📌 기본 정보
 게임명: 뻥카비
 
 사용 카드: 일반 트럼프 카드 52장 (조커 없음)
@@ -133,253 +116,61 @@ export default function HomePage() {
 - 족보 완성 버튼 클릭 시
 - 스탑 선언 시
 - 뻥 중 손패가 0장일 때`}
-    </>
-  );
+  </>
+);
 
-  function generateRoomCode() {
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code = "";
-    for (let i = 0; i < 6; i++) {
-      code += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return code;
-  }
+export default function LoginPage() {
+  const [nickname, setNickname] = useState("");
+  const [selectedEmoji, setSelectedEmoji] = useState("🐶");
+  const [showRules, setShowRules] = useState(false);
+  const [isAdOpen, setIsAdOpen] = useState(true); // 💡 광고 토글 상태
+  const router = useRouter();
 
-  const handleCreateRoom = () => {
-    if (!nickname.trim()) {
-      alert("닉네임을 입력해 주세요.");
-      return;
-    }
-    setShowMaxInput(true);
-    setIsJoiningRoom(false);
-  };
+  // 💡 수정된 자동 로그인 & 자동 입장 로직
+  useEffect(() => {
+    const storedNickname = localStorage.getItem("nickname");
+    const storedEmoji = localStorage.getItem("emoji") || "🐶";
 
-  const handleLogoClick = () => {
-    if (logoClickCountRef.current === 0) {
-      logoClickTimeoutRef.current = setTimeout(() => {
-        logoClickCountRef.current = 0;
-      }, 3000);
-    }
-    logoClickCountRef.current += 1;
+    // URL에 ?code=XXX 가 있는지 확인
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get("code");
 
-    if (logoClickCountRef.current >= 10) {
-      setShowEasterEgg(true);
-      logoClickCountRef.current = 0;
-      if (logoClickTimeoutRef.current)
-        clearTimeout(logoClickTimeoutRef.current);
-      setTimeout(() => setShowEasterEgg(false), 3000);
+    if (storedNickname) {
+      if (codeParam) {
+        // 초대 코드가 있으면 바로 해당 방으로 직행!
+        router.push(
+          `/room?code=${codeParam}&nickname=${encodeURIComponent(storedNickname)}&emoji=${encodeURIComponent(storedEmoji)}`,
+        );
+      } else {
+        // 없으면 로비로 이동
+        router.push("/lobby");
+      }
     }
-  };
+  }, [router]);
 
-  const confirmCreateRoom = () => {
-    if (nickname.trim() === "임진한") {
-      router.push("/dev-easteregg");
-      return;
-    }
-    if (maxPlayers < 1 || maxPlayers > 6) {
-      alert("최대 인원은 1명 이상 6명 이하만 가능합니다.");
-      return;
-    }
-    const newRoomCode = generateRoomCode();
-    router.push(
-      `/lobby?code=${newRoomCode}&nickname=${encodeURIComponent(
-        nickname
-      )}&doubleFinal=${doubleFinalRound}&uhbbung=${uhbbungEnabled}&emoji=${encodeURIComponent(
-        emoji
-      )}`
-    );
-  };
+  // 💡 수정된 신규 로그인 & 자동 입장 로직
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nickname.trim()) return alert("닉네임을 입력해주세요.");
 
-  const handleStartJoinRoom = () => {
-    if (!nickname.trim()) {
-      alert("닉네임을 입력해 주세요.");
-      return;
-    }
-    setIsJoiningRoom(true);
-    setShowMaxInput(false);
-  };
+    localStorage.setItem("nickname", nickname.trim());
+    localStorage.setItem("emoji", selectedEmoji);
 
-  const handleJoinRoom = () => {
-    if (!roomCode.trim()) {
-      alert("방 코드를 입력해 주세요.");
-      return;
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get("code");
+
+    if (codeParam) {
+      // 로그인 직후 초대 코드가 있으면 해당 방으로 직행!
+      router.push(
+        `/room?code=${codeParam}&nickname=${encodeURIComponent(nickname.trim())}&emoji=${encodeURIComponent(selectedEmoji)}`,
+      );
+    } else {
+      router.push("/lobby");
     }
-    router.push(
-      `/lobby?code=${roomCode.toUpperCase()}&nickname=${encodeURIComponent(
-        nickname
-      )}`
-    );
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      {/* 우상단 버튼 */}
-      <div className="absolute top-4 right-4 flex flex-col items-end space-y-2 z-50">
-        <a
-          href="https://open.kakao.com/o/sXveaSxh"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-red-600 transition"
-        >
-          오류 제보
-        </a>
-
-        <a
-          href="https://www.buymeacoffee.com/jinhan"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img
-            src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
-            alt="Buy Me A Coffee"
-            className="h-10"
-          />
-        </a>
-      </div>
-
-      {/* 업데이트/공지 모달 (업데이트 탭으로 시작) */}
-      <GameRulesModal
-        open={showPatchNote}
-        onClose={handleClosePatch}
-        initialTab="update"
-        title="업데이트 / 공지"
-        data={{
-          update: UPDATE_LIST,
-          bugs: BUG_LIST,
-          future: FUTURE_LIST,
-          // 규칙 탭에 내용도 함께 넘겨두면 "게임 설명 보기" 안 눌러도 규칙 확인 가능
-          rules: RULES_CONTENT,
-        }}
-      />
-
-      <div className="text-center mb-8">
-        <div
-          onClick={handleLogoClick}
-          className="text-6xl font-extrabold text-black transition-all duration-300 hover:bg-gradient-to-r hover:from-red-500 hover:to-yellow-400 hover:text-transparent hover:bg-clip-text cursor-pointer"
-        >
-          뻥카비
-        </div>
-        <p className="text-sm mt-1 text-gray-600 italic">
-          이제 언제 어디든, 뻥카비
-        </p>
-      </div>
-
-      <button
-        onClick={() => setShowEmojiPicker(true)}
-        className="text-4xl mb-2"
-        title="이모지 선택"
-      >
-        {emoji}
-      </button>
-
-      {showEmojiPicker && (
-        <div className="absolute z-50 bg-white text-black p-4 rounded shadow-md max-w-xs w-64">
-          <h3 className="font-bold mb-2">이모지를 선택하세요</h3>
-          <div className="grid grid-cols-5 gap-2 text-xl">
-            {["🐶", "🐱", "🐻", "🐸", "🐵", "🐯", "🦊", "🐼", "🦁", "🐷"].map(
-              (e) => (
-                <button
-                  key={e}
-                  onClick={() => {
-                    setEmoji(e);
-                    setShowEmojiPicker(false);
-                  }}
-                  className="hover:scale-110"
-                >
-                  {e}
-                </button>
-              )
-            )}
-          </div>
-        </div>
-      )}
-
-      {showEasterEgg && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-yellow-200 border border-yellow-400 text-yellow-900 px-6 py-3 rounded-xl shadow-xl z-50 animate-bounce text-center text-lg font-bold">
-          🎉 진한이 숨겨둔 이스터에그, 당신이 찾았군..
-          <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;화면 캡쳐해서 보내면 기프티콘 드립니다.
-        </div>
-      )}
-
-      <input
-        type="text"
-        placeholder="닉네임을 입력하세요"
-        className="mt-2 mb-6 px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-      />
-
-      {!isJoiningRoom && !showMaxInput && (
-        <div className="flex space-x-4">
-          <button
-            onClick={handleCreateRoom}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg"
-          >
-            방 만들기
-          </button>
-          <button
-            onClick={handleStartJoinRoom}
-            className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg"
-          >
-            방 입장하기
-          </button>
-        </div>
-      )}
-
-      {showMaxInput && (
-        <div className="flex flex-col items-center space-y-4">
-          <label className="flex items-center space-x-2 text-black">
-            <input
-              type="checkbox"
-              checked={doubleFinalRound}
-              onChange={(e) => setDoubleFinalRound(e.target.checked)}
-            />
-            <span>마지막 라운드 점수 2배 적용</span>
-          </label>
-          <label className="flex items-center space-x-2 text-black">
-            <input
-              type="checkbox"
-              checked={uhbbungEnabled}
-              onChange={(e) => setUhbbungEnabled(e.target.checked)}
-            />
-            <span>어벙(10초 오버 시 +10점) 적용</span>
-          </label>
-          <button
-            onClick={confirmCreateRoom}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"
-          >
-            방 생성 확인
-          </button>
-        </div>
-      )}
-
-      {isJoiningRoom && (
-        <div className="flex flex-col items-center space-y-4 mt-4">
-          <input
-            type="text"
-            placeholder="방 코드를 입력하세요"
-            className="px-4 py-2 rounded-lg border border-gray-400 w-64 text-center text-black"
-            value={roomCode}
-            onChange={(e) => setRoomCode(e.target.value)}
-            maxLength={6}
-          />
-          <button
-            onClick={handleJoinRoom}
-            className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg"
-          >
-            입장하기
-          </button>
-        </div>
-      )}
-
-      {/* 규칙 모달 (규칙 탭으로 시작) */}
-      <button
-        onClick={() => setShowRules(true)}
-        className="mt-6 text-sm underline text-blue-600 hover:text-blue-800"
-      >
-        게임 설명 보기
-      </button>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-orange-50 px-4 pt-10 pb-32 relative">
       <GameRulesModal
         open={showRules}
         onClose={() => setShowRules(false)}
@@ -392,22 +183,117 @@ export default function HomePage() {
         }}
       />
 
-      <div className="mt-2 text-sm text-gray-500 text-center">
-        © 임진한 (국민대 정보보안암호수학과 23) ver.5.6.19
+      <div className="w-full max-w-md bg-white rounded-[2rem] shadow-xl p-8 border-4 border-orange-100 relative z-10">
+        <div className="text-center mb-6">
+          <h1 className="text-5xl font-black text-orange-500 mb-3 drop-shadow-sm cursor-pointer">
+            🃏 뻥카비
+          </h1>
+          <p className="text-gray-500 font-bold text-sm">
+            가볍게 즐기는 우당탕탕 심리 카드게임!
+          </p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="bg-orange-50 p-4 rounded-2xl">
+            <label className="block text-sm font-bold text-orange-800 mb-3 text-center">
+              어떤 동물로 플레이할까요?
+            </label>
+            <div className="flex flex-wrap justify-center gap-2">
+              {EMOJI_LIST.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setSelectedEmoji(emoji)}
+                  className={`text-3xl w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                    selectedEmoji === emoji
+                      ? "bg-white shadow-md scale-110 border-2 border-orange-400"
+                      : "hover:bg-white/50 opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-600 mb-2 text-center">
+              닉네임
+            </label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="멋진 닉네임을 지어주세요"
+              className="w-full bg-gray-50 border-2 border-gray-200 text-gray-800 text-center px-5 py-4 rounded-2xl focus:outline-none focus:border-orange-400 focus:bg-white transition-colors text-lg font-bold placeholder-gray-400"
+              maxLength={10}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-4 rounded-2xl font-black text-lg transition-all bg-orange-500 text-white shadow-lg shadow-orange-200 hover:bg-orange-600 hover:scale-[1.02] active:scale-95"
+          >
+            게임 시작하기
+          </button>
+        </form>
+
+        <button
+          onClick={() => setShowRules(true)}
+          className="w-full mt-4 text-sm font-bold text-orange-600 underline hover:text-orange-700 text-center"
+        >
+          📖 게임 설명 / 업데이트 내역 보기
+        </button>
       </div>
 
-      <div className="absolute bottom-0 left-0 w-full flex justify-center bg-white py-2">
-        <a
-          href="https://link.coupang.com/a/cvkq2m"
-          target="_blank"
-          referrerPolicy="unsafe-url"
+      <div className="w-full max-w-md mt-6 bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border-2 border-orange-200 p-6 z-0 mb-8">
+        <h2 className="text-lg font-black text-orange-600 mb-4 flex items-center gap-2">
+          📢 뻥카비 소식
+        </h2>
+        <ul className="space-y-3">
+          {ANNOUNCEMENTS.map((notice, i) => (
+            <li
+              key={i}
+              className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm"
+            >
+              <span className="text-orange-400 font-bold bg-orange-50 px-2 py-0.5 rounded-md text-[11px] whitespace-nowrap w-fit border border-orange-100">
+                {notice.date}
+              </span>
+              <span className="text-gray-700 font-bold">{notice.text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-auto flex flex-col items-center pb-8 z-10">
+        <div className="text-xs text-gray-400 font-bold text-center">
+          © 임진한 (국민대 정보보안암호수학과 23) ver.5.6.19
+        </div>
+      </div>
+
+      {/* 💡 하단 고정 쿠팡 배너 (열기/닫기 토글 기능) */}
+      <div className="fixed bottom-0 left-0 w-full flex flex-col items-center z-50">
+        <button
+          onClick={() => setIsAdOpen(!isAdOpen)}
+          className="bg-white px-4 py-1.5 rounded-t-xl text-xs font-bold text-gray-400 border border-gray-200 border-b-0 shadow-sm hover:text-orange-500 transition-colors"
         >
-          <img
-            src="https://ads-partners.coupang.com/banners/868527?subId=&traceId=V0-301-879dd1202e5c73b2-I868527&w=728&h=90"
-            alt="쿠팡 광고 배너"
-            className="w-full max-w-[728px] h-auto"
-          />
-        </a>
+          {isAdOpen ? "광고 닫기 ▼" : "광고 보기 ▲"}
+        </button>
+        {isAdOpen && (
+          <div className="w-full flex justify-center bg-white py-2 border-t border-gray-200 shadow-lg">
+            <a
+              href="https://link.coupang.com/a/cvkq2m"
+              target="_blank"
+              referrerPolicy="unsafe-url"
+            >
+              <img
+                src="https://ads-partners.coupang.com/banners/868527?subId=&traceId=V0-301-879dd1202e5c73b2-I868527&w=728&h=90"
+                alt="쿠팡 광고 배너"
+                className="w-full max-w-[728px] h-auto rounded-md"
+              />
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

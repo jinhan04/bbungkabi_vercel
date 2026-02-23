@@ -25,7 +25,6 @@ type CombinedPlayer = {
 };
 
 import Card from "@/components/Card";
-//import PlayerList from "@/components/PlayerList";
 import ChatBox from "@/components/ChatBox";
 import BagajiOverlay from "@/components/BagajiOverlay";
 import SubmittedCard from "@/components/SubmittedCard";
@@ -34,13 +33,11 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function GamePage() {
   const searchParams = useSearchParams();
-  // const [deck, setDeck] = useState<string[]>([]);
   const [remainingCards, setRemainingCards] = useState(52);
   const router = useRouter();
   const roomCode = searchParams.get("code") || "";
   const nicknameRaw = searchParams.get("nickname") || "";
   const nickname = decodeURIComponent(nicknameRaw);
-  // const [playerList, setPlayerList] = useState<string[]>([]);
 
   const [bagajiText, setBagajiText] = useState("");
   const [showBagaji, setShowBagaji] = useState(false);
@@ -68,7 +65,7 @@ export default function GamePage() {
   const [bbungCards, setBbungCards] = useState<string[]>([]);
   const [myScore, setMyScore] = useState(0);
   const [bbungPhase, setBbungPhase] = useState<"idle" | "selectingExtra">(
-    "idle"
+    "idle",
   );
   const [jokboAvailable, setJokboAvailable] = useState(false);
   const [recentDrawnCard, setRecentDrawnCard] = useState<string | null>(null);
@@ -79,6 +76,8 @@ export default function GamePage() {
 
   const [timer, setTimer] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [turnTimeState, setTurnTimeState] = useState<number>(10);
+  const [timerKey, setTimerKey] = useState(0);
 
   const [chatInput, setChatInput] = useState("");
   const [canSend, setCanSend] = useState(true);
@@ -93,7 +92,7 @@ export default function GamePage() {
 
   const checkAndEmitBagaji = (
     cards: string[],
-    context: "draw" | "afterSubmit"
+    context: "draw" | "afterSubmit",
   ) => {
     if (cards.length < 2) return;
 
@@ -125,13 +124,12 @@ export default function GamePage() {
     }
   };
 
-  // combinedPlayers, emojiMap, totalScores, nickname, myEmoji, currentPlayer, timer는 이미 존재
   const playersForStrip: PlayerInfo[] = combinedPlayers.map((p) => ({
     name: p.nickname,
     emoji:
       p.nickname === nickname
         ? myEmoji
-        : emojiMap[p.nickname] ?? (p.isBot ? "🤖" : "👤"),
+        : (emojiMap[p.nickname] ?? (p.isBot ? "🤖" : "👤")),
     botLevel: p.isBot ? p.difficulty : undefined,
     score: totalScores?.[p.nickname],
   }));
@@ -140,29 +138,20 @@ export default function GamePage() {
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 
-    // socket.emit("join-room", { roomCode, nickname, emoji: myEmoji });
-
-    console.log("🙋 내 닉네임:", nickname);
-
-    // socket.removeAllListeners();
-
     socket.on("update-players", ({ emojis }) => {
       setEmojiMap(emojis || {});
     });
 
-    // ✅ 이모지 단독 업데이트도 반영
     socket.off("update-emojis");
     socket.on("update-emojis", (map: Record<string, string>) => {
       setEmojiMap(map || {});
     });
 
-    // ✅ 사람+봇 통합 목록 구독
     socket.off("player-list");
     socket.on("player-list", ({ players }: { players: CombinedPlayer[] }) => {
       setCombinedPlayers(Array.isArray(players) ? players : []);
     });
 
-    // ✅ 누가 들어오고/나가면 목록 새로고침
     socket.off("player-joined");
     socket.on("player-joined", () => {
       socket.emit("request-player-list", { roomCode });
@@ -172,7 +161,6 @@ export default function GamePage() {
       socket.emit("request-player-list", { roomCode });
     });
 
-    // ✅ 게임 화면 마운트 시 통합 목록 1회 요청
     socket.emit("request-player-list", { roomCode });
 
     socket.emit(
@@ -180,7 +168,7 @@ export default function GamePage() {
       { roomCode },
       (map: { [nickname: string]: string }) => {
         setEmojiMap(map);
-      }
+      },
     );
 
     socket.on("deck-update", ({ remaining }) => {
@@ -188,27 +176,20 @@ export default function GamePage() {
     });
 
     socket.on("game-started", ({ round }) => {
-      console.log("Game started with round:", round);
-
-      // playSound("game-start.mp3");
-
       if (round) {
         setRound(round);
         setShowRoundBanner(true);
-
         const roundSound =
           round === 5 ? "final-round.wav" : `round-${round}.wav`;
         playSound(roundSound);
-
         setTimeout(() => setShowRoundBanner(false), 2000);
       }
     });
 
     socket.on("deal-cards", ({ hand }) => setHand(sortHandByValue(hand)));
 
-    socket.on("turn-info", ({ currentPlayer, round }) => {
-      console.log("🌀 서버에서 받은 currentPlayer:", currentPlayer);
-      console.log("🎯 서버에서 받은 round:", round);
+    // 👇 이렇게 통째로 교체하세요!
+    socket.on("turn-info", ({ currentPlayer, round, turnTime }) => {
       setCurrentPlayer(currentPlayer);
       if (round !== undefined) setRound(round);
 
@@ -218,41 +199,23 @@ export default function GamePage() {
       setAnyoneDrewThisTurn(false);
       setBbungCards([]);
 
-      // ✅ 모든 클라이언트에서 타이머 시작 (누구 차례든)
-      if (timerRef.current) clearInterval(timerRef.current);
-      const isMyTurnNow = currentPlayer === nickname;
-
-      setTimer(10);
-      timerRef.current = setInterval(() => {
-        setTimer((prev) => {
-          if (prev === null || prev <= 1) {
-            clearInterval(timerRef.current!);
-            return null;
-          }
-          const next = prev - 1;
-
-          // ✅ 틱 사운드는 "내 차례"에서만
-          if (next <= 5 && isMyTurnNow) {
-            playSound("tick.mp3");
-          }
-          return next;
-        });
-      }, 1000);
+      // 💡 핵심: 여기서 타이머를 직접 돌리지 않고 셋팅만 해줍니다.
+      setTurnTimeState(turnTime || 10);
+      setTimerKey((prev) => prev + 1);
     });
 
-    socket.on("card-submitted", ({ nickname, card }) => {
-      setSubmittedCards((prev) => [...prev, { nickname, card }]);
-      addLog(`${nickname} 님이 ${card}를 냈습니다`);
+    // 💡 버그 수정: 카드 제출 시 모두에게 소리 들리도록 추가
+    socket.on("card-submitted", ({ nickname: submitterName, card }) => {
+      playSound("submit-card.mp3");
+      setSubmittedCards((prev) => [...prev, { nickname: submitterName, card }]);
+      addLog(`${submitterName} 님이 ${card}를 냈습니다`);
     });
 
     socket.on("drawn-card", ({ card }) => {
       playSound("draw.mp3");
       setDrawAnimationKey((prev) => prev + 1);
       setIsDrawing(true);
-
-      setTimeout(() => {
-        setIsDrawing(false);
-      }, 600);
+      setTimeout(() => setIsDrawing(false), 600);
 
       setNewCards((prev) => [...prev, card]);
       setHand((prev) => {
@@ -269,17 +232,19 @@ export default function GamePage() {
       }, 1500);
     });
 
-    socket.on("player-drawn", ({ nickname }) => {
-      if (nickname === currentPlayer) setCurrentPlayerDrawn(true);
+    // 💡 버그 수정: 다른 사람이 뽑았을 때도 소리가 나도록 추가
+    socket.on("player-drawn", ({ nickname: drawerName }) => {
+      playSound("draw.mp3");
+      if (drawerName === currentPlayer) setCurrentPlayerDrawn(true);
       setAnyoneDrewThisTurn(true);
     });
-    socket.on("bagaji-declared", ({ nickname, isBagaji }) => {
+
+    socket.on("bagaji-declared", ({ nickname: bagajiNick, isBagaji }) => {
       const message = isBagaji ? "🚨 바가지! 🚨" : "❌ 노 바가지 ❌";
       setBagajiText(message);
       setShowBagaji(true);
-      setChatMessages((prev) => [...prev, { nickname, message }]);
+      setChatMessages((prev) => [...prev, { nickname: bagajiNick, message }]);
 
-      // ✅ 사운드 추가
       playSound(isBagaji ? "bagaji.wav" : "no-bagaji.wav");
 
       setTimeout(() => {
@@ -293,27 +258,39 @@ export default function GamePage() {
       ({ reason, stopper, allPlayerHands, round, triggerer }) => {
         setRound(round);
 
-        if (reason === "stop") {
-          playSound("stop.wav");
-        }
+        if (reason === "stop") playSound("stop.wav");
         const myHand = allPlayerHands?.[nickname] || hand;
         if (reason === "족보 완성") playSound("jokbo_complete.mp3");
 
         sessionStorage.setItem("myHand", JSON.stringify(myHand));
         sessionStorage.setItem(
           "allPlayerHands",
-          JSON.stringify(allPlayerHands)
+          JSON.stringify(allPlayerHands),
         );
         sessionStorage.setItem("round", String(round));
         if (triggerer) sessionStorage.setItem("bbungTriggerer", triggerer);
 
         let url = `/roundresult?code=${roomCode}&nickname=${encodeURIComponent(
-          nickname
+          nickname,
         )}&reason=${reason}`;
         if (stopper) url += `&stopper=${encodeURIComponent(stopper)}`;
         router.push(url);
-      }
+      },
     );
+
+    // 💡 버그 수정: 채팅 및 어벙 메시지가 중복 등록되지 않도록 메인 useEffect 안에 병합
+    socket.on("chat-message", ({ nickname: chatNick, message }) => {
+      setChatMessages((prev) => [...prev, { nickname: chatNick, message }]);
+    });
+
+    socket.on("uhbbung-alert", ({ nickname: penaltyUser, penalty }) => {
+      if (penalty) {
+        addLog(`⏰ ${penaltyUser} 시간초과! (어벙 +10점)`);
+      } else {
+        addLog(`⏰ ${penaltyUser} 시간초과! (빨리 진행해 주세요)`);
+      }
+      setTimerKey((prev) => prev + 1);
+    });
 
     socket.emit("ready", { roomCode, nickname });
     socket.emit("request-hand", { roomCode });
@@ -321,13 +298,11 @@ export default function GamePage() {
     return () => {
       socket.off("game-starting");
       socket.off("game-started");
-
       socket.off("update-players");
       socket.off("update-emojis");
       socket.off("player-list");
       socket.off("player-joined");
       socket.off("player-left");
-
       socket.off("deck-update");
       socket.off("deal-cards");
       socket.off("turn-info");
@@ -336,14 +311,40 @@ export default function GamePage() {
       socket.off("player-drawn");
       socket.off("bagaji-declared");
       socket.off("round-ended");
+      socket.off("chat-message"); // 정리 필수
+      socket.off("uhbbung-alert"); // 정리 필수
     };
   }, [roomCode, nickname, router]);
 
   useEffect(() => {
-    getSocket().on("chat-message", ({ nickname, message }) =>
-      setChatMessages((prev) => [...prev, { nickname, message }])
-    );
-  }, []);
+    if (!currentPlayer) return;
+
+    const isMyTurnNow = currentPlayer === nickname;
+    setTimer(turnTimeState);
+
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    timerRef.current = setInterval(() => {
+      setTimer((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timerRef.current!);
+          if (isMyTurnNow) {
+            getSocket().emit("time-out", { roomCode });
+          }
+          return null;
+        }
+        const next = prev - 1;
+        if (next <= 5 && isMyTurnNow) {
+          playSound("tick.mp3");
+        }
+        return next;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [currentPlayer, timerKey, nickname, roomCode, turnTimeState]);
 
   useEffect(() => {
     sessionStorage.setItem("myHand", JSON.stringify(hand));
@@ -355,7 +356,7 @@ export default function GamePage() {
           isPairPairPair(values) ||
           isTripleTriple(values) ||
           sum(values) <= 14 ||
-          sum(values) >= 65
+          sum(values) >= 65,
       );
     } else if (hand.length === 3 && values.every((v) => v === values[0])) {
       getSocket().emit("round-ended", { roomCode, reason: "three-of-a-kind" });
@@ -380,10 +381,8 @@ export default function GamePage() {
     socket.on("next-round", ({ round }) => {
       setRound(round);
       setShowRoundBanner(true);
-
       const roundSound = round === 5 ? "final-round.wav" : `round-${round}.wav`;
       playSound(roundSound);
-
       setTimeout(() => setShowRoundBanner(false), 2000);
     });
     return () => {
@@ -393,41 +392,24 @@ export default function GamePage() {
 
   useEffect(() => {
     const socket = getSocket();
-
     socket.on("bbung-effect", ({ nickname: bbunger }) => {
-      console.log(`${bbunger} used BBUNG!`);
-
-      //playSound("bbung.mp3");
       playSound("bbung.wav");
       setShowBbungEffect(true);
       setTimeout(() => setShowBbungEffect(false), 800);
       addLog(`${bbunger} 님이 뻥을 했습니다`);
     });
-
     return () => {
       socket.off("bbung-effect");
     };
   }, []);
-
-  useEffect(() => {
-    const savedScores = sessionStorage.getItem("totalScores");
-    if (savedScores) {
-      const scoreMap = JSON.parse(savedScores);
-      if (nickname in scoreMap) {
-        setMyScore(scoreMap[nickname]);
-      }
-    }
-  }, [nickname]);
-
-  // const [emojiMap, setEmojiMap] = useState<{ [player: string]: string }>({});
 
   const toggleBbungCard = (card: string) => {
     setBbungCards((prev) =>
       bbungPhase === "selectingExtra"
         ? [card]
         : prev.includes(card)
-        ? prev.filter((c) => c !== card)
-        : [...prev, card]
+          ? prev.filter((c) => c !== card)
+          : [...prev, card],
     );
   };
 
@@ -447,7 +429,7 @@ export default function GamePage() {
 
     getSocket().emit("submit-bbung", { roomCode, cards: bbungCards });
     setHand((prev) =>
-      sortHandByValue(prev.filter((c) => !bbungCards.includes(c)))
+      sortHandByValue(prev.filter((c) => !bbungCards.includes(c))),
     );
     setBbungCards([]);
     setBbungPhase(hand.length - 2 === 0 ? "idle" : "selectingExtra");
@@ -459,12 +441,12 @@ export default function GamePage() {
     const newHand = hand.filter((c) => c !== bbungCards[0]);
     setHand(sortHandByValue(newHand));
     getSocket().emit("submit-bbung-extra", { roomCode, card: bbungCards[0] });
-    playSound("submit-card.mp3");
+
+    // 💡 여기서 로컬 효과음 제거함 (이제 서버에서 온 신호로 공통 출력됨)
     setBbungCards([]);
     setMustSubmit(false);
     setBbungPhase("idle");
 
-    // 👇 바가지 체크
     if (newHand.length === 2 || newHand.length === 5) {
       checkAndEmitBagaji(newHand, "afterSubmit");
     }
@@ -475,12 +457,12 @@ export default function GamePage() {
 
     const newHand = hand.filter((c) => c !== bbungCards[0]);
     setHand(sortHandByValue(newHand));
-    playSound("submit-card.mp3");
+
+    // 💡 여기서 로컬 효과음 제거함
     getSocket().emit("submit-card", { roomCode, card: bbungCards[0] });
     setBbungCards([]);
     setMustSubmit(false);
 
-    // 👇 바가지 체크
     if (newHand.length === 2 || newHand.length === 5) {
       checkAndEmitBagaji(newHand, "afterSubmit");
     }
@@ -525,29 +507,18 @@ export default function GamePage() {
   };
 
   const canDrawCard = () => {
-    const result =
-      isMyTurn && !mustSubmit && bbungPhase === "idle" && !currentPlayerDrawn;
-
-    console.log("🎯 draw-card 조건 확인", {
-      isMyTurn,
-      mustSubmit,
-      bbungPhase,
-      currentPlayerDrawn,
-      result,
-    });
-
-    return result;
+    return (
+      isMyTurn && !mustSubmit && bbungPhase === "idle" && !currentPlayerDrawn
+    );
   };
 
   const addLog = (message: string) => {
-    const id = crypto.randomUUID(); // 유니크 ID로 구분
+    const id = crypto.randomUUID();
     const newMessage = `${id}::${message}`;
-
     setLogs((prev) => [...prev, newMessage]);
-
     setTimeout(() => {
       setLogs((prev) => prev.filter((log) => log !== newMessage));
-    }, 1000);
+    }, 1500);
   };
 
   function DrawAnimationCard({ keyVal }: { keyVal: number }) {
@@ -568,39 +539,49 @@ export default function GamePage() {
         initial={{ scale: 2, opacity: 1 }}
         animate={{ scale: 1, opacity: 0 }}
         transition={{ duration: 0.8 }}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-extrabold text-red-600 z-50"
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-7xl font-black text-red-500 drop-shadow-xl z-50"
       >
         BBUNG!
       </motion.div>
     );
   }
-  const [showChat, setShowChat] = useState(true); // 또는 false로 시작해도 됨
+
+  const [showChat, setShowChat] = useState(true);
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-radial from-green-800 via-green-900 to-black text-white px-2 sm:px-4 pt-24">
-      {/* ✅ 티츄비 스타일 상단 바 */}
-      <div className="w-full bg-white text-black flex flex-wrap sm:flex-nowrap justify-between items-center px-4 py-2 fixed top-0 left-0 z-50 shadow-md gap-y-2">
-        {/* 왼쪽: 라운드, 닉네임, 점수 */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center space-x-2 text-xs sm:text-sm md:text-base font-semibold">
-          <span className="text-blue-800">라운드: {round} / 5</span>
-          <span>{nickname}님</span>
-          <span className="text-pink-700">내 점수: {myScore}</span>
+    <div className="min-h-screen flex flex-col items-center bg-orange-50 text-gray-800 px-2 sm:px-4 pt-24 pb-10">
+      <div className="w-full bg-white text-gray-800 flex flex-wrap sm:flex-nowrap justify-between items-center px-4 py-3 fixed top-0 left-0 z-50 shadow-sm border-b-[3px] border-orange-100 gap-y-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center space-x-3 text-xs sm:text-sm md:text-base font-bold">
+          <span className="bg-orange-100 text-orange-600 px-3 py-1.5 rounded-full shadow-sm border border-orange-200">
+            🚩 라운드: {round} / 5
+          </span>
+          <span className="text-gray-600 flex items-center gap-1">
+            <span className="text-lg">{myEmoji}</span> {nickname}님
+          </span>
+          <span className="bg-green-100 text-green-700 px-3 py-1.5 rounded-full shadow-sm border border-green-200">
+            🪙 내 점수: {myScore}
+          </span>
           <button
             onClick={() => setShowScoreModal(true)}
-            className="px-2 py-1 bg-gray-200 text-gray-800 text-xs sm:text-sm rounded hover:bg-gray-300"
+            className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors shadow-sm"
           >
-            점수 보기
+            🏆 점수 보기
           </button>
         </div>
 
-        {/* 오른쪽: 채팅, 음소거, 나가기 */}
-        <div className="flex items-center space-x-2 text-lg sm:text-xl">
-          <button onClick={() => setShowChat((prev) => !prev)}>💬</button>
+        <div className="flex items-center space-x-3 text-lg sm:text-xl">
+          <button
+            onClick={() => setShowChat((prev) => !prev)}
+            className="hover:scale-110 transition-transform bg-gray-100 p-2 rounded-full"
+          >
+            💬
+          </button>
           <button
             onClick={() => {
               toggleSound();
               setSoundOn(isSoundEnabled());
             }}
+            className="hover:scale-110 transition-transform bg-gray-100 p-2 rounded-full"
           >
             {soundOn ? "🔊" : "🔇"}
           </button>
@@ -608,23 +589,24 @@ export default function GamePage() {
             onClick={() => {
               if (confirm("게임을 나가시겠습니까?")) router.push("/");
             }}
+            className="hover:scale-110 transition-transform bg-red-50 p-2 rounded-full text-red-500"
           >
-            ↩️
+            ↪️
           </button>
         </div>
       </div>
 
-      <div className="absolute top-[60px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
+      <div className="absolute top-[70px] right-4 z-50 flex flex-col items-end gap-1 pointer-events-none">
         <AnimatePresence>
           {logs.map((log) => {
             const [id, msg] = log.split("::");
             return (
               <motion.div
                 key={id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-black/70 text-white text-xs sm:text-sm px-3 py-1 rounded shadow"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="bg-white/90 text-gray-800 text-xs sm:text-sm px-4 py-2 rounded-xl shadow-md border border-orange-100 font-bold"
               >
                 {msg}
               </motion.div>
@@ -633,99 +615,118 @@ export default function GamePage() {
         </AnimatePresence>
       </div>
 
-      {/* 상단 바 끝난 직후 */}
       <PlayerStrip
         players={playersForStrip}
         currentPlayer={currentPlayer}
         me={nickname}
         timer={timer}
-        // 상단바 높이가 약 56~64px이므로 sticky offset 맞춤
-        className="sticky top-[56px] z-40 bg-transparent"
+        className="sticky top-[64px] z-40 bg-transparent w-full max-w-4xl mb-4"
       />
 
       <RoundBanner show={showRoundBanner} round={round} maxRound={5} />
 
-      {/* 제출된 카드 및 덱 */}
-      <div className="mb-6 w-full max-w-2xl">
-        <div className="flex justify-center items-center gap-4 sm:gap-8">
-          <AnimatePresence mode="wait">
-            {submittedCards.length > 0 ? (
-              <motion.div
-                key={
-                  submittedCards.at(-1)!.card + submittedCards.at(-1)!.nickname
-                }
-                initial={{ y: -30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                <SubmittedCard
-                  card={submittedCards.at(-1)!.card}
-                  nickname={submittedCards.at(-1)!.nickname}
-                  className="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32"
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-gray-400 text-sm"
-              >
-                제출된 카드 없음
-              </motion.div>
-            )}
-          </AnimatePresence>
+      <div className="mb-6 w-full max-w-3xl bg-orange-100/50 border-4 border-dashed border-orange-200 rounded-[3rem] py-10 flex flex-col items-center relative shadow-inner">
+        <div className="flex justify-center items-center gap-6 sm:gap-12">
+          <div className="relative">
+            <AnimatePresence mode="wait">
+              {submittedCards.length > 0 ? (
+                <motion.div
+                  key={
+                    submittedCards.at(-1)!.card +
+                    submittedCards.at(-1)!.nickname
+                  }
+                  initial={{ y: -30, opacity: 0, rotate: -5 }}
+                  animate={{ y: 0, opacity: 1, rotate: Math.random() * 10 - 5 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                >
+                  <SubmittedCard
+                    card={submittedCards.at(-1)!.card}
+                    nickname={submittedCards.at(-1)!.nickname}
+                    className="w-20 h-28 sm:w-24 sm:h-36 lg:w-28 lg:h-40 shadow-xl"
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-20 h-28 sm:w-24 sm:h-36 lg:w-28 lg:h-40 border-4 border-dashed border-orange-300/50 rounded-xl flex items-center justify-center text-orange-400 font-bold text-center text-sm p-2"
+                >
+                  제출된
+                  <br />
+                  카드 없음
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-          <motion.img
-            src="/cards/back.png"
-            alt="덱"
-            className={`w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32 rounded shadow-lg cursor-pointer ${
-              !isMyTurn || mustSubmit || bbungPhase !== "idle"
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:scale-105 transition-transform"
-            }`}
-            onClick={() => {
-              if (isMyTurn && !mustSubmit && bbungPhase === "idle") {
-                getSocket().emit("draw-card", { roomCode });
+          <div className="relative">
+            <motion.img
+              src="/cards/back.png"
+              alt="덱"
+              className={`w-20 h-28 sm:w-24 sm:h-36 lg:w-28 lg:h-40 rounded-xl shadow-lg cursor-pointer border-2 border-white ${
+                !isMyTurn || mustSubmit || bbungPhase !== "idle"
+                  ? "opacity-50 cursor-not-allowed grayscale-[50%]"
+                  : "hover:scale-105 transition-transform"
+              }`}
+              onClick={() => {
+                if (isMyTurn && !mustSubmit && bbungPhase === "idle") {
+                  getSocket().emit("draw-card", { roomCode });
+                }
+              }}
+              whileHover={
+                isMyTurn && !mustSubmit && bbungPhase === "idle"
+                  ? { scale: 1.05, y: -5 }
+                  : {}
               }
-            }}
-            whileHover={
-              isMyTurn && !mustSubmit && bbungPhase === "idle"
-                ? { scale: 1.1, rotate: 5 }
-                : {}
-            }
-            whileTap={
-              isMyTurn && !mustSubmit && bbungPhase === "idle"
-                ? { scale: 0.95 }
-                : {}
-            }
-          />
-        </div>
-        <div className="text-center text-xs sm:text-sm text-yellow-300 mt-1">
-          남은 카드: {remainingCards}
+              whileTap={
+                isMyTurn && !mustSubmit && bbungPhase === "idle"
+                  ? { scale: 0.95 }
+                  : {}
+              }
+            />
+            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-3 py-1 rounded-full shadow-md border border-orange-200 text-xs sm:text-sm font-black text-orange-500 whitespace-nowrap">
+              남은 카드 {remainingCards}장
+            </div>
+          </div>
         </div>
       </div>
 
       {showScoreModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white text-black p-6 rounded-lg shadow-lg w-72 sm:w-80">
-            <h2 className="text-lg sm:text-xl font-bold mb-4 text-center">
-              현재 점수
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white text-gray-800 p-8 rounded-[2rem] shadow-2xl w-full max-w-sm border-4 border-orange-100">
+            <h2 className="text-xl sm:text-2xl font-black mb-6 text-center text-orange-500 flex items-center justify-center gap-2">
+              🏆 현재 점수판
             </h2>
-            <ul className="space-y-1 text-xs sm:text-sm">
+            <ul className="space-y-3 text-sm sm:text-base mb-6">
               {Object.entries(totalScores)
                 .sort(([, a], [, b]) => b - a)
-                .map(([player, score]) => (
-                  <li key={player} className="flex justify-between">
-                    <span>{player}</span>
-                    <span className="font-semibold">{score}점</span>
+                .map(([player, score], index) => (
+                  <li
+                    key={player}
+                    className={`flex justify-between items-center p-3 rounded-xl ${player === nickname ? "bg-orange-50 border border-orange-200" : "bg-gray-50"}`}
+                  >
+                    <span className="font-bold flex items-center gap-2">
+                      <span className="text-gray-400 text-xs">
+                        {index + 1}위
+                      </span>
+                      {player}{" "}
+                      {player === nickname && (
+                        <span className="text-orange-500 text-xs">(나)</span>
+                      )}
+                    </span>
+                    <span
+                      className={`font-black ${score > 0 ? "text-green-500" : score < 0 ? "text-red-500" : "text-gray-500"}`}
+                    >
+                      {score}점
+                    </span>
                   </li>
                 ))}
             </ul>
             <button
               onClick={() => setShowScoreModal(false)}
-              className="mt-4 w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
+              className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors"
             >
               닫기
             </button>
@@ -733,10 +734,12 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* 손패 및 버튼 */}
-      <div className="bg-white text-black p-4 rounded shadow-md w-full max-w-xl">
-        {/* 모바일: 6열 그리드 / sm 이상: 기존 flex-wrap */}
-        <div className="grid grid-cols-6 gap-1 mt-2 px-2 sm:flex sm:flex-wrap sm:justify-center">
+      <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-lg border-[3px] border-orange-100 w-full max-w-3xl relative">
+        <h3 className="absolute -top-4 left-6 bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-md">
+          나의 카드
+        </h3>
+
+        <div className="grid grid-cols-6 gap-2 mt-2 sm:flex sm:flex-wrap sm:justify-center px-1">
           {hand.map((card) => (
             <Card
               key={card}
@@ -745,51 +748,50 @@ export default function GamePage() {
               isRecent={card === recentDrawnCard}
               isNew={newCards.includes(card)}
               onClick={() => toggleBbungCard(card)}
-              // ⬇ 모바일: 셀 가득 + 비율 2:3 / 큰 화면: 기존 사이즈
-              className="w-full aspect-[2/3] text-xs sm:text-base sm:w-20 sm:h-28 lg:w-24 lg:h-32"
+              className="w-full aspect-[2/3] text-xs sm:text-base sm:w-20 sm:h-28 lg:w-24 lg:h-32 shadow-sm rounded-lg border border-gray-200"
             />
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col items-center gap-2 w-full max-w-sm mx-auto">
+        <div className="mt-8 flex flex-col sm:flex-row flex-wrap justify-center gap-3 w-full max-w-2xl mx-auto">
           {canShowBbungButton() && (
             <button
               onClick={handleInitialBbung}
-              className="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm"
+              className="flex-1 min-w-[140px] px-4 py-4 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-black shadow-md hover:scale-105 transition-all"
             >
-              뻥! (같은 카드 2장 제출)
+              🔥 뻥! (2장 제출)
             </button>
           )}
           {isMyTurn && !mustSubmit && bbungPhase === "idle" && (
             <button
               onClick={handleStop}
-              className="w-full px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded text-sm"
+              className="flex-1 min-w-[140px] px-4 py-4 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-black shadow-md hover:scale-105 transition-all"
             >
-              스탑!
+              ✋ 스탑!
             </button>
           )}
           {bbungPhase === "selectingExtra" && (
             <button
               onClick={handleExtraBbung}
-              className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded text-sm"
+              className="flex-1 min-w-[140px] px-4 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-black shadow-md hover:scale-105 transition-all"
             >
-              추가 카드 1장 제출
+              ➕ 추가 카드 제출
             </button>
           )}
           {isMyTurn && mustSubmit && bbungPhase === "idle" && (
             <button
               onClick={handleSubmitCard}
-              className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+              className="flex-1 min-w-[140px] px-4 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-black shadow-md hover:scale-105 transition-all"
             >
-              카드 제출
+              📤 카드 내기
             </button>
           )}
           {isMyTurn && canDrawCard() && (
             <button
               onClick={() => getSocket().emit("draw-card", { roomCode })}
-              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+              className="flex-1 min-w-[140px] px-4 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-black shadow-md hover:scale-105 transition-all"
             >
-              카드 뽑기
+              🃏 카드 뽑기
             </button>
           )}
           {isMyTurn && hand.length === 6 && jokboAvailable && (
@@ -800,27 +802,20 @@ export default function GamePage() {
                   reason: "족보 완성",
                 })
               }
-              className="relative w-full px-4 py-2 text-white rounded text-sm
-               bg-gradient-to-r from-purple-600 to-pink-600
-               shadow-lg overflow-hidden"
+              className="flex-1 min-w-[140px] relative px-4 py-4 text-white rounded-xl text-sm font-black bg-gradient-to-r from-pink-500 to-rose-500 shadow-lg overflow-hidden"
               animate={{
-                scale: [1, 1.04, 1],
+                scale: [1, 1.05, 1],
                 boxShadow: [
                   "0 0 0 rgba(0,0,0,0)",
-                  "0 0 20px rgba(236,72,153,0.5)",
+                  "0 0 15px rgba(244,63,94,0.6)",
                   "0 0 0 rgba(0,0,0,0)",
                 ],
               }}
-              transition={{ duration: 1.2, repeat: Infinity }}
+              transition={{ duration: 1.5, repeat: Infinity }}
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {/* 번쩍 라인(옵션) */}
-              <span
-                className="pointer-events-none absolute inset-0 -translate-x-full bg-white/20"
-                style={{ clipPath: "polygon(0 0, 100% 0, 85% 100%, 0 100%)" }}
-              />
-              <span className="relative z-10">족보 완성!</span>
+              <span className="relative z-10">✨ 족보 완성!</span>
             </motion.button>
           )}
         </div>
@@ -829,14 +824,16 @@ export default function GamePage() {
         {showBbungEffect && <BbungTextEffect />}
 
         {showChat && (
-          <ChatBox
-            chatMessages={chatMessages}
-            chatInput={chatInput}
-            setChatInput={setChatInput}
-            canSend={canSend}
-            sendChat={sendChat}
-            className="w-full mt-4"
-          />
+          <div className="mt-6 border-t-2 border-gray-100 pt-4">
+            <ChatBox
+              chatMessages={chatMessages}
+              chatInput={chatInput}
+              setChatInput={setChatInput}
+              canSend={canSend}
+              sendChat={sendChat}
+              className="w-full"
+            />
+          </div>
         )}
       </div>
 

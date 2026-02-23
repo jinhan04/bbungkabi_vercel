@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // 또는 mysql 사용 시 변경
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,5 +14,11 @@ model User {
   kakaoId      String   @unique
   nickname     String
   profileImage String?
+  
+  // --- 추가할 필드들 ---
+  coin         Int      @default(1000)   // 기본 지급 코인 1000
+  tier         String   @default("Bronze") // 기본 티어 브론즈
+  wins         Int      @default(0)      // 승리 횟수
+  losses       Int      @default(0)      // 패배 횟수
   createdAt    DateTime @default(now())
 }

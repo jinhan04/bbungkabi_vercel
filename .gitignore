@@ -42,3 +42,8 @@ next-env.d.ts
 
 /generated/prisma
 .git_backup_*/
+
+# .gitignore 파일 내용 확인
+.env
+node_modules
+.next

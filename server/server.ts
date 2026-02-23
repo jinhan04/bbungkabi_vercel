@@ -2,9 +2,18 @@ import express, { Router } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-// import { authRoutes } from "./routes/auth";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
-// const typedRoutes: Router = authRoutes;
+const log = {
+  info: (msg: string) => console.log(`\x1b[36m[INFO]\x1b[0m ${msg}`),
+  conn: (msg: string) => console.log(`\x1b[32m[CONN]\x1b[0m ${msg}`),
+  room: (msg: string) => console.log(`\x1b[33m[ROOM]\x1b[0m ${msg}`),
+  game: (msg: string) => console.log(`\x1b[35m[GAME]\x1b[0m ${msg}`),
+  warn: (msg: string) => console.log(`\x1b[31m[WARN]\x1b[0m ${msg}`),
+  debug: (msg: string) => console.log(`\x1b[90m[DEBUG]\x1b[0m ${msg}`),
+};
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -26,8 +35,15 @@ const roundCount: { [key: string]: number } = {};
 const doubleFinalRoundMap: { [roomCode: string]: boolean } = {};
 const scores: { [key: string]: { [nickname: string]: number[] } } = {};
 const readyForNextRound: { [roomCode: string]: Set<string> } = {};
-const bbungEndTriggeredBy: { [roomCode: string]: string | null } = {}; // 유도자 저장
+const bbungEndTriggeredBy: { [roomCode: string]: string | null } = {};
 const emojiMap: { [roomCode: string]: { [nickname: string]: string } } = {};
+const gameEndProcessed: { [key: string]: boolean } = {};
+const turnTimeMap: { [roomCode: string]: number } = {};
+const uhbbungMap: { [roomCode: string]: boolean } = {};
+const penaltyScores: { [roomCode: string]: { [nickname: string]: number } } =
+  {};
+const maxRoundMap: { [roomCode: string]: number } = {};
+const lastTimeoutMap: { [roomCode: string]: number } = {};
 
 const submittedHistory: {
   [key: string]: { nickname: string; card: string }[];
@@ -46,35 +62,27 @@ const roundResults: {
 
 // [AI] === 봇 타입/상태/유틸 추가 시작 ===
 type Difficulty = "easy" | "normal" | "hard";
-
-// 플레이어 정보 (사람/봇 구분이 이미 있다면 그대로 활용)
 type PlayerInfo = { name: string; isBot: boolean };
-
-// 방 옵션에 uhbbungEnabled(어벙 사용 여부) 추가
 type RoomOptions = {
-  rounds: number; // 총 라운드 수 (이미 있다면 그대로)
-  doubleFinal: boolean; // 더블 파이널 라운드 옵션 (이미 있다면 그대로)
-  uhbbungEnabled: boolean; // ✅ 어벙 사용 여부
+  rounds: number;
+  doubleFinal: boolean;
+  uhbbungEnabled: boolean;
 };
-
-// 라운드 중간 가산점(어벙 등)을 담을 저장소 + 최근 어벙 처리 시각(스팸 방지)
 type RoundRuntime = {
-  tempScores: Record<string, number>; // ✅ { nickname: 누적 +10, ... }
-  lastUhbbungAt: Record<string, number>; // ✅ { nickname: lastTickTimestamp }
+  tempScores: Record<string, number>;
+  lastUhbbungAt: Record<string, number>;
 };
-
-// 방 전체 상태를 하나로 묶어 관리 (이미 RoomState 유사 구조가 있으면 여기에만 필드 추가)
 type RoomState = {
-  players: PlayerInfo[]; // 또는 string[] 사용 중이면 맞춰서 변경
+  players: PlayerInfo[];
   deck: string[];
   hands: Record<string, string[]>;
-  turnIndex: number; // 현재 턴 인덱스 (또는 currentPlayer 존재)
+  turnIndex: number;
   ready: Set<string>;
   drawFlag: Set<string>;
   roundCount: number;
   options: RoomOptions;
-  scores: Record<string, number>; // 누적 점수
-  runtime: RoundRuntime; // ✅ 라운드 중간 가산/최근시각
+  scores: Record<string, number>;
+  runtime: RoundRuntime;
   lastRoundResult?: {
     reason: string;
     stopper?: string | null;
@@ -84,10 +92,8 @@ type RoomState = {
   };
 };
 
-// 모든 방 상태 저장
 const roomStates: Record<string, RoomState> = {};
 
-// === [BOT NAME] 숫자 대신 테마 이름 생성 ===
 const BOT_NAME_POOL = [
   "블러프킹",
   "포커여우",
@@ -156,29 +162,20 @@ function generateBotNickname(roomCode: string): string {
     ...getBots(roomCode).map((b) => b.nickname),
   ]);
 
-  // 1) 준비된 풀에서 "남아있는 후보"를 모아 랜덤 선택  ✅
   const available = BOT_NAME_POOL.filter((n) => !existing.has(n));
-  if (available.length > 0) {
-    return pick(available); // pick: 배열에서 임의 요소 선택
-  }
+  if (available.length > 0) return pick(available);
 
-  // 2) 조합식 (형태: "<형용사> <동물>" 또는 "<형용사> <동물> <접미사>")
-  //   * 숫자 사용 금지
   for (let i = 0; i < 300; i++) {
     const base = `${pick(BOT_ADJ)} ${pick(BOT_ANIMAL)}`;
     const name = chance(0.5) ? `${base} ${pick(BOT_SUFFIX)}` : base;
     if (!existing.has(name)) return name;
   }
 
-  // 3) (희귀) 충돌이 계속 나면 접미사만 더 붙여서라도 회피 (여전히 숫자 없음)
   for (let i = 0; i < 300; i++) {
-    const name = `${pick(BOT_ADJ)} ${pick(BOT_ANIMAL)} ${pick(
-      BOT_SUFFIX
-    )} ${pick(BOT_SUFFIX)}`;
+    const name = `${pick(BOT_ADJ)} ${pick(BOT_ANIMAL)} ${pick(BOT_SUFFIX)} ${pick(BOT_SUFFIX)}`;
     if (!existing.has(name)) return name;
   }
 
-  // 최후의 수단(거의 도달 X): 고정값
   return "이름없는봇";
 }
 
@@ -198,11 +195,10 @@ function addBot(roomCode: string, bot: BotInfo) {
 }
 function removeBot(roomCode: string, nickname: string) {
   roomBots[roomCode] = (roomBots[roomCode] || []).filter(
-    (b) => b.nickname !== nickname
+    (b) => b.nickname !== nickname,
   );
 }
 
-// 사람 + 봇을 합친 로비용 목록
 function broadcastPlayerList(roomCode: string) {
   const humans = rooms[roomCode] || [];
   const bots = getBots(roomCode);
@@ -217,22 +213,17 @@ function broadcastPlayerList(roomCode: string) {
     ],
   });
 }
-// [AI] === 봇 타입/상태/유틸 추가 끝 ===
 
-// [AI-STEP3] === 공용 액션/봇 로직/턴 브로드캐스트 ===
-
-// 사람+봇 전체 플레이어
 function getAllPlayers(roomCode: string): string[] {
   const humans = rooms[roomCode] || [];
   const bots = getBots(roomCode).map((b) => b.nickname);
   return [...humans, ...bots];
 }
 
-// 서버 내부에서 "카드 제출" 실행 (사람/봇 공용 경로)
 function serverSubmitSingleCard(
   roomCode: string,
   nickname: string,
-  card: string
+  card: string,
 ) {
   if (!playerHands[roomCode] || !playerHands[roomCode][nickname]) return;
   const idx = playerHands[roomCode][nickname].indexOf(card);
@@ -241,30 +232,24 @@ function serverSubmitSingleCard(
   submittedHistory[roomCode].push({ nickname, card });
   io.to(roomCode).emit("card-submitted", { nickname, card });
 
-  // 👇 제출 직후 봇이면 가끔 채팅
   const bot = getBotInfo(roomCode, nickname);
   if (bot && canChat(roomCode, nickname) && chance(CHAT_CHANCE.submit)) {
     botSay(roomCode, nickname, pick(BOT_CHAT_LINES.submit));
   }
 
-  // ⬇️ 추가: 방금 낸 카드에 대해 봇이 뻥 가능한지 체크
   void maybeBotBbung(roomCode);
-
-  nextTurn(roomCode); // 기존 턴 진행 재사용
+  nextTurn(roomCode);
 }
 
-// === [STOP AI] 서버 내부 전용: 봇이 스탑 선언 ===
 function serverStop(roomCode: string, stopper: string) {
   const hands = playerHands[roomCode] || {};
   const scoresThisRound = calculateScores("stop", stopper, hands, roomCode);
 
-  // 점수 누적
   for (const [n, s] of Object.entries(scoresThisRound)) {
     if (!scores[roomCode][n]) scores[roomCode][n] = [];
     scores[roomCode][n].push(s);
   }
 
-  // 결과 저장
   roundResults[roomCode] = {
     scores: scoresThisRound,
     hands,
@@ -273,7 +258,6 @@ function serverStop(roomCode: string, stopper: string) {
   };
   roundInProgress[roomCode] = false;
 
-  // 브로드캐스트
   io.to(roomCode).emit("round-ended", {
     reason: "stop",
     stopper,
@@ -282,34 +266,30 @@ function serverStop(roomCode: string, stopper: string) {
   });
 }
 
-// === [STOP AI] 스탑 여부 판단 ===
+// 💡 수정됨: 봇 스탑 규칙 (버그 1, 5 해결)
 function shouldBotStop(roomCode: string, bot: BotInfo): boolean {
-  // 드로우를 이미 했다면(같은 턴) 사람 규칙과 맞춰 스탑 금지
+  // 1. 드로우를 이미 했다면 절대 스탑 불가
   if (drawFlag[roomCode]?.has(bot.nickname)) return false;
 
   const hand = playerHands[roomCode]?.[bot.nickname] || [];
-  if (hand.length === 0) return false;
+
+  // 2. 손패가 정확히 5장 또는 2장일 때만 스탑 가능
+  if (hand.length !== 5 && hand.length !== 2) return false;
 
   const score = _handScoreForDecision(hand);
   const deckLeft = decks[roomCode]?.length ?? 0;
 
-  // 난이도별 기본 임계치 (점수가 낮을수록 유리한 게임 규칙)
-  let threshold = 16; // normal
+  let threshold = 16;
   if (bot.difficulty === "easy") threshold = 20;
   if (bot.difficulty === "hard") threshold = 12;
 
-  // 막판일수록 조금 더 공격적으로 스탑
   if (deckLeft <= 10) threshold += 2;
-
-  // 약간의 랜덤성(사람스러움)
-  const jitter = Math.floor(Math.random() * 5) - 2; // -2..+2
+  const jitter = Math.floor(Math.random() * 5) - 2;
   threshold += jitter;
 
   return score <= threshold;
 }
 
-// 서버 내부에서 "드로우" 실행 (사람/봇 공용 경로)
-// ⬇️ 반환값: true면 라운드가 이 호출로 종료됨
 function serverDraw(roomCode: string, nickname: string): boolean {
   const deck = decks[roomCode];
   if (!deck || deck.length === 0) return false;
@@ -319,51 +299,43 @@ function serverDraw(roomCode: string, nickname: string): boolean {
     if (!playerHands[roomCode]) playerHands[roomCode] = {};
     if (!playerHands[roomCode][nickname]) playerHands[roomCode][nickname] = [];
     playerHands[roomCode][nickname].push(card);
-
-    // 봇은 개별 socket이 없으니 모두에게 브로드캐스트만
     io.to(roomCode).emit("player-drawn", { nickname });
   }
 
   io.to(roomCode).emit("deck-update", { remaining: deck.length });
 
-  // ⬇️ 여기서 "봇 족보 자동 종료"를 먼저 검사
   const isBot = getBots(roomCode).some((b) => b.nickname === nickname);
   if (isBot) {
     const hand = playerHands[roomCode]?.[nickname] || [];
     if (_isJokboHand(hand)) {
       console.log(
-        `[${new Date().toISOString()}][AI] ${nickname} 족보 완성 → 라운드 즉시 종료`
+        `[${new Date().toISOString()}][AI] ${nickname} 족보 완성 → 라운드 즉시 종료`,
       );
-
       const hands = playerHands[roomCode];
       const scoresThisRound = calculateScores(
         "족보 완성",
         null,
         hands,
-        roomCode
+        roomCode,
       );
       for (const [n, score] of Object.entries(scoresThisRound)) {
         scores[roomCode][n].push(score);
       }
-
       roundResults[roomCode] = {
         scores: scoresThisRound,
         hands,
         reason: "족보 완성",
       };
       roundInProgress[roomCode] = false;
-
       io.to(roomCode).emit("round-ended", {
         reason: "족보 완성",
         allPlayerHands: playerHands[roomCode],
         round: roundCount[roomCode],
       });
-
-      return true; // ✅ 이 드로우로 라운드가 끝났음을 상위에 알림
+      return true;
     }
   }
 
-  // (그 다음) 덱이 완전히 비었으면 라운드 종료
   if (deck.length === 0) {
     roundInProgress[roomCode] = false;
     io.to(roomCode).emit("round-ended", {
@@ -373,16 +345,13 @@ function serverDraw(roomCode: string, nickname: string): boolean {
     });
     return true;
   }
-
   return false;
 }
 
-// 지금 낼 수 있는 "단일 카드" 후보 (최소 구현: 손패 전체)
 function getLegalSingles(roomCode: string, nickname: string): string[] {
   return [...(playerHands[roomCode]?.[nickname] || [])];
 }
 
-// 난이도별 생각시간
 function botThinkMs(diff: Difficulty): [number, number] {
   if (diff === "hard") return [800, 1500];
   if (diff === "normal") return [600, 1200];
@@ -392,7 +361,6 @@ function wait(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-// === [BOT CHAT] 랜덤/확률 유틸 ===
 function chance(p: number) {
   return Math.random() < p;
 }
@@ -403,10 +371,8 @@ function now() {
   return Date.now();
 }
 
-// 방별-봇별 다음 채팅 가능 시간(스팸 방지)
 const nextBotChatAt: { [room: string]: { [nick: string]: number } } = {};
 
-// 채팅 문구(가볍게 섞어둠)
 const BOT_CHAT_LINES = {
   draw: [
     "한 장 믿고 간다.",
@@ -434,7 +400,6 @@ const BOT_CHAT_LINES = {
   ],
 };
 
-// 쿨다운: 8~14초 랜덤
 function resetChatCooldown(roomCode: string, nickname: string) {
   const min = 8000,
     max = 14000;
@@ -447,27 +412,23 @@ function canChat(roomCode: string, nickname: string) {
   return now() >= nextAt;
 }
 
-// 실제 채팅 브로드캐스트
 function botSay(roomCode: string, nickname: string, text: string) {
   io.to(roomCode).emit("chat-message", { nickname, message: text });
   resetChatCooldown(roomCode, nickname);
 }
 
-// 상황별 확률(원하면 튜닝)
 const CHAT_CHANCE = {
-  draw: 0.2, // 카드 뽑은 직후
-  submit: 0.2, // 카드 낸 직후
-  bbung: 0.9, // 뻥 성공
-  bbung_extra: 0.2, // 뻥 추가 1장
-  taunt: 0.1, // 가끔 도발
+  draw: 0.05,
+  submit: 0.05,
+  bbung: 0.3,
+  bbung_extra: 0.1,
+  taunt: 0.05,
 };
 
-// 봇 정보 얻기
 function getBotInfo(roomCode: string, nickname: string) {
   return getBots(roomCode).find((b) => b.nickname === nickname);
 }
 
-// === [BBUNG] 유틸 ===
 function _numStr(card: string): string {
   return card.replace(/[^0-9JQKA]/g, "");
 }
@@ -488,19 +449,16 @@ function _pickHighestCard(roomCode: string, nickname: string): string | null {
   };
   return hand.reduce(
     (best, cur) => (val(cur) > val(best) ? cur : best),
-    hand[0]
+    hand[0],
   );
 }
 
-// === [BBUNG] 서버 내부 전용: 뻥 2장 제출 ===
 function serverSubmitBbung(
   roomCode: string,
   nickname: string,
-  cards: string[]
+  cards: string[],
 ) {
   if (!cards || cards.length !== 2) return;
-
-  // 규칙 검증 (드로우 후 금지 / 숫자 동일 / 자기 카드에 자기 뻥 금지)
   if (drawFlag[roomCode]?.has(nickname)) return;
   const nums = cards.map(_numStr);
   if (nums[0] !== nums[1]) return;
@@ -510,19 +468,16 @@ function serverSubmitBbung(
   if (!lastNum || lastNum !== nums[0]) return;
   if (last?.nickname === nickname) return;
 
-  // 실제 제출
   for (const card of cards) {
     const idx = playerHands[roomCode][nickname].indexOf(card);
-    if (idx === -1) return; // 안전장치
+    if (idx === -1) return;
     playerHands[roomCode][nickname].splice(idx, 1);
     submittedHistory[roomCode].push({ nickname, card });
     io.to(roomCode).emit("card-submitted", { nickname, card });
   }
 
-  // 이펙트 브로드캐스트
   io.to(roomCode).emit("bbung-effect", { nickname });
 
-  // 손이 비면 라운드 종료 (사람 로직과 동일)
   if (playerHands[roomCode][nickname].length === 0) {
     const back3 = submittedHistory[roomCode].at(-3);
     const bbungNumber = _numStr(cards[0]);
@@ -555,11 +510,10 @@ function serverSubmitBbung(
   }
 }
 
-// === [BBUNG] 서버 내부 전용: 추가 1장 제출 ===
 function serverSubmitBbungExtra(
   roomCode: string,
   nickname: string,
-  card: string
+  card: string,
 ) {
   const idx = playerHands[roomCode][nickname].indexOf(card);
   if (idx !== -1) {
@@ -591,7 +545,6 @@ function serverSubmitBbungExtra(
       triggerer: bbungEndTriggeredBy[roomCode],
     });
   } else {
-    // 다음 턴으로
     const players = getAllPlayers(roomCode);
     const i = players.indexOf(nickname);
     const nextIdx = (i + 1) % players.length;
@@ -602,7 +555,6 @@ function serverSubmitBbungExtra(
   }
 }
 
-// === [BBUNG] 봇 뻥 판단 & 실행 ===
 async function maybeBotBbung(roomCode: string) {
   const last = submittedHistory[roomCode].at(-1);
   if (!last) return;
@@ -611,65 +563,55 @@ async function maybeBotBbung(roomCode: string) {
   const bots = getBots(roomCode);
   if (!bots.length) return;
 
-  // 여러 봇이 가능한 경우, "가장 먼저 갖춘" 한 명만 시도(경합 방지)
   for (const bot of bots) {
-    // 자기 자신이 방금 낸 카드에는 뻥 금지
     if (bot.nickname === last.nickname) continue;
-    if (drawFlag[roomCode]?.has(bot.nickname)) continue; // 드로우 후 뻥 금지
+    if (drawFlag[roomCode]?.has(bot.nickname)) continue;
 
     const hand = playerHands[roomCode]?.[bot.nickname] || [];
     const pair = _pickTwoSameNumber(hand, lastNum);
     if (!pair) continue;
 
-    // 난이도별 반응 지연 (사람스러움)
     const [minMs, maxMs] =
       bot.difficulty === "hard"
         ? [250, 700]
         : bot.difficulty === "normal"
-        ? [400, 900]
-        : [600, 1200];
+          ? [400, 900]
+          : [600, 1200];
     const waitMs = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
     await wait(waitMs);
 
-    // 지연 중 다른 카드가 또 나왔는지 재검증
     const still = submittedHistory[roomCode].at(-1);
     if (!still || _numStr(still.card) !== lastNum) continue;
+    if (still.nickname === bot.nickname) continue;
 
-    // 1) 뻥 2장 제출
     serverSubmitBbung(roomCode, bot.nickname, pair);
 
-    // 👇 뻥 성공하면 거의 항상 외침
     if (canChat(roomCode, bot.nickname) && chance(CHAT_CHANCE.bbung)) {
       botSay(roomCode, bot.nickname, pick(BOT_CHAT_LINES.bbung));
     }
 
-    // 라운드가 끝났으면 종료
     if (!roundInProgress[roomCode]) return;
 
-    // 2) 손이 남아 있으면 "추가 1장"도 자동 제출(잠깐 더 기다렸다가)
     const extraDelay = Math.floor(Math.random() * 500) + 300;
     await wait(extraDelay);
 
-    // 추가 제출 카드(여긴 간단히 가장 높은 카드 사용)
     const extra = _pickHighestCard(roomCode, bot.nickname);
     if (extra) {
       serverSubmitBbungExtra(roomCode, bot.nickname, extra);
     }
-    return; // 한 봇만 실행
+    return;
   }
 }
 
-// 현재 턴의 플레이어 닉네임 반환
 function getCurrentPlayerName(roomCode: string): string | undefined {
   const players = getAllPlayers(roomCode);
   if (!players || players.length === 0) return undefined;
   return players[turnIndex[roomCode]];
 }
 
-// 손패에서 '가장 높은' 카드 하나 고르기
 function pickHighestCardFromHand(
   roomCode: string,
-  nickname: string
+  nickname: string,
 ): string | null {
   const hand = playerHands[roomCode]?.[nickname] || [];
   if (hand.length === 0) return null;
@@ -685,11 +627,8 @@ function pickHighestCardFromHand(
   return best;
 }
 
-// === [STOP AI] 손패 점수 계산(결정용) ===
 function _handScoreForDecision(hand: string[]): number {
-  // A=1, J=11, Q=12, K=13 은 _cardToValueN와 동일 규칙을 사용
   const cardToValueN = (card: string) => _cardToValueN(card);
-
   const sum = (vals: number[]) => vals.reduce((a, b) => a + b, 0);
 
   const isStraight = (values: number[]) => {
@@ -721,7 +660,6 @@ function _handScoreForDecision(hand: string[]): number {
   const values = hand.map(cardToValueN);
   const total = sum(values);
 
-  // 6장 특수 규칙 (서버 점수 규칙과 동일)
   if (hand.length === 6) {
     if (isStraight(values)) return -total;
     if (isPairPairPair(values)) return 0;
@@ -731,10 +669,8 @@ function _handScoreForDecision(hand: string[]): number {
     return total;
   }
 
-  // 3장 트리플 0점
   if (hand.length === 3 && values.every((v) => v === values[0])) return 0;
 
-  // 6장이 아닐 때 3-오브-어-카인드면 나머지 합
   const counts: Record<number, number> = {};
   values.forEach((v) => (counts[v] = (counts[v] || 0) + 1));
   const tripleKey = Object.keys(counts).find((k) => counts[parseInt(k)] === 3);
@@ -744,15 +680,14 @@ function _handScoreForDecision(hand: string[]): number {
     return sum(rest);
   }
 
-  // 일반 합
   return total;
 }
 
-// 턴 브로드캐스트 + (현재 턴이 봇이면) 봇 실행
 function broadcastTurn(roomCode: string, currentPlayer: string) {
   io.to(roomCode).emit("turn-info", {
     currentPlayer,
     round: roundCount[roomCode],
+    turnTime: turnTimeMap[roomCode] || 10,
   });
 
   const bot = getBots(roomCode).find((b) => b.nickname === currentPlayer);
@@ -764,55 +699,41 @@ function broadcastTurn(roomCode: string, currentPlayer: string) {
   (async () => {
     await wait(think);
 
-    // === [STOP AI] 생각 후 스탑 먼저 판단 ===
-    if (shouldBotStop(roomCode, bot)) {
-      // 제출/드로우 전에 스탑
-      serverStop(roomCode, bot.nickname);
+    if (getCurrentPlayerName(roomCode) !== bot.nickname) return;
+    if (!roundInProgress[roomCode]) return;
 
-      // (선택) 봇 채팅 사용 중이면 한마디
+    if (shouldBotStop(roomCode, bot)) {
+      serverStop(roomCode, bot.nickname);
       try {
         if (typeof canChat === "function" && canChat(roomCode, bot.nickname)) {
-          // BOT_CHAT_LINES.stop 없으면 추가해도 좋아요
           const line = "스탑! 여기서 승부 보자 😎";
           if (typeof botSay === "function")
             botSay(roomCode, bot.nickname, line);
         }
       } catch {}
-
-      return; // 라운드가 끝났으니 종료
+      return;
     }
 
     if (!drawFlag[roomCode]) drawFlag[roomCode] = new Set();
 
-    // 1) 드로우 먼저
     const deck = decks[roomCode];
     if (deck && deck.length > 0 && !drawFlag[roomCode].has(bot.nickname)) {
-      const ended = serverDraw(roomCode, bot.nickname); // ⬅️ 여기서 끝났는지 확인
+      drawFlag[roomCode].add(bot.nickname);
 
-      // 👇 드로우 직후 가끔 채팅
+      const ended = serverDraw(roomCode, bot.nickname);
       if (canChat(roomCode, bot.nickname) && chance(CHAT_CHANCE.draw)) {
         botSay(roomCode, bot.nickname, pick(BOT_CHAT_LINES.draw));
       }
       await wait(150);
-      if (ended) return; // ✅ 족보/덱소진으로 라운드가 끝났으면 더 하지 않음
+      if (ended) return;
     }
 
-    // 2) 그 다음 낼 수 있으면 1장 제출 (최고 카드 선택 + 제출 전 0.5 ~ 3초 랜덤 딜레이)
     const best = pickHighestCardFromHand(roomCode, bot.nickname);
     if (best) {
       const submitDelayMs = Math.floor(Math.random() * (3000 - 500 + 1)) + 1000;
       await wait(submitDelayMs);
 
-      // 대기 중 라운드 종료/턴 변경 되었으면 취소
-      if (getCurrentPlayerName(roomCode) !== bot.nickname) {
-        console.log(
-          `[${new Date().toISOString()}][AI] ${
-            bot.nickname
-          } 제출 대기 중 턴 변경 감지 → 제출 취소`
-        );
-        return;
-      }
-
+      if (getCurrentPlayerName(roomCode) !== bot.nickname) return;
       serverSubmitSingleCard(roomCode, bot.nickname, best);
       return;
     }
@@ -828,10 +749,6 @@ function nextTurn(roomCode: string) {
 
   const nextPlayer = players[turnIndex[roomCode]];
   broadcastTurn(roomCode, nextPlayer);
-
-  console.log(
-    `[${new Date().toISOString()}][DEBUG nextTurn] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
-  );
 }
 
 const createDeck = () => {
@@ -851,7 +768,6 @@ const createDeck = () => {
     "Q",
     "K",
   ];
-
   const deck: string[] = [];
   for (const suit of suits) {
     for (const rank of ranks) {
@@ -862,7 +778,6 @@ const createDeck = () => {
 };
 
 app.use(express.json());
-// app.use("/auth", authRoutes);
 
 const shuffle = (array: string[]) => {
   const copy = [...array];
@@ -873,7 +788,6 @@ const shuffle = (array: string[]) => {
   return copy;
 };
 
-// === [AI] 족보 판단 유틸 시작 ===
 function _cardToValueN(card: string): number {
   const v = card.replace(/[^0-9JQKA]/g, "");
   if (v === "A") return 1;
@@ -884,17 +798,13 @@ function _cardToValueN(card: string): number {
 }
 
 function _isJokboHand(hand: string[]): boolean {
-  // GamePage의 족보 체크 로직과 동일하게 맞춤:
-  // 6장일 때 스트레이트, 2쌍+2쌍+2쌍, 트리플+트리플, 합 ≤14, 합 ≥65
   if (!hand || hand.length !== 6) return false;
-
   const values = hand.map(_cardToValueN);
 
   const isStraight = (() => {
     const sorted = [...values].sort((a, b) => a - b);
     for (let i = 1; i < sorted.length; i++) {
       const diff = sorted[i] - sorted[i - 1];
-      // 원 코드의 '원형' 스트레이트 허용 로직도 반영
       if ((diff + 13) % 13 !== 1 && diff !== 1) return false;
     }
     return true;
@@ -902,7 +812,6 @@ function _isJokboHand(hand: string[]): boolean {
 
   const counts: Record<number, number> = {};
   for (const v of values) counts[v] = (counts[v] || 0) + 1;
-
   const pairPairPair =
     Object.values(counts).filter((c) => c === 2).length === 3;
   const tripleTriple =
@@ -911,159 +820,186 @@ function _isJokboHand(hand: string[]): boolean {
 
   return isStraight || pairPairPair || tripleTriple || sum <= 14 || sum >= 65;
 }
-// === [AI] 족보 판단 유틸 끝 ===
 
 io.on("connection", (socket) => {
-  console.log("새 클라이언트 연결:", socket.id);
+  log.conn(`새 클라이언트 접속: ${socket.id}`);
 
-  socket.on("join-room", ({ roomCode, nickname, emoji }) => {
-    if (!rooms[roomCode]) {
-      rooms[roomCode] = [];
-      decks[roomCode] = shuffle(createDeck());
-      playerHands[roomCode] = {};
-      readyPlayers[roomCode] = new Set();
-      submittedHistory[roomCode] = [];
-      drawFlag[roomCode] = new Set();
+  socket.on("request-user-info", async ({ nickname }) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { kakaoId: nickname },
+      });
+      if (user) {
+        socket.emit("user-info", {
+          coin: user.coin,
+          tier: user.tier,
+          wins: user.wins,
+          losses: user.losses,
+        });
+      }
+    } catch (error) {
+      log.warn(`[DB 에러] 정보 요청 실패: ${error}`);
     }
-
-    if (!emojiMap[roomCode]) emojiMap[roomCode] = {};
-    emojiMap[roomCode][nickname] = emoji || "🐶";
-    io.to(roomCode).emit("update-emojis", emojiMap[roomCode]);
-
-    if (rooms[roomCode].includes(nickname)) {
-      socket.emit("join-error", "중복된 닉네임입니다.");
-      return;
-    }
-
-    rooms[roomCode].push(nickname);
-    socketIdToNickname[socket.id] = nickname;
-    socket.join(roomCode);
-
-    io.to(roomCode).emit("update-players", {
-      players: rooms[roomCode],
-      emojis: emojiMap[roomCode],
-    });
-
-    // [AI] 사람/봇 통합 목록도 같이 브로드캐스트 (로비용)
-    broadcastPlayerList(roomCode);
   });
 
-  socket.on("start-game", ({ roomCode, nickname, maxPlayers, doubleFinal }) => {
-    // [AI-STEP3] 사람+봇 전체 기준으로 변경
-    const humans = rooms[roomCode];
-    const bots = getBots(roomCode).map((b) => b.nickname);
-    const allPlayers = [...(humans || []), ...bots];
+  socket.on("join-room", async ({ roomCode, nickname, emoji }) => {
+    try {
+      let user = await prisma.user.findUnique({ where: { kakaoId: nickname } });
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            kakaoId: nickname,
+            nickname: nickname,
+            coin: 1000,
+            tier: "Bronze",
+            wins: 0,
+            losses: 0,
+          },
+        });
+        log.info(`[DB] 신규 유저 생성: ${nickname}`);
+      }
 
-    doubleFinalRoundMap[roomCode] = !!doubleFinal;
-    drawFlag[roomCode] = new Set();
+      if (!rooms[roomCode]) {
+        rooms[roomCode] = [];
+        decks[roomCode] = shuffle(createDeck());
+        playerHands[roomCode] = {};
+        readyPlayers[roomCode] = new Set();
+        submittedHistory[roomCode] = [];
+        drawFlag[roomCode] = new Set();
+      }
 
-    console.log("doubleFinal 설정:", doubleFinal);
-    console.log("doubleFinalRoundMap:", doubleFinalRoundMap[roomCode]);
+      if (!emojiMap[roomCode]) emojiMap[roomCode] = {};
+      emojiMap[roomCode][nickname] = emoji || "🐶";
+      io.to(roomCode).emit("update-emojis", emojiMap[roomCode]);
 
-    if (!allPlayers || allPlayers.length < 1 || allPlayers.length > 6) {
-      socket.emit("join-error", `최대 6명 이하일 때만 시작할 수 있습니다.`);
-      return;
+      if (rooms[roomCode].includes(nickname)) {
+        if (socketIdToNickname[socket.id] !== nickname) {
+          socket.emit("join-error", "중복된 닉네임입니다.");
+          return;
+        }
+      } else {
+        rooms[roomCode].push(nickname);
+      }
+
+      socketIdToNickname[socket.id] = nickname;
+      socket.join(roomCode);
+
+      io.to(roomCode).emit("update-players", {
+        players: rooms[roomCode],
+        emojis: emojiMap[roomCode],
+      });
+      broadcastPlayerList(roomCode);
+
+      socket.emit("user-info", {
+        coin: user.coin,
+        tier: user.tier,
+        wins: user.wins,
+        losses: user.losses,
+      });
+    } catch (error) {
+      log.warn(`[DB 에러] 유저 처리 중 오류 발생: ${error}`);
+      socket.emit("join-error", "데이터베이스 연결에 실패했습니다.");
     }
+  });
 
-    // ✅ 라운드 카운터 초기화
-    roundCount[roomCode] = 1;
-    console.log(
-      `[${new Date().toISOString()}][DEBUG] Game starting in room ${roomCode} with round ${
-        roundCount[roomCode]
-      }`
-    );
-
-    // ✅ 점수 배열 초기화 — 사람+봇 모두
-    scores[roomCode] = {};
-    for (const n of allPlayers) {
-      scores[roomCode][n] = [];
-    }
-
-    turnIndex[roomCode] = 0;
-    decks[roomCode] = shuffle(createDeck());
-    submittedHistory[roomCode] = [];
-    drawFlag[roomCode] = new Set();
-
-    // 사람+봇 모두 분배
-    for (const n of allPlayers) {
-      if (!playerHands[roomCode]) playerHands[roomCode] = {};
-      playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
-    }
-
-    // ✅ 남은 카드 수 전송
-    io.to(roomCode).emit("deck-update", { remaining: decks[roomCode].length });
-
-    // ✅ 게임 시작 이벤트 발송
-    io.to(roomCode).emit("game-started", {
+  socket.on(
+    "start-game",
+    ({
       roomCode,
-      round: roundCount[roomCode],
-    });
+      nickname,
+      maxPlayers,
+      doubleFinal,
+      uhbbung,
+      turnTime,
+      maxRounds,
+    }) => {
+      log.room(`[${roomCode}] 게임 시작! (라운드: 1)`);
+      const humans = rooms[roomCode];
+      const bots = getBots(roomCode).map((b) => b.nickname);
+      const allPlayers = [...(humans || []), ...bots];
 
-    const randomPlayer =
-      allPlayers[Math.floor(Math.random() * allPlayers.length)];
-    turnIndex[roomCode] = allPlayers.indexOf(randomPlayer);
-    const currentPlayer = allPlayers[turnIndex[roomCode]];
-    console.log(
-      `[${new Date().toISOString()}][DEBUG start-game] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
-    );
+      gameEndProcessed[roomCode] = false;
+      doubleFinalRoundMap[roomCode] = !!doubleFinal;
 
-    // [AI-STEP3] 단일화된 브로드캐스트
-    broadcastTurn(roomCode, currentPlayer);
-  });
+      uhbbungMap[roomCode] = !!uhbbung;
+      turnTimeMap[roomCode] = turnTime || 10;
+      maxRoundMap[roomCode] = maxRounds || 5;
+      penaltyScores[roomCode] = {};
+      for (const n of allPlayers) penaltyScores[roomCode][n] = 0;
 
-  socket.on("ready-next-round", ({ roomCode, nickname }) => {
-    if (!readyForNextRound[roomCode]) {
-      readyForNextRound[roomCode] = new Set();
-    }
+      drawFlag[roomCode] = new Set();
 
-    readyForNextRound[roomCode].add(nickname);
-    drawFlag[roomCode] = new Set();
+      if (!allPlayers || allPlayers.length < 1 || allPlayers.length > 6) {
+        socket.emit("join-error", `최대 6명 이하일 때만 시작할 수 있습니다.`);
+        return;
+      }
 
-    console.log(
-      `[${new Date().toISOString()}][DEBUG] ${nickname} is ready for next round in ${roomCode}`
-    );
-    console.log(
-      `[${new Date().toISOString()}][DEBUG] Ready count: ${
-        readyForNextRound[roomCode].size
-      }`
-    );
-    console.log(
-      `[${new Date().toISOString()}][DEBUG] Total players: ${
-        rooms[roomCode]?.length
-      }`
-    );
-
-    io.to(roomCode).emit(
-      "update-ready",
-      Array.from(readyForNextRound[roomCode])
-    );
-
-    // ✅ 중복 라운드 시작 방지 (사람들 기준)
-    if (
-      readyForNextRound[roomCode].size === rooms[roomCode]?.length &&
-      roundCount[roomCode] <= 5 &&
-      !roundInProgress[roomCode]
-    ) {
-      console.log("[DEBUG] All players ready. Advancing round.");
-
+      roundCount[roomCode] = 1;
       roundInProgress[roomCode] = true;
-      readyForNextRound[roomCode].clear();
+      scores[roomCode] = {};
+      for (const n of allPlayers) {
+        scores[roomCode][n] = [];
+      }
 
-      // ✅ 라운드 수 증가
-      roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
-
-      // 라운드 준비
       turnIndex[roomCode] = 0;
       decks[roomCode] = shuffle(createDeck());
       submittedHistory[roomCode] = [];
       drawFlag[roomCode] = new Set();
 
-      // [AI-STEP3] 사람+봇 전체 목록
+      for (const n of allPlayers) {
+        if (!playerHands[roomCode]) playerHands[roomCode] = {};
+        playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
+      }
+
+      io.to(roomCode).emit("deck-update", {
+        remaining: decks[roomCode].length,
+      });
+      io.to(roomCode).emit("game-started", {
+        roomCode,
+        round: roundCount[roomCode],
+      });
+
+      // 💡 수정됨: 첫 라운드는 완전 랜덤 플레이어 시작
+      const randomPlayer =
+        allPlayers[Math.floor(Math.random() * allPlayers.length)];
+      turnIndex[roomCode] = allPlayers.indexOf(randomPlayer);
+      const currentPlayer = allPlayers[turnIndex[roomCode]];
+
+      broadcastTurn(roomCode, currentPlayer);
+    },
+  );
+
+  socket.on("ready-next-round", ({ roomCode, nickname }) => {
+    if (!readyForNextRound[roomCode]) readyForNextRound[roomCode] = new Set();
+
+    readyForNextRound[roomCode].add(nickname);
+    drawFlag[roomCode] = new Set();
+
+    io.to(roomCode).emit(
+      "update-ready",
+      Array.from(readyForNextRound[roomCode]),
+    );
+
+    if (
+      readyForNextRound[roomCode].size === rooms[roomCode]?.length &&
+      roundCount[roomCode] < (maxRoundMap[roomCode] || 5) &&
+      !roundInProgress[roomCode]
+    ) {
+      roundInProgress[roomCode] = true;
+      readyForNextRound[roomCode].clear();
+
+      roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
+      decks[roomCode] = shuffle(createDeck());
+      submittedHistory[roomCode] = [];
+      drawFlag[roomCode] = new Set();
+
       const humans = rooms[roomCode] || [];
       const bots = getBots(roomCode).map((b) => b.nickname);
       const players = [...humans, ...bots];
 
-      // 분배
+      penaltyScores[roomCode] = {};
+      for (const n of players) penaltyScores[roomCode][n] = 0;
+
       for (const n of players) {
         playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
       }
@@ -1071,43 +1007,32 @@ io.on("connection", (socket) => {
         remaining: decks[roomCode].length,
       });
 
-      // 시작 플레이어 결정
-      let firstPlayer = players[0]; // fallback
+      // 💡 수정됨: 2라운드부터는 이전 라운드 점수가 가장 낮은 사람 찾기 (버그 2 해결)
+      let firstPlayer = players[0];
 
-      if (roundCount[roomCode] === 1) {
-        // 🎲 첫 라운드는 무작위
-        firstPlayer = players[Math.floor(Math.random() * players.length)];
-        console.log("[DEBUG] 1라운드 랜덤 시작 플레이어:", firstPlayer);
-      } else {
-        // 🧮 2라운드부터는 최저 점수 플레이어
-        const lastRoundScores = scores[roomCode];
-        const validScores = Object.entries(lastRoundScores)
-          .filter(([_, rounds]) => rounds.length > 0)
-          .map(([nickname, rounds]) => ({
-            nickname,
-            score: rounds[rounds.length - 1],
-          }));
+      const lastRoundScores = scores[roomCode];
+      // 현재 방에 남아있는 플레이어들의 직전 라운드 점수만 추출
+      const validScores = players.map((p) => {
+        const rScores = lastRoundScores[p] || [];
+        const lastScore = rScores.length > 0 ? rScores[rScores.length - 1] : 0;
+        return { nickname: p, score: lastScore };
+      });
 
-        if (validScores.length > 0) {
-          validScores.sort((a, b) => a.score - b.score);
-          firstPlayer = validScores[0].nickname;
-          console.log("[DEBUG] 최저 점수 시작 플레이어:", firstPlayer);
-        }
-      }
+      // 가장 점수가 낮은 사람(오름차순) 정렬
+      validScores.sort((a, b) => a.score - b.score);
+      firstPlayer = validScores[0].nickname;
+      console.log(
+        `[DEBUG] ${roundCount[roomCode]}라운드 최저 점수 시작 플레이어:`,
+        firstPlayer,
+      );
 
-      // ✅ turnIndex 지정
       turnIndex[roomCode] = players.indexOf(firstPlayer);
       if (turnIndex[roomCode] === -1) {
-        console.warn("[WARN] firstPlayer not found in players. fallback to 0");
         turnIndex[roomCode] = 0;
         firstPlayer = players[0];
       }
 
-      console.log("[DEBUG] next round 시작 플레이어:", firstPlayer);
-
       io.to(roomCode).emit("next-round", { round: roundCount[roomCode] });
-
-      // [AI-STEP3]
       broadcastTurn(roomCode, firstPlayer);
     }
   });
@@ -1125,9 +1050,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("stop", ({ roomCode, stopper, hand }) => {
-    console.log(
-      `[${new Date().toISOString()}][DEBUG] stop 이벤트 수신 | roomCode: ${roomCode}, stopper: ${stopper}`
-    );
+    log.game(`[${roomCode}] ✋ ${stopper} STOP 선언!`);
 
     if (!playerHands[roomCode]) playerHands[roomCode] = {};
     playerHands[roomCode][stopper] = hand;
@@ -1135,9 +1058,6 @@ io.on("connection", (socket) => {
     const hands = playerHands[roomCode];
     const scoresThisRound = calculateScores("stop", stopper, hands, roomCode);
 
-    console.log("[DEBUG] 계산된 점수:", scoresThisRound);
-
-    // 점수 누적
     for (const [nickname, score] of Object.entries(scoresThisRound)) {
       scores[roomCode][nickname].push(score);
     }
@@ -1148,10 +1068,8 @@ io.on("connection", (socket) => {
       reason: "stop",
       stopper,
     };
-
     roundInProgress[roomCode] = false;
 
-    // ✅ 카드 정보는 보내지 않고 최소한의 정보만 emit
     io.to(roomCode).emit("round-ended", {
       reason: "stop",
       stopper,
@@ -1165,7 +1083,7 @@ io.on("connection", (socket) => {
     callback(roundResults[roomCode]);
   });
 
-  socket.on("get-final-scores", ({ roomCode }, callback) => {
+  socket.on("get-final-scores", async ({ roomCode }, callback) => {
     const raw = scores[roomCode];
     if (!raw) return callback({ error: "No scores found" });
 
@@ -1175,19 +1093,65 @@ io.on("connection", (socket) => {
       total: rounds.reduce((a, b) => a + b, 0),
     }));
 
-    callback({ scores: final });
+    if (!gameEndProcessed[roomCode]) {
+      gameEndProcessed[roomCode] = true;
+
+      const sortedByScore = [...final].sort((a, b) => a.total - b.total);
+      const winnerNickname = sortedByScore[0]?.nickname;
+
+      for (const player of final) {
+        const isBot = getBots(roomCode).some(
+          (b) => b.nickname === player.nickname,
+        );
+        if (isBot) continue;
+
+        const isWinner = player.nickname === winnerNickname;
+        const coinReward = isWinner ? 500 : -100;
+        const winAdd = isWinner ? 1 : 0;
+        const lossAdd = isWinner ? 0 : 1;
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { kakaoId: player.nickname },
+          });
+          if (user) {
+            const newCoin = Math.max(0, user.coin + coinReward);
+            let newTier = "Bronze";
+            if (newCoin >= 5000) newTier = "Gold";
+            else if (newCoin >= 2000) newTier = "Silver";
+
+            await prisma.user.update({
+              where: { kakaoId: player.nickname },
+              data: {
+                coin: newCoin,
+                tier: newTier,
+                wins: user.wins + winAdd,
+                losses: user.losses + lossAdd,
+              },
+            });
+            log.info(
+              `[DB] 게임 종료! ${player.nickname} ${coinReward > 0 ? "+" : ""}${coinReward} 코인 (현재: ${newCoin} 🪙, 티어: ${newTier})`,
+            );
+          }
+        } catch (error) {
+          log.warn(`[DB 에러] 게임 결과 업데이트 실패: ${error}`);
+        }
+      }
+    }
+
+    const maxR = maxRoundMap[roomCode] || 5;
+    callback({ scores: final, maxRounds: maxR });
   });
 
+  // 혹시 클라이언트가 잘못 호출할 경우를 대비해 여기도 수정
   socket.on("start-next-round", ({ roomCode }) => {
     if (!rooms[roomCode] || roundCount[roomCode] > 5) return;
 
     roundCount[roomCode] = (roundCount[roomCode] || 0) + 1;
-    turnIndex[roomCode] = 0;
     decks[roomCode] = shuffle(createDeck());
     submittedHistory[roomCode] = [];
     drawFlag[roomCode] = new Set();
 
-    // [AI-STEP3] 사람+봇 전체
     const humans = rooms[roomCode] || [];
     const bots = getBots(roomCode).map((b) => b.nickname);
     const players = [...humans, ...bots];
@@ -1197,7 +1161,6 @@ io.on("connection", (socket) => {
       playerHands[roomCode][n] = decks[roomCode].splice(0, 5);
     }
 
-    // ✅ 남은 카드 수 전송
     io.to(roomCode).emit("deck-update", { remaining: decks[roomCode].length });
     io.to(roomCode).emit("game-started", {
       roomCode,
@@ -1205,8 +1168,17 @@ io.on("connection", (socket) => {
     });
 
     setTimeout(() => {
-      const firstPlayer = players[0];
-      // [AI-STEP3]
+      let firstPlayer = players[0];
+      const lastRoundScores = scores[roomCode];
+      const validScores = players.map((p) => {
+        const rScores = lastRoundScores[p] || [];
+        const lastScore = rScores.length > 0 ? rScores[rScores.length - 1] : 0;
+        return { nickname: p, score: lastScore };
+      });
+      validScores.sort((a, b) => a.score - b.score);
+      firstPlayer = validScores[0].nickname;
+
+      turnIndex[roomCode] = players.indexOf(firstPlayer);
       broadcastTurn(roomCode, firstPlayer);
     }, 500);
   });
@@ -1215,45 +1187,33 @@ io.on("connection", (socket) => {
     if (!readyPlayers[roomCode]) readyPlayers[roomCode] = new Set();
     readyPlayers[roomCode].add(nickname);
 
+    // 방에 있는 모든 '사람'이 게임 화면에 로딩되었을 때
     if (readyPlayers[roomCode].size === (rooms[roomCode]?.length || 0)) {
-      // [AI-STEP3] 첫 턴도 전체 리스트 기준
       const playersAll = getAllPlayers(roomCode);
-      turnIndex[roomCode] = 0;
-      const firstPlayer = playersAll[0] || nickname;
+
+      // 💡 핵심: 0으로 강제 초기화하지 않고, start-game이나 ready-next-round에서 계산해둔 turnIndex를 그대로 사용합니다!
+      if (turnIndex[roomCode] === undefined) {
+        turnIndex[roomCode] = 0;
+      }
+
+      // 저장된 turnIndex에 해당하는 진짜 '선' 플레이어 가져오기
+      const firstPlayer = playersAll[turnIndex[roomCode]] || nickname;
+
       io.to(roomCode).emit("ready-ok");
       broadcastTurn(roomCode, firstPlayer);
-      console.log(
-        `[${new Date().toISOString()}][DEBUG ready] 현재 서버 기준 턴 플레이어: ${firstPlayer}`
-      );
     }
   });
 
   socket.on("draw-card", ({ roomCode }) => {
     const nickname = socketIdToNickname[socket.id];
+    log.game(`[${roomCode}] ${nickname} -> 카드 드로우`);
     if (!nickname || !roomCode) return;
 
-    // [AI-STEP3] 현재 턴 플레이어 계산(사람+봇)
     const allPlayers = getAllPlayers(roomCode);
     const currentPlayer = allPlayers?.[turnIndex[roomCode]];
 
-    console.log(
-      `[DEBUG draw-card] 현재 서버 기준 턴 플레이어: ${currentPlayer}`
-    );
-    console.log(`[DEBUG] 드로우 요청 보낸 플레이어: ${nickname}`);
-
-    if (nickname !== currentPlayer) {
-      console.log(
-        `[${new Date().toISOString()}][BLOCKED] ${nickname} tried to draw, but it's not their turn.`
-      );
-      return;
-    }
-
-    if (drawFlag[roomCode].has(nickname)) {
-      console.log(
-        `[${new Date().toISOString()}][BLOCKED] ${nickname} already drew a card.`
-      );
-      return;
-    }
+    if (nickname !== currentPlayer) return;
+    if (drawFlag[roomCode].has(nickname)) return;
 
     const deck = decks[roomCode];
     if (!deck || deck.length === 0) return;
@@ -1266,28 +1226,52 @@ io.on("connection", (socket) => {
       socket.to(roomCode).emit("player-drawn", { nickname });
     }
 
-    if (deck.length === 0) {
-      console.log("[DEBUG] 덱이 비었음 — 이후 조건에 따라 라운드 종료 예정");
-    }
-
     io.to(roomCode).emit("deck-update", { remaining: deck.length });
 
     if (!deck || deck.length === 0) {
-      console.log("[DEBUG] 덱이 비어 있음 — 라운드 종료 처리");
       roundInProgress[roomCode] = false;
-
       io.to(roomCode).emit("round-ended", {
         reason: "deck-empty",
         allPlayerHands: playerHands[roomCode],
         round: roundCount[roomCode],
       });
-
       return;
     }
   });
 
+  socket.on("time-out", ({ roomCode }) => {
+    const nickname = socketIdToNickname[socket.id];
+    if (!nickname || !roomCode) return;
+
+    const currentPlayer = getAllPlayers(roomCode)?.[turnIndex[roomCode]];
+    if (nickname !== currentPlayer) return;
+
+    const now = Date.now();
+    if (lastTimeoutMap[roomCode] && now - lastTimeoutMap[roomCode] < 2000) {
+      return;
+    }
+    lastTimeoutMap[roomCode] = now;
+
+    if (uhbbungMap[roomCode]) {
+      if (!penaltyScores[roomCode]) penaltyScores[roomCode] = {};
+      penaltyScores[roomCode][nickname] =
+        (penaltyScores[roomCode][nickname] || 0) + 10;
+
+      log.game(`[${roomCode}] ⏰ ${nickname} 타임아웃! (어벙 +10점)`);
+      // 💡 penalty 플래그를 담아서 클라이언트에 전송
+      io.to(roomCode).emit("uhbbung-alert", { nickname, penalty: true });
+    } else {
+      log.game(`[${roomCode}] ⏰ ${nickname} 타임아웃! (턴 유지)`);
+      io.to(roomCode).emit("uhbbung-alert", { nickname, penalty: false });
+    }
+
+    // ❌ 문제의 원인이었던 broadcastTurn이나 nextTurn을 완전히 삭제했습니다!
+    // 이제 서버는 가만히 있고, 클라이언트 쪽에서 알아서 타이머만 다시 돕니다.
+  });
+
   socket.on("submit-card", ({ roomCode, card }) => {
     const nickname = socketIdToNickname[socket.id];
+    log.game(`[${roomCode}] ${nickname} -> 카드 제출: ${card}`);
     if (!nickname || !roomCode) return;
 
     const index = playerHands[roomCode][nickname].indexOf(card);
@@ -1297,9 +1281,7 @@ io.on("connection", (socket) => {
     submittedHistory[roomCode].push({ nickname, card });
     io.to(roomCode).emit("card-submitted", { nickname, card });
 
-    // ⬇️ 추가: 사람 카드 제출에도 즉시 봇 뻥 체크
     void maybeBotBbung(roomCode);
-
     nextTurn(roomCode);
   });
 
@@ -1307,17 +1289,11 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("chat-message", { nickname, message });
   });
 
-  // --- 뻥 제출 처리 ---
   socket.on("submit-bbung", ({ roomCode, cards }) => {
     const nickname = socketIdToNickname[socket.id];
     if (!nickname || !roomCode) return;
 
-    // ✅ 드로우 후 뻥 금지
-    if (drawFlag[roomCode]?.has(nickname)) {
-      console.log("[BLOCKED] 드로우 후 뻥 시도 차단됨:", nickname);
-      return; // ⛔ 반드시 즉시 반환
-    }
-
+    if (drawFlag[roomCode]?.has(nickname)) return;
     if (cards.length !== 2) return;
 
     const numbers = cards.map((c: string) => c.replace(/[^0-9JQKA]/g, ""));
@@ -1327,10 +1303,7 @@ io.on("connection", (socket) => {
     const lastNumber = last?.card?.replace(/[^0-9JQKA]/g, "");
     const bbungNumber = numbers[0];
 
-    if (last?.nickname === nickname && lastNumber === bbungNumber) {
-      console.log("[BLOCKED] 자기 카드에 자기 뻥 시도:", nickname);
-      return;
-    }
+    if (last?.nickname === nickname && lastNumber === bbungNumber) return;
 
     for (const card of cards) {
       const index = playerHands[roomCode][nickname].indexOf(card);
@@ -1342,7 +1315,6 @@ io.on("connection", (socket) => {
     }
 
     if (playerHands[roomCode][nickname].length === 0) {
-      // 유도자 기억
       const last = submittedHistory[roomCode].at(-3);
       const bbungNumber = cards[0].replace(/[^0-9JQKA]/g, "");
 
@@ -1352,18 +1324,15 @@ io.on("connection", (socket) => {
         last.card.replace(/[^0-9JQKA]/g, "") === bbungNumber
       ) {
         bbungEndTriggeredBy[roomCode] = last.nickname;
-        console.log("[DEBUG] 뻥 유도자 저장:", last.nickname);
       }
 
-      // ✅ 점수 계산 및 저장 추가
       const hands = playerHands[roomCode];
       const scoresThisRound = calculateScores(
         "bbung-end",
         null,
         hands,
-        roomCode
+        roomCode,
       );
-      console.log("[DEBUG] 뻥 종료 (즉시) — 계산된 점수:", scoresThisRound);
 
       for (const [nickname, score] of Object.entries(scoresThisRound)) {
         scores[roomCode][nickname].push(score);
@@ -1380,17 +1349,14 @@ io.on("connection", (socket) => {
         reason: "bbung-end",
         allPlayerHands: playerHands[roomCode],
         round: roundCount[roomCode],
-        triggerer: bbungEndTriggeredBy[roomCode], // ✅ 이 줄 추가!
+        triggerer: bbungEndTriggeredBy[roomCode],
       });
     }
     io.to(roomCode).emit("bbung-effect", {
       nickname: socketIdToNickname[socket.id],
     });
-
-    // 턴은 아직 넘기지 않음 — 추가 카드 제출까지 기다림
   });
 
-  // --- 뻥 추가 카드 제출 처리 ---
   socket.on("submit-bbung-extra", ({ roomCode, card }) => {
     const nickname = socketIdToNickname[socket.id];
     if (!nickname || !roomCode) return;
@@ -1411,12 +1377,11 @@ io.on("connection", (socket) => {
         "bbung-end",
         null,
         hands,
-        roomCode
+        roomCode,
       );
-      console.log("[DEBUG] 뻥 종료 — 계산된 점수:", scoresThisRound);
 
-      for (const [nickname, score] of Object.entries(scoresThisRound)) {
-        scores[roomCode][nickname].push(score);
+      for (const [n, s] of Object.entries(scoresThisRound)) {
+        scores[roomCode][n].push(s);
       }
 
       roundResults[roomCode] = {
@@ -1433,24 +1398,18 @@ io.on("connection", (socket) => {
         triggerer: bbungEndTriggeredBy[roomCode],
       });
     } else {
-      // [AI-STEP3] 다음 플레이어 계산도 전체 기준
       const players = getAllPlayers(roomCode);
       const bbungIdx = players.indexOf(nickname);
       const nextIdx = (bbungIdx + 1) % players.length;
       turnIndex[roomCode] = nextIdx;
       drawFlag[roomCode].clear();
       const nextPlayer = players[nextIdx];
-
       broadcastTurn(roomCode, nextPlayer);
-      console.log(
-        `[${new Date().toISOString()}][DEBUG submit-bbung-extra] 현재 서버 기준 턴 플레이어: ${nextPlayer}`
-      );
     }
   });
 
   socket.on("hand-empty", ({ roomCode }) => {
     roundInProgress[roomCode] = false;
-
     io.to(roomCode).emit("round-ended", {
       reason: "hand-empty",
       allPlayerHands: playerHands[roomCode],
@@ -1461,14 +1420,9 @@ io.on("connection", (socket) => {
   socket.on("declare-bagaji", ({ roomCode, isBagaji }) => {
     const nickname = socketIdToNickname[socket.id];
     if (!nickname || !roomCode) return;
-
-    io.to(roomCode).emit("bagaji-declared", {
-      nickname,
-      isBagaji,
-    });
+    io.to(roomCode).emit("bagaji-declared", { nickname, isBagaji });
   });
 
-  // --- round-ended 핸들러 내부 ---
   socket.on("round-ended", ({ roomCode, reason }) => {
     const hands = playerHands[roomCode];
     const stopper =
@@ -1478,21 +1432,14 @@ io.on("connection", (socket) => {
       reason,
       stopper || null,
       hands,
-      roomCode
+      roomCode,
     );
 
-    // ✅ 점수 누적
     for (const [nickname, score] of Object.entries(roundScore)) {
       scores[roomCode][nickname].push(score);
     }
 
-    // ✅ 결과 저장
-    roundResults[roomCode] = {
-      scores: roundScore,
-      hands,
-      reason,
-      stopper,
-    };
+    roundResults[roomCode] = { scores: roundScore, hands, reason, stopper };
     roundInProgress[roomCode] = false;
 
     io.to(roomCode).emit("round-ended", {
@@ -1508,12 +1455,10 @@ io.on("connection", (socket) => {
     callback(map);
   });
 
-  // [AI] 현재(사람+봇) 플레이어 목록 요청 → player-list 브로드캐스트
   socket.on("request-player-list", ({ roomCode }: { roomCode: string }) => {
     broadcastPlayerList(roomCode);
   });
 
-  // [AI] 로비에서 AI(봇) 추가
   socket.on(
     "add-bot",
     ({
@@ -1524,8 +1469,6 @@ io.on("connection", (socket) => {
       difficulty?: Difficulty;
     }) => {
       const d: Difficulty = difficulty || "easy";
-
-      // 인원 제한(사람+봇 합산) — 최대 6명
       const totalCount =
         (rooms[roomCode]?.length || 0) + getBots(roomCode).length;
       if (totalCount >= 6) {
@@ -1535,15 +1478,11 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // 닉네임 생성 (숫자 금지)
       const nickname = generateBotNickname(roomCode);
-
-      // 방 구조 초기화(손패 등)
       addBot(roomCode, { nickname, difficulty: d });
       if (!playerHands[roomCode]) playerHands[roomCode] = {};
       playerHands[roomCode][nickname] = [];
 
-      // 알림 & 목록 갱신
       io.to(roomCode).emit("player-joined", {
         nickname,
         isBot: true,
@@ -1551,16 +1490,14 @@ io.on("connection", (socket) => {
       });
       broadcastPlayerList(roomCode);
 
-      // (선택) 이모지도 붙이고 싶다면:
       if (!emojiMap[roomCode]) emojiMap[roomCode] = {};
       if (!emojiMap[roomCode][nickname]) {
-        emojiMap[roomCode][nickname] = "🤖"; // 기본 봇 이모지
+        emojiMap[roomCode][nickname] = "🤖";
         io.to(roomCode).emit("update-emojis", emojiMap[roomCode]);
       }
-    }
+    },
   );
 
-  // [AI] 로비에서 AI(봇) 제거
   socket.on(
     "remove-bot",
     ({ roomCode, nickname }: { roomCode: string; nickname: string }) => {
@@ -1573,12 +1510,11 @@ io.on("connection", (socket) => {
       io.to(roomCode).emit("player-left", { nickname });
       broadcastPlayerList(roomCode);
 
-      // (선택) 이모지 정리
       if (emojiMap[roomCode] && emojiMap[roomCode][nickname]) {
         delete emojiMap[roomCode][nickname];
         io.to(roomCode).emit("update-emojis", emojiMap[roomCode]);
       }
-    }
+    },
   );
 
   socket.on("disconnecting", () => {
@@ -1604,8 +1540,6 @@ io.on("connection", (socket) => {
         players: rooms[roomCode],
         emojis: emojiMap[roomCode],
       });
-
-      // [AI] 사람/봇 통합 목록 재브로드캐스트
       broadcastPlayerList(roomCode);
     });
 
@@ -1613,21 +1547,20 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("클라이언트 연결 해제:", socket.id);
+    log.conn(`클라이언트 접속 해제: ${socket.id}`);
   });
 });
 
 const PORT = 4000;
 httpServer.listen(PORT, () => {
-  console.log(`Socket.IO 서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+  log.info(`Socket.IO 서버 실행 중 - http://localhost:${PORT}`);
 });
 
-// --- 점수 계산 함수 ---
 function calculateScores(
   reason: string,
   stopper: string | null,
   hands: { [nickname: string]: string[] },
-  roomCode: string
+  roomCode: string,
 ): { [nickname: string]: number } {
   const scores: { [nickname: string]: number } = {};
 
@@ -1654,9 +1587,8 @@ function calculateScores(
       if (
         (sorted[i] - sorted[i - 1] + 13) % 13 !== 1 &&
         sorted[i] - sorted[i - 1] !== 1
-      ) {
+      )
         return false;
-      }
     }
     return true;
   };
@@ -1678,7 +1610,6 @@ function calculateScores(
     const values = hand.map(cardToValue);
     const total = sum(hand);
 
-    // 족보 (6장짜리 특수 조건)
     if (hand.length === 6) {
       if (isStraight(values)) return -total;
       if (isPairPairPair(values)) return 0;
@@ -1688,15 +1619,12 @@ function calculateScores(
       return total;
     }
 
-    if (hand.length === 3 && values.every((v) => v === values[0])) {
-      return 0;
-    }
+    if (hand.length === 3 && values.every((v) => v === values[0])) return 0;
 
-    // ✅ 손패가 6장이 아닌 경우에만 적용
     const counts: Record<number, number> = {};
     values.forEach((v) => (counts[v] = (counts[v] || 0) + 1));
     const tripleValue = Object.keys(counts).find(
-      (k) => counts[parseInt(k)] === 3
+      (k) => counts[parseInt(k)] === 3,
     );
     if (
       tripleValue &&
@@ -1715,7 +1643,7 @@ function calculateScores(
   if (reason === "stop" && stopper) {
     const stopperScore = calculate(hands[stopper]);
     const hasLowerOrEqual = allPlayers.some(
-      (p) => p !== stopper && calculate(hands[p]) <= stopperScore
+      (p) => p !== stopper && calculate(hands[p]) <= stopperScore,
     );
 
     for (const p of allPlayers) {
@@ -1732,42 +1660,29 @@ function calculateScores(
     }
   }
 
-  // 뻥 유도자 보너스 적용
   if (reason === "bbung-end" && roomCode) {
     const rewardPlayer = bbungEndTriggeredBy[roomCode];
-    console.log("[DEBUG] bbung-end 유도자:", rewardPlayer);
-
     if (rewardPlayer) {
       scores[rewardPlayer] = (scores[rewardPlayer] || 0) + 30;
-      console.log(
-        `[${new Date().toISOString()}][DEBUG] ${rewardPlayer} 에게 +30점 보상`
-      );
-    } else {
-      console.log("[DEBUG] 유도자 없음 — 점수 보상 생략됨");
     }
   }
 
-  console.log(
-    `[DEBUG] 점수 계산 시작 — reason: ${reason}, roomCode: ${roomCode}`
-  );
-  console.log(`[DEBUG] 현재 roundCount[${roomCode}] = ${roundCount[roomCode]}`);
-  console.log(
-    `[DEBUG] doubleFinalRoundMap[${roomCode}] = ${doubleFinalRoundMap[roomCode]}`
-  );
-
-  // ✅ 마지막 라운드 점수 2배 처리
-  if (roomCode && roundCount[roomCode] === 5 && doubleFinalRoundMap[roomCode]) {
-    console.log("[DEBUG] 마지막 라운드 조건 충족 — 점수 2배 적용");
+  if (
+    roomCode &&
+    roundCount[roomCode] === (maxRoundMap[roomCode] || 5) &&
+    doubleFinalRoundMap[roomCode]
+  ) {
     for (const p of Object.keys(scores)) {
       const original = scores[p];
       const doubled = typeof original === "number" ? original * 2 : 0;
       scores[p] = doubled;
-      console.log(`[DEBUG] ${p} 점수 2배 적용: ${original} -> ${doubled}`);
     }
-  } else {
-    console.log("[DEBUG] 마지막 라운드 조건 불충분 — 점수 2배 적용 안됨");
   }
 
-  // 점수 반환
+  for (const p of Object.keys(scores)) {
+    const penalty = penaltyScores[roomCode]?.[p] || 0;
+    scores[p] += penalty;
+  }
+
   return scores;
 }
